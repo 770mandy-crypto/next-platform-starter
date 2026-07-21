@@ -26,9 +26,17 @@ export default function Page() {
                     Deploy the latest version of Next.js — including Turbopack, React Compiler, and the new caching APIs
                     — on Netlify in seconds. No configuration or custom adapter required.
                 </p>
-                <Link href="https://docs.netlify.com/frameworks/next-js/overview/" className="btn btn-lg sm:min-w-64">
-                    Read the Docs
-                </Link>
+                <div className="flex flex-wrap gap-4">
+                    <Link href="/store" className="btn btn-lg sm:min-w-64">
+                        Visit the Shop
+                    </Link>
+                    <Link
+                        href="https://docs.netlify.com/frameworks/next-js/overview/"
+                        className="btn btn-lg bg-white/10 text-white hover:bg-white/20 sm:min-w-64"
+                    >
+                        Read the Docs
+                    </Link>
+                </div>
             </section>
             {!!ctx && (
                 <section className="flex flex-col gap-4">
