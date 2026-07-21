@@ -19,6 +19,21 @@ const ctx = getNetlifyContext();
 export default function Page() {
     return (
         <div className="flex flex-col gap-12 sm:gap-16">
+            <Link
+                href="/coach"
+                dir="rtl"
+                className="block p-6 no-underline transition border rounded-lg border-primary/40 bg-primary/10 hover:bg-primary/20"
+            >
+                <div className="flex items-center gap-4">
+                    <span className="text-4xl">🏋️</span>
+                    <div className="text-right">
+                        <div className="text-lg font-bold text-primary">מאמן כושר AI — חדש!</div>
+                        <div className="text-sm text-white/80">
+                            צ׳אט מאמן חכם שבונה לכם תוכנית אימון אישית עם הדגמות וידאו. לחצו כדי להתחיל ←
+                        </div>
+                    </div>
+                </div>
+            </Link>
             <section>
                 <ContextAlert className="mb-6" />
                 <h1 className="mb-4">Netlify Platform Starter – Next.js</h1>
