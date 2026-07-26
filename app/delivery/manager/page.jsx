@@ -1,0 +1,93 @@
+import Link from 'next/link';
+import { isManager } from '../lib/auth';
+import { listDeliveries, STATUS } from '../lib/store';
+import { managerLogoutAction, deleteDeliveryAction } from '../actions';
+import { ManagerLoginForm } from '../components/manager-login-form';
+import { AddDeliveryForm } from '../components/add-delivery-form';
+import { StatusBadge } from '../components/status-badge';
+
+export const metadata = {
+    title: 'מנהל | ניהול משלוחים'
+};
+
+export const dynamic = 'force-dynamic';
+
+export default async function ManagerPage() {
+    if (!(await isManager())) {
+        return (
+            <div className="py-8">
+                <ManagerLoginForm />
+                <p className="mt-6 text-sm text-center text-white/60">
+                    <Link href="/delivery">← חזרה למסך הבחירה</Link>
+                </p>
+            </div>
+        );
+    }
+
+    const deliveries = await listDeliveries();
+    const openCount = deliveries.filter((d) => d.status !== STATUS.DELIVERED).length;
+    const deliveredCount = deliveries.filter((d) => d.status === STATUS.DELIVERED).length;
+
+    return (
+        <div className="flex flex-col gap-8 py-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+                <h1>👔 לוח מנהל</h1>
+                <form action={managerLogoutAction}>
+                    <button type="submit" className="text-sm underline text-white/70 hover:text-white">
+                        התנתקות
+                    </button>
+                </form>
+            </div>
+
+            <AddDeliveryForm />
+
+            <div>
+                <div className="flex items-center justify-between mb-4">
+                    <h2>📋 כל המשלוחים</h2>
+                    <span className="text-sm text-white/70">
+                        פתוחים: {openCount} · נמסרו: {deliveredCount}
+                    </span>
+                </div>
+
+                {deliveries.length === 0 ? (
+                    <p className="p-6 text-center border rounded-2xl border-white/15 bg-white/5 text-white/60">
+                        עדיין אין משלוחים. הוסף משלוח חדש למעלה.
+                    </p>
+                ) : (
+                    <ul className="flex flex-col gap-4">
+                        {deliveries.map((d) => (
+                            <li
+                                key={d.id}
+                                className="flex flex-col gap-3 p-5 border rounded-2xl border-white/15 bg-white/5"
+                            >
+                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                    <div>
+                                        <p className="text-lg font-bold">📍 {d.address}</p>
+                                        {d.notes && <p className="text-sm text-white/60">{d.notes}</p>}
+                                    </div>
+                                    <StatusBadge status={d.status} />
+                                </div>
+
+                                <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-white/80">
+                                    <span>💰 תשלום לשליח: <b>{d.payment} ₪</b></span>
+                                    {d.deadline && <span>⏰ עד: {d.deadline}</span>}
+                                    {d.courierName && <span>🛵 שליח: {d.courierName}</span>}
+                                </div>
+
+                                <form action={deleteDeliveryAction} className="self-start">
+                                    <input type="hidden" name="id" value={d.id} />
+                                    <button
+                                        type="submit"
+                                        className="text-xs underline text-red-400/80 hover:text-red-300"
+                                    >
+                                        מחיקת משלוח
+                                    </button>
+                                </form>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+        </div>
+    );
+}
