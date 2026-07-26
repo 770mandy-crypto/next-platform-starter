@@ -19,6 +19,7 @@ import {
     setCourierCookie,
     clearCourierCookie
 } from './lib/auth';
+import { NOTIF_TYPE, addNotification, markAllRead, clearNotifications } from './lib/notifications';
 
 /* ---------- כניסות ---------- */
 
@@ -137,6 +138,7 @@ export async function takeDeliveryAction(formData) {
     delivery.courierName = courierName;
     delivery.pickedAt = Date.now();
     await saveDelivery(delivery);
+    await addNotification({ type: NOTIF_TYPE.PICKED, delivery });
 
     revalidatePath('/delivery/courier');
     revalidatePath('/delivery/manager');
@@ -155,8 +157,25 @@ export async function confirmDeliveryAction(formData) {
     delivery.status = STATUS.DELIVERED;
     delivery.deliveredAt = Date.now();
     await saveDelivery(delivery);
+    await addNotification({ type: NOTIF_TYPE.DELIVERED, delivery });
 
     revalidatePath('/delivery/courier');
+    revalidatePath('/delivery/manager');
+}
+
+/* ---------- התראות (מנהל) ---------- */
+
+// סימון כל ההתראות כנקראו
+export async function markNotificationsReadAction() {
+    if (!(await isManager())) return;
+    await markAllRead();
+    revalidatePath('/delivery/manager');
+}
+
+// מחיקת כל ההתראות
+export async function clearNotificationsAction() {
+    if (!(await isManager())) return;
+    await clearNotifications();
     revalidatePath('/delivery/manager');
 }
 

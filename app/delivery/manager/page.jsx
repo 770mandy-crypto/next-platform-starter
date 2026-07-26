@@ -1,12 +1,20 @@
 import Link from 'next/link';
 import { isManager } from '../lib/auth';
 import { listDeliveries, STATUS } from '../lib/store';
-import { managerLogoutAction, deleteDeliveryAction, cancelDeliveryAction } from '../actions';
+import { listNotifications, NOTIF_TYPE } from '../lib/notifications';
+import {
+    managerLogoutAction,
+    deleteDeliveryAction,
+    cancelDeliveryAction,
+    markNotificationsReadAction,
+    clearNotificationsAction
+} from '../actions';
 import { formatDateTime, formatDuration } from '../lib/format';
 import { ManagerLoginForm } from '../components/manager-login-form';
 import { AddDeliveryForm } from '../components/add-delivery-form';
 import { StatusBadge } from '../components/status-badge';
 import { PhoneLinks } from '../components/phone-links';
+import { AutoRefresh } from '../components/auto-refresh';
 
 export const metadata = {
     title: 'מנהל | ניהול משלוחים'
@@ -27,6 +35,8 @@ export default async function ManagerPage({ searchParams }) {
     }
 
     const deliveries = await listDeliveries();
+    const notifications = await listNotifications();
+    const unreadCount = notifications.filter((n) => !n.read).length;
     const openCount = deliveries.filter(
         (d) => d.status === STATUS.AVAILABLE || d.status === STATUS.PICKED
     ).length;
@@ -64,14 +74,68 @@ export default async function ManagerPage({ searchParams }) {
 
     return (
         <div className="flex flex-col gap-8 py-6">
+            {/* רענון אוטומטי כדי שהתראות יופיעו בלי רענון ידני */}
+            <AutoRefresh seconds={20} />
+
             <div className="flex flex-wrap items-center justify-between gap-4">
-                <h1>👔 לוח מנהל</h1>
+                <h1>
+                    👔 לוח מנהל
+                    {unreadCount > 0 && (
+                        <span className="ml-2 align-middle px-2.5 py-0.5 text-sm font-bold text-primary-content bg-primary rounded-full">
+                            🔔 {unreadCount}
+                        </span>
+                    )}
+                </h1>
                 <form action={managerLogoutAction}>
                     <button type="submit" className="text-sm underline text-white/70 hover:text-white">
                         התנתקות
                     </button>
                 </form>
             </div>
+
+            {/* פאנל התראות */}
+            {notifications.length > 0 && (
+                <div className="p-5 border rounded-2xl border-white/15 bg-white/5">
+                    <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+                        <h2>🔔 התראות</h2>
+                        <div className="flex items-center gap-4">
+                            {unreadCount > 0 && (
+                                <form action={markNotificationsReadAction}>
+                                    <button type="submit" className="text-sm underline text-white/70 hover:text-white">
+                                        סמן הכל כנקרא
+                                    </button>
+                                </form>
+                            )}
+                            <form action={clearNotificationsAction}>
+                                <button type="submit" className="text-sm underline text-red-400/80 hover:text-red-300">
+                                    נקה הכל
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    <ul className="flex flex-col gap-2">
+                        {notifications.slice(0, 20).map((n) => (
+                            <li
+                                key={n.id}
+                                className={`flex flex-wrap items-center justify-between gap-2 p-3 text-sm border rounded-xl ${
+                                    n.read
+                                        ? 'border-white/10 bg-transparent text-white/60'
+                                        : 'border-primary/40 bg-primary/10'
+                                }`}
+                            >
+                                <span>
+                                    {n.type === NOTIF_TYPE.DELIVERED ? '✅' : '📦'}{' '}
+                                    <b>{n.courierName}</b>{' '}
+                                    {n.type === NOTIF_TYPE.DELIVERED ? 'מסר את המשלוח' : 'לקח את המשלוח'} ל־
+                                    <b>{n.address}</b>
+                                    {n.type === NOTIF_TYPE.DELIVERED && <span> ({n.payment} ₪)</span>}
+                                </span>
+                                <span className="text-xs text-white/50">{formatDateTime(n.createdAt)}</span>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
 
             <AddDeliveryForm />
 
