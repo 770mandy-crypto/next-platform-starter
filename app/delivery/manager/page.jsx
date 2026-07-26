@@ -5,6 +5,7 @@ import { managerLogoutAction, deleteDeliveryAction } from '../actions';
 import { ManagerLoginForm } from '../components/manager-login-form';
 import { AddDeliveryForm } from '../components/add-delivery-form';
 import { StatusBadge } from '../components/status-badge';
+import { PhoneLinks } from '../components/phone-links';
 
 export const metadata = {
     title: 'מנהל | ניהול משלוחים'
@@ -28,6 +29,19 @@ export default async function ManagerPage() {
     const openCount = deliveries.filter((d) => d.status !== STATUS.DELIVERED).length;
     const deliveredCount = deliveries.filter((d) => d.status === STATUS.DELIVERED).length;
 
+    // סיכום תשלומים לכל שליח (רק משלוחים שנמסרו)
+    const payByCourier = {};
+    for (const d of deliveries) {
+        if (d.status === STATUS.DELIVERED && d.courierName) {
+            if (!payByCourier[d.courierName]) {
+                payByCourier[d.courierName] = { count: 0, total: 0 };
+            }
+            payByCourier[d.courierName].count += 1;
+            payByCourier[d.courierName].total += d.payment || 0;
+        }
+    }
+    const courierSummary = Object.entries(payByCourier).sort((a, b) => b[1].total - a[1].total);
+
     return (
         <div className="flex flex-col gap-8 py-6">
             <div className="flex flex-wrap items-center justify-between gap-4">
@@ -40,6 +54,24 @@ export default async function ManagerPage() {
             </div>
 
             <AddDeliveryForm />
+
+            {courierSummary.length > 0 && (
+                <div>
+                    <h2 className="mb-4">💵 סיכום תשלומים לשליחים</h2>
+                    <ul className="flex flex-col gap-2">
+                        {courierSummary.map(([name, { count, total }]) => (
+                            <li
+                                key={name}
+                                className="flex flex-wrap items-center justify-between gap-3 p-4 border rounded-2xl border-white/15 bg-white/5"
+                            >
+                                <span className="font-bold">🛵 {name}</span>
+                                <span className="text-sm text-white/70">{count} משלוחים שנמסרו</span>
+                                <span className="text-lg font-bold text-green-300">{total} ₪</span>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
 
             <div>
                 <div className="flex items-center justify-between mb-4">
@@ -73,6 +105,8 @@ export default async function ManagerPage() {
                                     {d.deadline && <span>⏰ עד: {d.deadline}</span>}
                                     {d.courierName && <span>🛵 שליח: {d.courierName}</span>}
                                 </div>
+
+                                {d.phone && <PhoneLinks phone={d.phone} />}
 
                                 <form action={deleteDeliveryAction} className="self-start">
                                     <input type="hidden" name="id" value={d.id} />

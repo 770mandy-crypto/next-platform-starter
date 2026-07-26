@@ -55,6 +55,17 @@ export function AddDeliveryForm() {
             </div>
 
             <label className="flex flex-col gap-1 text-sm">
+                טלפון הלקוח (לא חובה)
+                <input
+                    name="phone"
+                    type="tel"
+                    inputMode="tel"
+                    className="px-3 py-2 text-white rounded-lg bg-neutral-900 border border-white/15 focus:outline-none focus:border-primary"
+                    placeholder="למשל: 050-1234567"
+                />
+            </label>
+
+            <label className="flex flex-col gap-1 text-sm">
                 הערות (לא חובה)
                 <input
                     name="notes"

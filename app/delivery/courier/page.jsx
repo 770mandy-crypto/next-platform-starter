@@ -8,6 +8,7 @@ import {
 } from '../actions';
 import { CourierLoginForm } from '../components/courier-login-form';
 import { StatusBadge } from '../components/status-badge';
+import { PhoneLinks } from '../components/phone-links';
 
 export const metadata = {
     title: 'שליח | ניהול משלוחים'
@@ -110,6 +111,7 @@ export default async function CourierPage() {
                                     <span>💰 אתה מקבל: <b className="text-primary">{d.payment} ₪</b></span>
                                     {d.deadline && <span>⏰ עד: {d.deadline}</span>}
                                 </div>
+                                {d.phone && <PhoneLinks phone={d.phone} />}
                                 <form action={confirmDeliveryAction} className="self-start">
                                     <input type="hidden" name="id" value={d.id} />
                                     <button type="submit" className="btn btn-sm">✅ אשר שהמשלוח נמסר</button>

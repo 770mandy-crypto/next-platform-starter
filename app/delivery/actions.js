@@ -63,6 +63,7 @@ export async function addDeliveryAction(prevState, formData) {
     const address = String(formData.get('address') || '').trim();
     const payment = Number(formData.get('payment') || 0);
     const deadline = String(formData.get('deadline') || '').trim();
+    const phone = String(formData.get('phone') || '').trim();
     const notes = String(formData.get('notes') || '').trim();
 
     if (!address) {
@@ -77,6 +78,7 @@ export async function addDeliveryAction(prevState, formData) {
         address,
         payment,
         deadline, // עד מתי אפשר לקחת את המשלוח (טקסט חופשי / תאריך)
+        phone, // טלפון הלקוח
         notes,
         status: STATUS.AVAILABLE,
         courierName: null,
