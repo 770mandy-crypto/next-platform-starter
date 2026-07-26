@@ -14,7 +14,7 @@ export const metadata = {
 
 export const dynamic = 'force-dynamic';
 
-export default async function ManagerPage() {
+export default async function ManagerPage({ searchParams }) {
     if (!(await isManager())) {
         return (
             <div className="py-8">
@@ -45,6 +45,22 @@ export default async function ManagerPage() {
         }
     }
     const courierSummary = Object.entries(payByCourier).sort((a, b) => b[1].total - a[1].total);
+
+    // סינון לפי סטטוס (מגיע מפרמטר ה-URL ?status=...)
+    const params = await searchParams;
+    const validFilters = ['all', STATUS.AVAILABLE, STATUS.PICKED, STATUS.DELIVERED, STATUS.CANCELLED];
+    const activeFilter = validFilters.includes(params?.status) ? params.status : 'all';
+
+    const filterTabs = [
+        { key: 'all', label: 'הכל', count: deliveries.length },
+        { key: STATUS.AVAILABLE, label: 'זמינים', count: deliveries.filter((d) => d.status === STATUS.AVAILABLE).length },
+        { key: STATUS.PICKED, label: 'בדרך', count: deliveries.filter((d) => d.status === STATUS.PICKED).length },
+        { key: STATUS.DELIVERED, label: 'נמסרו', count: deliveredCount },
+        { key: STATUS.CANCELLED, label: 'בוטלו', count: cancelledCount }
+    ];
+
+    const visibleDeliveries =
+        activeFilter === 'all' ? deliveries : deliveries.filter((d) => d.status === activeFilter);
 
     return (
         <div className="flex flex-col gap-8 py-6">
@@ -79,20 +95,45 @@ export default async function ManagerPage() {
 
             <div>
                 <div className="flex items-center justify-between mb-4">
-                    <h2>📋 כל המשלוחים</h2>
+                    <h2>📋 המשלוחים</h2>
                     <span className="text-sm text-white/70">
                         פתוחים: {openCount} · נמסרו: {deliveredCount}
                         {cancelledCount > 0 && ` · בוטלו: ${cancelledCount}`}
                     </span>
                 </div>
 
+                {/* טאבים לסינון לפי סטטוס */}
+                <div className="flex flex-wrap gap-2 mb-4">
+                    {filterTabs.map((tab) => {
+                        const isActive = tab.key === activeFilter;
+                        const href = tab.key === 'all' ? '/delivery/manager' : `/delivery/manager?status=${tab.key}`;
+                        return (
+                            <Link
+                                key={tab.key}
+                                href={href}
+                                className={`px-3 py-1.5 text-sm rounded-full border no-underline transition ${
+                                    isActive
+                                        ? 'bg-primary text-primary-content border-primary font-bold'
+                                        : 'border-white/15 bg-white/5 text-white/80 hover:bg-white/10'
+                                }`}
+                            >
+                                {tab.label} ({tab.count})
+                            </Link>
+                        );
+                    })}
+                </div>
+
                 {deliveries.length === 0 ? (
                     <p className="p-6 text-center border rounded-2xl border-white/15 bg-white/5 text-white/60">
                         עדיין אין משלוחים. הוסף משלוח חדש למעלה.
                     </p>
+                ) : visibleDeliveries.length === 0 ? (
+                    <p className="p-6 text-center border rounded-2xl border-white/15 bg-white/5 text-white/60">
+                        אין משלוחים בסטטוס הזה.
+                    </p>
                 ) : (
                     <ul className="flex flex-col gap-4">
-                        {deliveries.map((d) => (
+                        {visibleDeliveries.map((d) => (
                             <li
                                 key={d.id}
                                 className="flex flex-col gap-3 p-5 border rounded-2xl border-white/15 bg-white/5"
