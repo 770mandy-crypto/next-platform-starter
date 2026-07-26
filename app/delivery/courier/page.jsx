@@ -9,6 +9,7 @@ import {
 import { CourierLoginForm } from '../components/courier-login-form';
 import { StatusBadge } from '../components/status-badge';
 import { PhoneLinks } from '../components/phone-links';
+import { formatDateTime, formatDuration } from '../lib/format';
 
 export const metadata = {
     title: 'שליח | ניהול משלוחים'
@@ -81,6 +82,9 @@ export default async function CourierPage() {
                                     <span>💰 אתה מקבל: <b className="text-primary">{d.payment} ₪</b></span>
                                     {d.deadline && <span>⏰ עד: {d.deadline}</span>}
                                 </div>
+                                {d.createdAt && (
+                                    <p className="text-xs text-white/50">🕒 פורסם: {formatDateTime(d.createdAt)}</p>
+                                )}
                                 <form action={takeDeliveryAction} className="self-start">
                                     <input type="hidden" name="id" value={d.id} />
                                     <button type="submit" className="btn btn-sm">קח משלוח זה</button>
@@ -112,6 +116,9 @@ export default async function CourierPage() {
                                     {d.deadline && <span>⏰ עד: {d.deadline}</span>}
                                 </div>
                                 {d.phone && <PhoneLinks phone={d.phone} />}
+                                {d.pickedAt && (
+                                    <p className="text-xs text-white/50">📦 לקחת ב: {formatDateTime(d.pickedAt)}</p>
+                                )}
                                 <form action={confirmDeliveryAction} className="self-start">
                                     <input type="hidden" name="id" value={d.id} />
                                     <button type="submit" className="btn btn-sm">✅ אשר שהמשלוח נמסר</button>
@@ -130,10 +137,18 @@ export default async function CourierPage() {
                         {delivered.map((d) => (
                             <li
                                 key={d.id}
-                                className="flex flex-wrap items-center justify-between gap-3 p-4 border rounded-2xl border-green-500/25 bg-green-500/5"
+                                className="flex flex-col gap-1 p-4 border rounded-2xl border-green-500/25 bg-green-500/5"
                             >
-                                <span className="font-medium">📍 {d.address}</span>
-                                <span className="text-green-300">+{d.payment} ₪</span>
+                                <div className="flex flex-wrap items-center justify-between gap-3">
+                                    <span className="font-medium">📍 {d.address}</span>
+                                    <span className="text-green-300">+{d.payment} ₪</span>
+                                </div>
+                                <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-white/50">
+                                    {d.deliveredAt && <span>✅ נמסר: {formatDateTime(d.deliveredAt)}</span>}
+                                    {d.pickedAt && d.deliveredAt && (
+                                        <span>⏱️ משך: {formatDuration(d.pickedAt, d.deliveredAt)}</span>
+                                    )}
+                                </div>
                             </li>
                         ))}
                     </ul>
