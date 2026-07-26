@@ -94,12 +94,27 @@ export default async function ManagerPage({ searchParams }) {
             )}
 
             <div>
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                     <h2>📋 המשלוחים</h2>
-                    <span className="text-sm text-white/70">
-                        פתוחים: {openCount} · נמסרו: {deliveredCount}
-                        {cancelledCount > 0 && ` · בוטלו: ${cancelledCount}`}
-                    </span>
+                    <div className="flex flex-wrap items-center gap-4">
+                        <span className="text-sm text-white/70">
+                            פתוחים: {openCount} · נמסרו: {deliveredCount}
+                            {cancelledCount > 0 && ` · בוטלו: ${cancelledCount}`}
+                        </span>
+                        {deliveries.length > 0 && (
+                            <a
+                                href={
+                                    activeFilter === 'all'
+                                        ? '/delivery/report'
+                                        : `/delivery/report?status=${activeFilter}`
+                                }
+                                className="text-sm no-underline btn btn-sm"
+                                download
+                            >
+                                ⬇️ ייצוא ל-CSV
+                            </a>
+                        )}
+                    </div>
                 </div>
 
                 {/* טאבים לסינון לפי סטטוס */}
