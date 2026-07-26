@@ -1,21 +1,25 @@
 import { cookies } from 'next/headers';
 
-// סיסמת המנהל. ניתן להגדיר דרך משתנה סביבה MANAGER_PASSWORD,
-// אחרת נעשה שימוש בסיסמת ברירת מחדל (מומלץ לשנות בהגדרות האתר).
-export const MANAGER_PASSWORD = process.env.MANAGER_PASSWORD || 'admin123';
+// סיסמת המנהל. ניתן להגדיר דרך משתנה סביבה MANAGER_PASSWORD (מומלץ),
+// אחרת נעשה שימוש בסיסמת ברירת המחדל שלמטה.
+export const MANAGER_PASSWORD = process.env.MANAGER_PASSWORD || 'מנדי770';
 
 const MANAGER_COOKIE = 'mgr_auth';
 const COURIER_COOKIE = 'courier_name';
 
+// טוקן ההתחברות שנשמר בעוגייה - מקודד ל-base64 כדי שיהיה תקין
+// גם כשהסיסמה מכילה עברית (ערכי עוגייה חייבים להיות ASCII).
+const managerToken = () => Buffer.from(MANAGER_PASSWORD).toString('base64');
+
 // בדיקה האם המנהל מחובר
 export async function isManager() {
     const jar = await cookies();
-    return jar.get(MANAGER_COOKIE)?.value === MANAGER_PASSWORD;
+    return jar.get(MANAGER_COOKIE)?.value === managerToken();
 }
 
 export async function setManagerCookie() {
     const jar = await cookies();
-    jar.set(MANAGER_COOKIE, MANAGER_PASSWORD, {
+    jar.set(MANAGER_COOKIE, managerToken(), {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
