@@ -84,7 +84,8 @@ export async function addDeliveryAction(prevState, formData) {
         courierName: null,
         createdAt: Date.now(),
         pickedAt: null,
-        deliveredAt: null
+        deliveredAt: null,
+        cancelledAt: null
     };
 
     await saveDelivery(delivery);
@@ -98,6 +99,25 @@ export async function deleteDeliveryAction(formData) {
     if (!(await isManager())) return;
     const id = String(formData.get('id') || '');
     if (id) await deleteDelivery(id);
+    revalidatePath('/delivery/manager');
+    revalidatePath('/delivery/courier');
+}
+
+// ביטול משלוח (מנהל בלבד) - אפשרי כל עוד לא נמסר
+export async function cancelDeliveryAction(formData) {
+    if (!(await isManager())) return;
+    const id = String(formData.get('id') || '');
+    if (!id) return;
+
+    const delivery = await getDelivery(id);
+    if (!delivery || delivery.status === STATUS.DELIVERED || delivery.status === STATUS.CANCELLED) {
+        return;
+    }
+
+    delivery.status = STATUS.CANCELLED;
+    delivery.cancelledAt = Date.now();
+    await saveDelivery(delivery);
+
     revalidatePath('/delivery/manager');
     revalidatePath('/delivery/courier');
 }

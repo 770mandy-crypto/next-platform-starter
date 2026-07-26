@@ -7,13 +7,15 @@ const STORE_NAME = 'deliveries';
 export const STATUS = {
     AVAILABLE: 'available', // זמין - מחכה לשליח
     PICKED: 'picked', // נלקח - השליח בדרך ללקוח
-    DELIVERED: 'delivered' // נמסר - השליח אישר מסירה
+    DELIVERED: 'delivered', // נמסר - השליח אישר מסירה
+    CANCELLED: 'cancelled' // בוטל - המנהל ביטל את המשלוח
 };
 
 export const STATUS_LABEL = {
     [STATUS.AVAILABLE]: 'זמין לאיסוף',
     [STATUS.PICKED]: 'נלקח - בדרך ללקוח',
-    [STATUS.DELIVERED]: 'נמסר ללקוח'
+    [STATUS.DELIVERED]: 'נמסר ללקוח',
+    [STATUS.CANCELLED]: 'בוטל'
 };
 
 function deliveriesStore() {
