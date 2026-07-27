@@ -56,6 +56,13 @@ This starter includes a working digital-goods storefront:
 
 Without a key, checkout runs in **demo mode** (a local confirmation, no charge) so the store works out of the box.
 
+### Promo codes
+
+Checkout has `allow_promotion_codes` enabled. The `LAUNCH` code shown in the site banner is **not** automatic —
+create a matching coupon + promotion code named `LAUNCH` in the
+[Stripe dashboard](https://dashboard.stripe.com/coupons) so it actually applies at checkout. Remove or edit the
+banner text in `components/store/announcement-bar.jsx` if you don't want to run the sale.
+
 ### Managing products
 
 Edit `data/products.json`. Each product has a `price` (USD), catalog metadata, and a `file` that maps to a

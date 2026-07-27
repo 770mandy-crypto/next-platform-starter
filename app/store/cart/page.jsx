@@ -162,7 +162,10 @@ export default function CartPage() {
                     </button>
                     {error && <p className="text-sm text-center text-red-500">{error}</p>}
                     <p className="text-xs text-center text-neutral-400">
-                        Secure checkout powered by Stripe. Digital delivery — no shipping.
+                        🔒 Secure checkout powered by Stripe · Instant delivery
+                    </p>
+                    <p className="text-xs font-medium text-center text-green-600">
+                        ↩️ 30-day money-back guarantee
                     </p>
                 </aside>
             </div>

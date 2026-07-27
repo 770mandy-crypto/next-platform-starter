@@ -55,6 +55,8 @@ export async function POST(request) {
             })),
             // Digital goods: collect email for delivery, skip shipping address.
             billing_address_collection: 'auto',
+            // Let customers redeem promo codes (e.g. the LAUNCH coupon) at checkout.
+            allow_promotion_codes: true,
             metadata: {
                 slugs: lineItems.map(({ product }) => product.slug).join(',')
             },

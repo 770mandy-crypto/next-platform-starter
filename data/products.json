@@ -3,6 +3,8 @@
         "slug": "aurora-lightroom-presets",
         "name": "Aurora Lightroom Presets",
         "price": 24.0,
+        "compareAtPrice": 39.0,
+        "badge": "Best seller",
         "category": "Presets",
         "emoji": "🎨",
         "gradient": ["#2bdcd2", "#016968"],
@@ -10,12 +12,19 @@
         "description": "A pack of 30 hand-crafted Lightroom presets for moody, cinematic color grading. Works with Lightroom Desktop, Classic, and Mobile. One-click looks that you can fine-tune to taste.",
         "features": ["30 presets", "Desktop + Mobile", "Instant download", "Free updates"],
         "rating": 4.9,
+        "reviewCount": 214,
+        "reviews": [
+            { "author": "Maya R.", "rating": 5, "text": "These completely changed the mood of my photos. Worth every cent." },
+            { "author": "Daniel K.", "rating": 5, "text": "One click and my feed looks cohesive. My favorite purchase this year." }
+        ],
         "file": "aurora-lightroom-presets.zip"
     },
     {
         "slug": "focus-notion-template",
         "name": "Focus — Notion Productivity Template",
         "price": 19.0,
+        "compareAtPrice": 29.0,
+        "badge": null,
         "category": "Templates",
         "emoji": "🗂️",
         "gradient": ["#818cf8", "#4338ca"],
@@ -23,12 +32,19 @@
         "description": "An all-in-one Notion workspace for tasks, projects, habits, and weekly reviews. Duplicate it into your own Notion in one click and start planning immediately.",
         "features": ["Tasks + projects", "Habit tracker", "Weekly review", "One-click duplicate"],
         "rating": 4.8,
+        "reviewCount": 132,
+        "reviews": [
+            { "author": "Ori T.", "rating": 5, "text": "Finally a system I actually stick with. Clean and simple." },
+            { "author": "Sara L.", "rating": 4, "text": "Great structure out of the box, easy to customize." }
+        ],
         "file": "focus-notion-template.zip"
     },
     {
         "slug": "nova-ui-kit",
         "name": "Nova UI Kit for Figma",
         "price": 49.0,
+        "compareAtPrice": 89.0,
+        "badge": "Save 45%",
         "category": "Design",
         "emoji": "🧩",
         "gradient": ["#f472b6", "#be185d"],
@@ -36,12 +52,19 @@
         "description": "A production-ready Figma UI kit with 200+ components, auto-layout, variables, and light/dark themes. Build interfaces in a fraction of the time.",
         "features": ["200+ components", "Auto-layout", "Light + dark", "Design tokens"],
         "rating": 4.9,
+        "reviewCount": 87,
+        "reviews": [
+            { "author": "Noa B.", "rating": 5, "text": "Saved me at least two weeks on my last project. Incredible value." },
+            { "author": "Tom W.", "rating": 5, "text": "The auto-layout setup alone is worth the price." }
+        ],
         "file": "nova-ui-kit.zip"
     },
     {
         "slug": "pixel-icon-set",
         "name": "Pixel Icon Set",
         "price": 15.0,
+        "compareAtPrice": 25.0,
+        "badge": null,
         "category": "Design",
         "emoji": "✨",
         "gradient": ["#fbbf24", "#d97706"],
@@ -49,12 +72,19 @@
         "description": "500 pixel-perfect SVG icons in a consistent stroke style. Includes outline and filled variants, plus a web font. Drop them into any project, royalty-free.",
         "features": ["500 icons", "SVG + web font", "Outline + filled", "Royalty-free"],
         "rating": 4.7,
+        "reviewCount": 156,
+        "reviews": [
+            { "author": "Lior A.", "rating": 5, "text": "Consistent, clean, and huge variety. My go-to icon set now." },
+            { "author": "Emma S.", "rating": 4, "text": "Great quality and the web font makes them easy to use." }
+        ],
         "file": "pixel-icon-set.zip"
     },
     {
         "slug": "freelance-ebook",
         "name": "The Freelancer's Playbook (eBook)",
         "price": 12.0,
+        "compareAtPrice": 20.0,
+        "badge": null,
         "category": "eBooks",
         "emoji": "📘",
         "gradient": ["#34d399", "#059669"],
@@ -62,12 +92,19 @@
         "description": "A practical 120-page guide to finding clients, pricing projects, writing proposals, and getting paid on time. Includes templates for contracts and invoices.",
         "features": ["120 pages", "PDF + ePub", "Contract templates", "Invoice templates"],
         "rating": 4.6,
+        "reviewCount": 98,
+        "reviews": [
+            { "author": "Adam P.", "rating": 5, "text": "Paid for itself with the very first client I landed using it." },
+            { "author": "Rina M.", "rating": 4, "text": "Straight to the point, no fluff. The templates are gold." }
+        ],
         "file": "freelance-ebook.zip"
     },
     {
         "slug": "lofi-sound-pack",
         "name": "Lo-Fi Sound Pack",
         "price": 29.0,
+        "compareAtPrice": 45.0,
+        "badge": "New",
         "category": "Audio",
         "emoji": "🎵",
         "gradient": ["#38bdf8", "#0369a1"],
@@ -75,12 +112,19 @@
         "description": "120 royalty-free lo-fi loops, one-shots, and textures at 24-bit WAV. Perfect for beats, videos, and podcasts. Fully cleared for commercial use.",
         "features": ["120 samples", "24-bit WAV", "Royalty-free", "Commercial license"],
         "rating": 4.8,
+        "reviewCount": 64,
+        "reviews": [
+            { "author": "Jay D.", "rating": 5, "text": "Warm, clean samples that sit right in the mix. Love them." },
+            { "author": "Kayla F.", "rating": 5, "text": "Perfect for my podcast intros. Huge time saver." }
+        ],
         "file": "lofi-sound-pack.zip"
     },
     {
         "slug": "resume-template-pack",
         "name": "Resume Template Pack",
         "price": 9.0,
+        "compareAtPrice": 19.0,
+        "badge": "Save 53%",
         "category": "Templates",
         "emoji": "📄",
         "gradient": ["#a78bfa", "#6d28d9"],
@@ -88,12 +132,19 @@
         "description": "Five clean, recruiter-approved resume templates that pass applicant tracking systems. Editable in Word, Google Docs, and Figma, with a matching cover letter.",
         "features": ["5 designs", "ATS-friendly", "Word + Docs + Figma", "Cover letter"],
         "rating": 4.7,
+        "reviewCount": 301,
+        "reviews": [
+            { "author": "Michael G.", "rating": 5, "text": "Landed three interviews the week after switching to this template." },
+            { "author": "Dana V.", "rating": 5, "text": "Looks professional and passed the ATS scan. Easy to edit." }
+        ],
         "file": "resume-template-pack.zip"
     },
     {
         "slug": "next-saas-starter",
         "name": "Next.js SaaS Starter Kit",
         "price": 79.0,
+        "compareAtPrice": 149.0,
+        "badge": "Save 47%",
         "category": "Code",
         "emoji": "⚡",
         "gradient": ["#4ade80", "#15803d"],
@@ -101,6 +152,11 @@
         "description": "A batteries-included Next.js starter with authentication, Stripe billing, a dashboard, and email — all wired up. Skip weeks of boilerplate and ship your SaaS faster.",
         "features": ["Auth + billing", "Dashboard UI", "TypeScript", "MIT-friendly license"],
         "rating": 5.0,
+        "reviewCount": 42,
+        "reviews": [
+            { "author": "Ben H.", "rating": 5, "text": "Shipped my MVP in a weekend instead of a month. Unreal." },
+            { "author": "Priya N.", "rating": 5, "text": "The billing integration alone saved me days of work." }
+        ],
         "file": "next-saas-starter.zip"
     }
 ]
