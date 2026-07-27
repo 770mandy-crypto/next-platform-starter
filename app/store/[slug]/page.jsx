@@ -46,9 +46,7 @@ export default function ProductPage({ params }) {
                             {product.category}
                         </span>
                         <span className="text-sm text-neutral-400">★ {product.rating}</span>
-                        <span className="text-sm text-neutral-400">
-                            {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
-                        </span>
+                        <span className="text-sm text-neutral-400">⤓ Instant download</span>
                     </div>
 
                     <h1>{product.name}</h1>

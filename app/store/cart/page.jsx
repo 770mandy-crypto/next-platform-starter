@@ -5,21 +5,46 @@ import Link from 'next/link';
 import { useCart } from 'components/store/cart-context';
 import { ProductThumbnail, formatPrice } from 'components/store/product-thumbnail';
 
-const SHIPPING = 6.0;
-
 export default function CartPage() {
     const { items, totalItems, totalPrice, setQuantity, removeItem, clearCart } = useCart();
     const [order, setOrder] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
-    function handleCheckout(event) {
-        event.preventDefault();
-        const form = new FormData(event.target);
-        setOrder({
-            id: `YC-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
-            name: form.get('name'),
-            total: totalPrice + SHIPPING
-        });
-        clearCart();
+    async function handleCheckout() {
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await fetch('/api/checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    items: items.map((item) => ({ slug: item.slug, quantity: item.quantity }))
+                })
+            });
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data?.error || 'Checkout failed');
+            }
+
+            if (data.url) {
+                // Stripe is configured: hand off to Stripe Checkout.
+                window.location.href = data.url;
+                return;
+            }
+
+            // Demo mode (no Stripe keys): show a local confirmation.
+            setOrder({
+                id: `YC-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+                total: totalPrice
+            });
+            clearCart();
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
     }
 
     if (order) {
@@ -28,9 +53,8 @@ export default function CartPage() {
                 <div className="text-6xl">🎉</div>
                 <h1>Order confirmed</h1>
                 <p className="max-w-md text-lg text-neutral-300">
-                    Thanks{order.name ? `, ${order.name}` : ''}! Your order{' '}
-                    <span className="font-mono text-primary">{order.id}</span> for{' '}
-                    <strong>{formatPrice(order.total)}</strong> has been placed. A confirmation is on its way.
+                    Thanks! Your order <span className="font-mono text-primary">{order.id}</span> for{' '}
+                    <strong>{formatPrice(order.total)}</strong> has been placed. Your download links are on their way.
                 </p>
                 <Link href="/store" className="btn btn-lg">
                     Continue shopping
@@ -125,24 +149,20 @@ export default function CartPage() {
                         <span>{formatPrice(totalPrice)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                        <span>Shipping</span>
-                        <span>{formatPrice(SHIPPING)}</span>
+                        <span>Delivery</span>
+                        <span>Instant download</span>
                     </div>
                     <div className="flex justify-between pt-3 text-lg font-bold border-t border-neutral-200 text-neutral-900">
                         <span>Total</span>
-                        <span>{formatPrice(totalPrice + SHIPPING)}</span>
+                        <span>{formatPrice(totalPrice)}</span>
                     </div>
 
-                    <form onSubmit={handleCheckout} className="flex flex-col gap-3 mt-2">
-                        <input name="name" required placeholder="Full name" className="input" />
-                        <input name="email" type="email" required placeholder="Email" className="input" />
-                        <input name="address" required placeholder="Shipping address" className="input" />
-                        <button type="submit" className="mt-2 btn btn-lg">
-                            Checkout · {formatPrice(totalPrice + SHIPPING)}
-                        </button>
-                    </form>
+                    <button type="button" onClick={handleCheckout} disabled={loading} className="mt-2 btn btn-lg">
+                        {loading ? 'Redirecting…' : `Checkout · ${formatPrice(totalPrice)}`}
+                    </button>
+                    {error && <p className="text-sm text-center text-red-500">{error}</p>}
                     <p className="text-xs text-center text-neutral-400">
-                        Demo checkout — no payment is processed.
+                        Secure checkout powered by Stripe. Digital delivery — no shipping.
                     </p>
                 </aside>
             </div>

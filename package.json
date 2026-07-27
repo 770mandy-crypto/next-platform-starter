@@ -17,6 +17,7 @@
     "next": "^16.0.8",
     "react": "19.2.1",
     "react-dom": "19.2.1",
+    "stripe": "^22.3.2",
     "unique-names-generator": "^4.7.1"
   },
   "devDependencies": {
