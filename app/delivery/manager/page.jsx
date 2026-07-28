@@ -56,6 +56,16 @@ export default async function ManagerPage({ searchParams }) {
     }
     const courierSummary = Object.entries(payByCourier).sort((a, b) => b[1].total - a[1].total);
 
+    // סיכום הכנסות ורווח (רק על משלוחים שנמסרו = כסף שכבר נכנס)
+    const deliveredList = deliveries.filter((d) => d.status === STATUS.DELIVERED);
+    const revenue = deliveredList.reduce((s, d) => s + (Number(d.customerPrice) || 0), 0);
+    const courierCost = deliveredList.reduce((s, d) => s + (Number(d.payment) || 0), 0);
+    const profit = revenue - courierCost;
+    // רווח צפוי ממשלוחים שעדיין פתוחים (זמינים / בדרך)
+    const expectedProfit = deliveries
+        .filter((d) => d.status === STATUS.AVAILABLE || d.status === STATUS.PICKED)
+        .reduce((s, d) => s + ((Number(d.customerPrice) || 0) - (Number(d.payment) || 0)), 0);
+
     // סינון לפי סטטוס (מגיע מפרמטר ה-URL ?status=...)
     const params = await searchParams;
     const validFilters = ['all', STATUS.AVAILABLE, STATUS.PICKED, STATUS.DELIVERED, STATUS.CANCELLED];
@@ -91,6 +101,23 @@ export default async function ManagerPage({ searchParams }) {
                         התנתקות
                     </button>
                 </form>
+            </div>
+
+            {/* דשבורד הכנסות ורווח */}
+            <div className="grid gap-4 sm:grid-cols-3">
+                <div className="p-5 border rounded-2xl border-primary/40 bg-primary/10">
+                    <p className="text-sm text-white/70">📈 הרווח שלך (נמסרו)</p>
+                    <p className="text-3xl font-bold text-primary">{profit} ₪</p>
+                </div>
+                <div className="p-5 border rounded-2xl border-white/15 bg-white/5">
+                    <p className="text-sm text-white/70">💵 הכנסות מלקוחות</p>
+                    <p className="text-2xl font-bold text-green-300">{revenue} ₪</p>
+                    <p className="text-xs text-white/50">בניכוי {courierCost} ₪ לשליחים</p>
+                </div>
+                <div className="p-5 border rounded-2xl border-white/15 bg-white/5">
+                    <p className="text-sm text-white/70">⏳ רווח צפוי (משלוחים פתוחים)</p>
+                    <p className="text-2xl font-bold text-blue-300">{expectedProfit} ₪</p>
+                </div>
             </div>
 
             {/* פאנל התראות */}
@@ -226,7 +253,13 @@ export default async function ManagerPage({ searchParams }) {
                                 </div>
 
                                 <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-white/80">
-                                    <span>💰 תשלום לשליח: <b>{d.payment} ₪</b></span>
+                                    {d.customerPrice != null && <span>💵 מחיר ללקוח: <b>{d.customerPrice} ₪</b></span>}
+                                    <span>🛵 תשלום לשליח: <b>{d.payment} ₪</b></span>
+                                    {d.customerPrice != null && (
+                                        <span className={d.customerPrice - d.payment >= 0 ? 'text-green-300' : 'text-red-300'}>
+                                            📈 רווח: <b>{d.customerPrice - d.payment} ₪</b>
+                                        </span>
+                                    )}
                                     {d.deadline && <span>⏰ עד: {d.deadline}</span>}
                                     {d.courierName && <span>🛵 שליח: {d.courierName}</span>}
                                 </div>

@@ -27,7 +27,9 @@ export async function GET(request) {
         'תאריך יצירה',
         'כתובת',
         'טלפון לקוח',
+        'מחיר ללקוח (₪)',
         'תשלום לשליח (₪)',
+        'רווח (₪)',
         'סטטוס',
         'שליח',
         'נלקח',
@@ -36,11 +38,16 @@ export async function GET(request) {
         'הערות'
     ];
 
+    const profitOf = (d) =>
+        d.customerPrice != null ? (Number(d.customerPrice) || 0) - (Number(d.payment) || 0) : '';
+
     const rows = deliveries.map((d) => [
         formatDateTime(d.createdAt),
         d.address,
         d.phone,
+        d.customerPrice,
         d.payment,
+        profitOf(d),
         STATUS_LABEL[d.status] || d.status,
         d.courierName,
         formatDateTime(d.pickedAt),
@@ -49,11 +56,12 @@ export async function GET(request) {
         d.notes
     ]);
 
-    // שורת סיכום: סך התשלומים על משלוחים שנמסרו
-    const totalPaid = deliveries
-        .filter((d) => d.status === STATUS.DELIVERED)
-        .reduce((sum, d) => sum + (Number(d.payment) || 0), 0);
-    const summaryRow = ['', '', 'סה"כ שולם (נמסרו):', totalPaid, '', '', '', '', '', ''];
+    // שורת סיכום: הכנסות, תשלום לשליחים ורווח על משלוחים שנמסרו
+    const delivered = deliveries.filter((d) => d.status === STATUS.DELIVERED);
+    const totalRevenue = delivered.reduce((sum, d) => sum + (Number(d.customerPrice) || 0), 0);
+    const totalPaid = delivered.reduce((sum, d) => sum + (Number(d.payment) || 0), 0);
+    const totalProfit = totalRevenue - totalPaid;
+    const summaryRow = ['', '', 'סה"כ (נמסרו):', totalRevenue, totalPaid, totalProfit, '', '', '', '', '', ''];
 
     const lines = [headers, ...rows, [], summaryRow].map((row) => row.map(csvCell).join(','));
 

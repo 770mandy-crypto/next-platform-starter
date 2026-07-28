@@ -62,6 +62,7 @@ export async function addDeliveryAction(prevState, formData) {
     }
 
     const address = String(formData.get('address') || '').trim();
+    const customerPrice = Number(formData.get('customerPrice') || 0);
     const payment = Number(formData.get('payment') || 0);
     const deadline = String(formData.get('deadline') || '').trim();
     const phone = String(formData.get('phone') || '').trim();
@@ -70,6 +71,9 @@ export async function addDeliveryAction(prevState, formData) {
     if (!address) {
         return { error: 'חובה להזין כתובת למשלוח' };
     }
+    if (!customerPrice || customerPrice <= 0) {
+        return { error: 'חובה להזין מחיר ללקוח' };
+    }
     if (!payment || payment <= 0) {
         return { error: 'חובה להזין סכום תשלום לשליח' };
     }
@@ -77,7 +81,9 @@ export async function addDeliveryAction(prevState, formData) {
     const delivery = {
         id: newId(),
         address,
-        payment,
+        customerPrice, // כמה הלקוח משלם
+        payment, // כמה השליח מקבל
+        profit: customerPrice - payment, // הרווח של העסק על המשלוח
         deadline, // עד מתי אפשר לקחת את המשלוח (טקסט חופשי / תאריך)
         phone, // טלפון הלקוח
         notes,
