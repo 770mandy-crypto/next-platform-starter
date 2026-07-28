@@ -1,7 +1,7 @@
 const BADGES = [
     { icon: '🔒', title: 'Secure checkout', subtitle: 'Powered by Stripe' },
-    { icon: '⚡', title: 'Instant access', subtitle: 'Delivered right after payment' },
-    { icon: '↩️', title: '30-day guarantee', subtitle: 'Not happy? Full refund' },
+    { icon: '🚚', title: 'Free shipping', subtitle: 'On every order' },
+    { icon: '↩️', title: '30-day returns', subtitle: 'Easy & hassle-free' },
     { icon: '💬', title: 'Friendly support', subtitle: 'We reply within a day' }
 ];
 

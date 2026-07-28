@@ -4,7 +4,7 @@ import { TrustBadges } from 'components/store/trust-badges';
 
 export const metadata = {
     title: 'Store',
-    description: 'Premium digital products — presets, templates, UI kits and more. Instant download after checkout.'
+    description: 'Curated products shipped straight to your door. Free shipping and a 30-day money-back guarantee.'
 };
 
 export default function StorePage() {
@@ -20,8 +20,8 @@ export default function StorePage() {
                 </span>
                 <h1 className="max-w-2xl">Premium digital products that pay for themselves</h1>
                 <p className="max-w-xl text-lg text-neutral-300">
-                    Presets, templates, and toolkits trusted by {totalReviews.toLocaleString()}+ creators. Buy once,
-                    download instantly, use forever.
+                    Handpicked products loved by {totalReviews.toLocaleString()}+ happy customers. Free shipping, fast
+                    delivery, and a 30-day money-back guarantee.
                 </p>
                 <div className="flex flex-wrap items-center justify-center gap-2">
                     <span className="text-yellow-400">★★★★★</span>

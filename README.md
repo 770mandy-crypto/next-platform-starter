@@ -38,14 +38,15 @@ netlify dev
 
 If your browser doesn't navigate to the site automatically, visit [localhost:8888](http://localhost:8888).
 
-## Store (digital products + Stripe)
+## Store (Stripe checkout + automatic fulfillment)
 
-This starter includes a working digital-goods storefront:
+This starter includes a working storefront with hands-off shipping:
 
 - Catalog at `/store`, product pages at `/store/[slug]`, cart at `/store/cart`
 - Client-side cart (React Context + `localStorage`)
 - Real payments via **Stripe Checkout** (`app/api/checkout/route.js`)
-- Post-payment download delivery at `/store/success` (verifies the Stripe session)
+- Shipping-address collection + free-shipping option at checkout
+- Automatic order fulfillment: paid orders are forwarded to a shipping partner (`lib/fulfillment.js`)
 
 ### Enabling real payments
 
@@ -62,6 +63,35 @@ Checkout has `allow_promotion_codes` enabled. The `LAUNCH` code shown in the sit
 create a matching coupon + promotion code named `LAUNCH` in the
 [Stripe dashboard](https://dashboard.stripe.com/coupons) so it actually applies at checkout. Remove or edit the
 banner text in `components/store/announcement-bar.jsx` if you don't want to run the sale.
+
+### Hands-off order fulfillment (shipping)
+
+You never touch inventory or the post office. When a payment succeeds, Stripe calls our webhook
+(`app/api/webhook/route.js`), which forwards the order — items **and** the customer's shipping address — to a
+fulfillment partner that picks, packs, and ships directly to the buyer. Pick a partner with the
+`FULFILLMENT_PROVIDER` env var:
+
+| `FULFILLMENT_PROVIDER` | What happens | Extra env |
+| --- | --- | --- |
+| _(unset)_ | **Demo mode** — the order is logged, nothing ships. Works out of the box. | — |
+| `webhook` | POSTs the full order to any URL — your supplier's intake endpoint, a 3PL, or an automation like Zapier/Make/n8n. Most flexible. | `FULFILLMENT_WEBHOOK_URL`, optional `FULFILLMENT_WEBHOOK_SECRET` |
+| `printful` | Sends the order to **Printful** (print-on-demand — they produce and ship for you). | `PRINTFUL_API_KEY`, plus a `printfulVariantId` on each product in `data/products.json` |
+
+**One-time setup to go live:**
+
+1. **Sign up with a fulfillment partner** (5 minutes). Easiest hands-off options:
+   [Printful](https://www.printful.com/) or [Printify](https://printify.com/) for print-on-demand, or a
+   dropshipping supplier ([CJ Dropshipping](https://cjdropshipping.com/), [Spocket](https://www.spocket.co/)) wired
+   through the `webhook` provider.
+2. **Turn on the Stripe webhook** so paid orders are forwarded automatically:
+   - In the [Stripe dashboard → Webhooks](https://dashboard.stripe.com/webhooks), add an endpoint pointing to
+     `https://YOUR_SITE/api/webhook` and subscribe to the **`checkout.session.completed`** event.
+   - Copy the endpoint's **Signing secret** (`whsec_...`) into `STRIPE_WEBHOOK_SECRET`.
+   - Locally, forward events with `stripe listen --forward-to localhost:8888/api/webhook`.
+3. Set `FULFILLMENT_PROVIDER` (and its env vars from the table) in `.env.local` and in Netlify.
+
+After that, every order flows **customer → Stripe → your fulfillment partner → shipped**, with zero manual work
+on your side.
 
 ### Managing products
 

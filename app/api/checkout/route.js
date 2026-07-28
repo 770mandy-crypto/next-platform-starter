@@ -53,12 +53,31 @@ export async function POST(request) {
                     }
                 }
             })),
-            // Digital goods: collect email for delivery, skip shipping address.
             billing_address_collection: 'auto',
+            // Collect a shipping address so our fulfillment partner can ship the order.
+            shipping_address_collection: {
+                allowed_countries: ['US', 'CA', 'GB', 'AU', 'IL', 'DE', 'FR', 'ES', 'IT', 'NL']
+            },
+            // Show a free-shipping option (a strong conversion lever) and record the address.
+            shipping_options: [
+                {
+                    shipping_rate_data: {
+                        type: 'fixed_amount',
+                        fixed_amount: { amount: 0, currency: 'usd' },
+                        display_name: 'Free shipping',
+                        delivery_estimate: {
+                            minimum: { unit: 'business_day', value: 5 },
+                            maximum: { unit: 'business_day', value: 12 }
+                        }
+                    }
+                }
+            ],
             // Let customers redeem promo codes (e.g. the LAUNCH coupon) at checkout.
             allow_promotion_codes: true,
             metadata: {
-                slugs: lineItems.map(({ product }) => product.slug).join(',')
+                slugs: lineItems.map(({ product }) => product.slug).join(','),
+                // Full item list (with quantities) so the webhook can build the fulfillment order.
+                items: JSON.stringify(lineItems.map(({ product, quantity }) => ({ slug: product.slug, quantity })))
             },
             success_url: `${origin}/store/success?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${origin}/store/cart`

@@ -39,7 +39,7 @@ export default async function SuccessPage({ searchParams }) {
                 <div className="text-6xl">🤔</div>
                 <h1>We couldn&apos;t confirm this payment</h1>
                 <p className="max-w-md text-lg text-neutral-300">
-                    If you were charged, your download links will arrive by email. Otherwise, head back to the shop and
+                    If you were charged, an order confirmation will arrive by email. Otherwise, head back to the shop and
                     try again.
                 </p>
                 <Link href="/store" className="btn btn-lg">
@@ -52,27 +52,26 @@ export default async function SuccessPage({ searchParams }) {
     return (
         <div className="flex flex-col items-center gap-6 py-16 text-center">
             <div className="text-6xl">🎉</div>
-            <h1>Thank you for your purchase!</h1>
+            <h1>Thank you for your order!</h1>
             <p className="max-w-md text-lg text-neutral-300">
-                Your payment went through{customerEmail ? ` — a receipt is on its way to ${customerEmail}` : ''}. Grab
-                your downloads below.
+                Your payment went through{customerEmail ? ` — a receipt is on its way to ${customerEmail}` : ''}. Your
+                order is being prepared, and you&apos;ll get a shipping confirmation with tracking by email once it&apos;s
+                on the way.
             </p>
 
             {purchased.length > 0 && (
                 <div className="flex flex-col w-full max-w-md gap-3 mt-2">
                     {purchased.map((product) => (
-                        <a
+                        <div
                             key={product.slug}
-                            href={`/downloads/${product.file}`}
-                            download
-                            className="flex items-center justify-between gap-4 px-5 py-4 no-underline bg-white rounded-sm text-neutral-800 hover:opacity-90"
+                            className="flex items-center justify-between gap-4 px-5 py-4 bg-white rounded-sm text-neutral-800"
                         >
                             <span className="flex items-center gap-3">
                                 <span className="text-2xl">{product.emoji}</span>
                                 <span className="font-semibold text-left">{product.name}</span>
                             </span>
-                            <span className="font-bold text-secondary">Download ⤓</span>
-                        </a>
+                            <span className="text-sm font-semibold text-green-600">✓ Confirmed</span>
+                        </div>
                     ))}
                 </div>
             )}
