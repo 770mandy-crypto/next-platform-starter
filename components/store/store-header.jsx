@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { BrandMark } from 'components/store/brand-mark';
 import { useCart } from 'components/store/cart-provider';
 
@@ -30,6 +30,19 @@ export function StoreHeader() {
     useEffect(() => {
         setMenuOpen(false);
     }, [pathname]);
+
+    // Kick the badge when a line lands in the cart, but never on first paint.
+    const badgeRef = useRef(null);
+    const previousCount = useRef(0);
+    useEffect(() => {
+        const node = badgeRef.current;
+        if (node && count > previousCount.current && previousCount.current !== 0) {
+            node.classList.remove('badge-pop');
+            void node.offsetWidth;
+            node.classList.add('badge-pop');
+        }
+        previousCount.current = count;
+    }, [count]);
 
     return (
         <header
@@ -100,6 +113,7 @@ export function StoreHeader() {
                 >
                     <span className="hidden sm:inline">עגלה</span>
                     <span
+                        ref={badgeRef}
                         className="inline-flex items-center justify-center w-7 h-7 text-[0.7rem] font-semibold rounded-full"
                         style={{
                             background: hydrated && count ? 'var(--color-gold)' : 'transparent',

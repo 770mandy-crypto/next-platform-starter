@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AddToCart } from 'components/store/add-to-cart';
 import { GarmentShot } from 'components/store/garment-shot';
+import { SplitHeading } from 'components/store/motion/split-heading';
+import { Tilt } from 'components/store/motion/tilt';
 import { ProductCard } from 'components/store/product-card';
 import { Reveal } from 'components/store/reveal';
 import { categoryName, formatPrice } from 'lib/format';
@@ -41,17 +43,19 @@ export default async function ProductPage({ params }) {
             </nav>
 
             <div className="grid gap-12 lg:grid-cols-2 lg:gap-20">
-                <div className="relative overflow-hidden border hairline" style={{ aspectRatio: '3 / 4' }}>
-                    <GarmentShot product={product} className="w-full h-full" priority />
+                <Tilt className="relative overflow-hidden border hairline" max={5}>
+                    <div style={{ aspectRatio: '3 / 4' }}>
+                        <GarmentShot product={product} className="w-full h-full" priority />
+                    </div>
                     {product.badge && (
                         <span
-                            className="absolute top-5 px-3 py-1.5 text-[0.6rem] font-semibold tracking-[0.18em] uppercase start-5"
+                            className="absolute z-10 top-5 px-3 py-1.5 text-[0.6rem] font-semibold tracking-[0.18em] uppercase start-5"
                             style={{ background: 'var(--color-gold)', color: 'var(--color-ink)' }}
                         >
                             {product.badge}
                         </span>
                     )}
-                </div>
+                </Tilt>
 
                 <div>
                     <p className="eyebrow">{product.titleHe ?? categoryName(product.category)}</p>
@@ -95,7 +99,9 @@ export default async function ProductPage({ params }) {
                 <section className="mt-32">
                     <Reveal>
                         <p className="eyebrow">להשלים את הסט</p>
-                        <h2 className="mt-4 mb-14">עוד מהקולקציה</h2>
+                        <SplitHeading as="h2" className="mt-4 mb-14">
+                            עוד מהקולקציה
+                        </SplitHeading>
                     </Reveal>
                     <div className="grid gap-x-8 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
                         {related.map((item, index) => (

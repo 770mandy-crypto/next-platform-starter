@@ -6,9 +6,9 @@ configured (see lib/shopify.js), products are pulled live from Shopify instead a
 this file is only used for local development and previews.
 
 PRICES ARE PLACEHOLDERS — set the real ones here and everything on the site
-follows. `cut` and `tone` drive the rendering in components/store/garment-shot.jsx;
-give a product a `photo` path once studio photography exists and that image is
-used instead of the vector rendering.
+follows. `photo` is the product photograph; `cut` and `tone` still matter because
+they drive the vector rendering that shows underneath while the photo loads, and
+that stands in if the photo ever fails to load.
 */
 
 export const categories = [
@@ -27,7 +27,7 @@ export const products = [
         category: 'tees',
         cut: 'tee',
         tone: 'black',
-        photo: null,
+        photo: '/images/products/tee-black.jpg',
         price: 179,
         compareAtPrice: null,
         badge: 'קולקציית הפתיחה',
@@ -52,7 +52,7 @@ export const products = [
         category: 'tees',
         cut: 'tee',
         tone: 'white',
-        photo: null,
+        photo: '/images/products/tee-white.jpg',
         price: 179,
         compareAtPrice: null,
         badge: 'קולקציית הפתיחה',
@@ -77,7 +77,7 @@ export const products = [
         category: 'shorts',
         cut: 'shorts',
         tone: 'black',
-        photo: null,
+        photo: '/images/products/shorts-black.jpg',
         price: 229,
         compareAtPrice: null,
         badge: null,
@@ -102,7 +102,7 @@ export const products = [
         category: 'shorts',
         cut: 'shorts',
         tone: 'white',
-        photo: null,
+        photo: '/images/products/shorts-white.jpg',
         price: 229,
         compareAtPrice: null,
         badge: null,
@@ -127,7 +127,7 @@ export const products = [
         category: 'sets',
         cut: 'tee',
         tone: 'black',
-        photo: null,
+        photo: '/images/products/tee-black.jpg',
         price: 369,
         compareAtPrice: 408,
         badge: 'חיסכון ₪39',
@@ -151,7 +151,7 @@ export const products = [
         category: 'sets',
         cut: 'shorts',
         tone: 'white',
-        photo: null,
+        photo: '/images/products/shorts-white.jpg',
         price: 369,
         compareAtPrice: 408,
         badge: 'חיסכון ₪39',

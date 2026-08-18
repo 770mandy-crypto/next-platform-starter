@@ -1,6 +1,9 @@
 import Link from 'next/link';
 import { BrandMark } from 'components/store/brand-mark';
 import { GarmentShot } from 'components/store/garment-shot';
+import { Marquee } from 'components/store/motion/marquee';
+import { SplitHeading } from 'components/store/motion/split-heading';
+import { Tilt } from 'components/store/motion/tilt';
 import { ProductCard } from 'components/store/product-card';
 import { Reveal } from 'components/store/reveal';
 import { categories } from 'data/products';
@@ -15,8 +18,8 @@ export default async function HomePage() {
     return (
         <>
             {/*
-            Hero. The load sequence runs on CSS animation delays rather than JS:
-            monogram, then wordmark, then the line, then the buttons.
+            Hero. The load sequence runs on CSS animation delays: monogram, then
+            headline, then the line, then the buttons, then the two pieces.
             */}
             <section className="relative overflow-hidden">
                 <div
@@ -24,7 +27,7 @@ export default async function HomePage() {
                     className="absolute inset-0"
                     style={{
                         background:
-                            'radial-gradient(90% 60% at 50% 0%, rgba(194,161,94,0.14) 0%, transparent 62%), var(--color-ink)'
+                            'radial-gradient(90% 60% at 50% 0%, rgba(194,161,94,0.16) 0%, transparent 62%), var(--color-ink)'
                     }}
                 />
 
@@ -33,23 +36,20 @@ export default async function HomePage() {
                         <BrandMark scale={1.5} shimmer className="mx-auto" />
                     </div>
 
-                    <h1
-                        className="max-w-4xl mx-auto mt-14 rise"
-                        style={{ '--rise-delay': '620ms', textWrap: 'balance' }}
-                    >
+                    <SplitHeading className="max-w-4xl mx-auto mt-14" delay={640} stagger={90}>
                         קולקציית הפתיחה
-                    </h1>
+                    </SplitHeading>
 
                     <p
                         className="max-w-xl mx-auto mt-6 text-lg leading-relaxed text-muted rise"
-                        style={{ '--rise-delay': '780ms' }}
+                        style={{ '--rise-delay': '900ms' }}
                     >
                         ארבעה פריטים. שחור, לבן וזהב. סדרה מוגבלת שלא נדפיס שוב — כשנגמר, נגמר.
                     </p>
 
                     <div
                         className="flex flex-wrap justify-center gap-4 mt-12 rise"
-                        style={{ '--rise-delay': '940ms' }}
+                        style={{ '--rise-delay': '1040ms' }}
                     >
                         <Link href="/shop" className="btn-gold">
                             לקולקציה
@@ -60,29 +60,26 @@ export default async function HomePage() {
                     </div>
 
                     <div
-                        className="grid max-w-3xl gap-6 mx-auto mt-20 sm:grid-cols-2 fade-in"
-                        style={{ '--rise-delay': '1100ms' }}
+                        className="grid max-w-3xl gap-8 mx-auto mt-20 sm:grid-cols-2 fade-in"
+                        style={{ '--rise-delay': '1200ms' }}
                     >
-                        <Link href={`/product/${blackTee.slug}`} className="block group">
-                            <div className="overflow-hidden border hairline" style={{ aspectRatio: '3 / 4' }}>
-                                <div className="w-full h-full transition-transform duration-[1200ms] ease-out group-hover:scale-105">
-                                    <GarmentShot product={blackTee} className="w-full h-full" priority />
-                                </div>
-                            </div>
-                        </Link>
-                        <Link href={`/product/${whiteShorts.slug}`} className="block group">
-                            <div className="overflow-hidden border hairline" style={{ aspectRatio: '3 / 4' }}>
-                                <div className="w-full h-full transition-transform duration-[1200ms] ease-out group-hover:scale-105">
-                                    <GarmentShot product={whiteShorts} className="w-full h-full" priority />
-                                </div>
-                            </div>
-                        </Link>
+                        {[blackTee, whiteShorts].map((product) => (
+                            <Link key={product.slug} href={`/product/${product.slug}`} className="block">
+                                <Tilt max={9}>
+                                    <div className="overflow-hidden border hairline" style={{ aspectRatio: '3 / 4' }}>
+                                        <GarmentShot product={product} className="w-full h-full" priority />
+                                    </div>
+                                </Tilt>
+                            </Link>
+                        ))}
                     </div>
                 </div>
             </section>
 
-            {/* A quiet band of the three things worth promising. */}
-            <section className="border-y hairline" style={{ background: 'var(--color-ink-2)' }}>
+            <Marquee items={['LIMITED SERIES', 'VALENTOS 2026', 'GOLD EMBROIDERY', 'MADE IN ISRAEL']} />
+
+            {/* The three things worth promising. */}
+            <section style={{ background: 'var(--color-ink-2)' }} className="border-b hairline">
                 <div className="grid px-6 mx-auto max-w-7xl sm:px-10 sm:grid-cols-3">
                     {[
                         ['סדרה מוגבלת', 'כל דגם מודפס פעם אחת. אין ריפרינט ואין עודפים.'],
@@ -106,7 +103,9 @@ export default async function HomePage() {
                 <Reveal className="flex flex-wrap items-end justify-between gap-6 mb-14">
                     <div>
                         <p className="eyebrow">2026</p>
-                        <h2 className="mt-4">הפריטים</h2>
+                        <SplitHeading as="h2" className="mt-4">
+                            הפריטים
+                        </SplitHeading>
                     </div>
                     <Link
                         href="/shop"
@@ -127,13 +126,13 @@ export default async function HomePage() {
             </section>
 
             {/* Closing statement */}
-            <section className="border-t hairline" style={{ background: 'var(--color-ink-2)' }}>
+            <section className="border-y hairline" style={{ background: 'var(--color-ink-2)' }}>
                 <div className="px-6 py-24 mx-auto text-center max-w-3xl sm:px-10 sm:py-32">
                     <Reveal>
                         <p className="eyebrow">VALENTOS</p>
-                        <h2 className="mt-6" style={{ textWrap: 'balance' }}>
+                        <SplitHeading as="h2" className="mt-6">
                             לא עוד מותג עם לוגו גדול
-                        </h2>
+                        </SplitHeading>
                         <p className="mt-6 text-lg leading-relaxed text-muted">
                             בחרנו רקמה קטנה בזהב על בד כבד, כי פריט טוב לא צריך לצעוק. הקולקציה הראשונה יצאה בסדרה
                             מוגבלת בכוונה — אנחנו מעדיפים להיגמר מאשר להישאר במלאי.

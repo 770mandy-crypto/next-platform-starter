@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { BrandMark } from 'components/store/brand-mark';
+import { SplitHeading } from 'components/store/motion/split-heading';
+import { Tilt } from 'components/store/motion/tilt';
 import { Reveal } from 'components/store/reveal';
 
 export const metadata = {
@@ -35,7 +37,9 @@ export default function AboutPage() {
 
             <Reveal delay={120} className="mt-16">
                 <p className="eyebrow">המותג</p>
-                <h1 className="mt-4">התחיל מרקמה אחת</h1>
+                <SplitHeading className="mt-4" delay={120}>
+                    התחיל מרקמה אחת
+                </SplitHeading>
             </Reveal>
 
             <Reveal delay={200}>
@@ -54,6 +58,21 @@ export default function AboutPage() {
                         שסתם ממלאים קטלוג.
                     </p>
                 </div>
+            </Reveal>
+
+            <Reveal delay={120} className="mt-20">
+                <Tilt className="overflow-hidden border hairline" max={5}>
+                    <img
+                        src="/images/products/logo-embroidery.jpg"
+                        alt="רקמת הזהב של VALENTOS על בד"
+                        loading="lazy"
+                        className="block object-cover w-full"
+                        style={{ aspectRatio: '16 / 9' }}
+                    />
+                </Tilt>
+                <p className="mt-4 text-xs tracking-[0.16em] uppercase text-muted">
+                    רקמת הזהב, מקרוב
+                </p>
             </Reveal>
 
             <div className="grid gap-y-12 gap-x-10 mt-24 sm:grid-cols-2">

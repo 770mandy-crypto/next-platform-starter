@@ -242,23 +242,223 @@ and complete rather than invisible.
         }
     }
 
+    /* Heading reveal: each word rises out of its own clipping box. */
+    .word-mask {
+        display: inline-block;
+        overflow: hidden;
+        vertical-align: bottom;
+    }
+
+    .word-mask > span {
+        display: inline-block;
+        transform: translateY(105%);
+        transition: transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+        transition-delay: var(--word-delay, 0ms);
+    }
+
+    .word-mask.is-in > span {
+        transform: none;
+    }
+
+    /* Cards lift and catch a gold edge under the pointer. */
+    .tilt {
+        transform-style: preserve-3d;
+        transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+        will-change: transform;
+    }
+
+    .tilt-glare {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.5s ease;
+        background: radial-gradient(
+            32rem circle at var(--gx, 50%) var(--gy, 50%),
+            color-mix(in oklab, var(--color-gold-hi) 20%, transparent),
+            transparent 55%
+        );
+    }
+
+    .tilt-host:hover .tilt-glare {
+        opacity: 1;
+    }
+
+    /* Marquee: the track holds two identical runs, so -50% loops seamlessly. */
+    .marquee {
+        display: flex;
+        overflow: hidden;
+        user-select: none;
+        mask-image: linear-gradient(to left, transparent, #000 12%, #000 88%, transparent);
+    }
+
+    .marquee-track {
+        display: flex;
+        flex-shrink: 0;
+        gap: 3rem;
+        padding-inline-end: 3rem;
+        animation: marquee var(--marquee-duration, 34s) linear infinite;
+    }
+
+    @keyframes marquee {
+        to {
+            transform: translateX(50%);
+        }
+    }
+
+    /* Route transition: a gold blade wipes across, then lifts. */
+    .page-wipe {
+        position: fixed;
+        inset: 0;
+        z-index: 90;
+        pointer-events: none;
+        transform-origin: right center;
+        animation: wipe 0.9s cubic-bezier(0.76, 0, 0.24, 1) forwards;
+        background: linear-gradient(90deg, var(--color-gold-lo), var(--color-gold-hi) 50%, var(--color-gold-lo));
+    }
+
+    @keyframes wipe {
+        0% {
+            transform: scaleX(1);
+            transform-origin: right center;
+        }
+        45% {
+            transform: scaleX(1);
+            transform-origin: left center;
+        }
+        100% {
+            transform: scaleX(0);
+            transform-origin: left center;
+        }
+    }
+
+    .page-in {
+        animation: page-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.28s both;
+    }
+
+    @keyframes page-in {
+        from {
+            opacity: 0;
+            transform: translateY(14px);
+        }
+        to {
+            opacity: 1;
+            transform: none;
+        }
+    }
+
+    /* Intro curtain */
+    .curtain {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--color-ink);
+        animation: curtain-out 0.9s cubic-bezier(0.76, 0, 0.24, 1) 2.5s forwards;
+    }
+
+    @keyframes curtain-out {
+        to {
+            transform: translateY(-100%);
+        }
+    }
+
+    .curtain-mark {
+        animation: curtain-mark 2.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    @keyframes curtain-mark {
+        0% {
+            opacity: 0;
+            transform: scale(0.94);
+            filter: blur(6px);
+        }
+        26% {
+            opacity: 1;
+            transform: none;
+            filter: none;
+        }
+        82% {
+            opacity: 1;
+            transform: none;
+        }
+        100% {
+            opacity: 0;
+            transform: scale(1.03);
+        }
+    }
+
+    .curtain-rule {
+        animation: curtain-rule 1.7s cubic-bezier(0.22, 1, 0.36, 1) 0.5s both;
+    }
+
+    @keyframes curtain-rule {
+        from {
+            transform: scaleX(0);
+        }
+        to {
+            transform: scaleX(1);
+        }
+    }
+
+    /* The cart badge kicks when a line lands in it. */
+    .badge-pop {
+        animation: badge-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes badge-pop {
+        0% {
+            transform: scale(1);
+        }
+        35% {
+            transform: scale(1.42);
+        }
+        100% {
+            transform: scale(1);
+        }
+    }
+
     @media (prefers-reduced-motion: reduce) {
         .reveal,
         .rise,
-        .fade-in {
+        .fade-in,
+        .page-in {
             opacity: 1;
             transform: none;
             animation: none;
             transition: none;
         }
 
+        .word-mask > span {
+            transform: none;
+            transition: none;
+        }
+
         .shimmer::after,
-        .draw path {
+        .draw path,
+        .marquee-track,
+        .curtain,
+        .curtain-mark,
+        .curtain-rule,
+        .badge-pop,
+        .page-wipe {
             animation: none;
         }
 
         .draw path {
             stroke-dashoffset: 0;
+        }
+
+        .tilt {
+            transform: none !important;
+            transition: none;
+        }
+
+        .page-wipe,
+        .curtain {
+            display: none;
         }
     }
 }

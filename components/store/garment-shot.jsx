@@ -1,4 +1,5 @@
 import { BrandMark } from 'components/store/brand-mark';
+import { ProductPhoto } from 'components/store/product-photo';
 
 /*
 Product renderings.
@@ -11,8 +12,9 @@ A black garment on a black page needs help to read at all, so each colourway
 carries its own ground and a rim light along the shoulders and sleeve caps. That
 rim is what separates the black tee from the background.
 
-To swap in real photos later, give a product a `photo` path in data/products.js
-and this component renders that instead — nothing else has to change.
+When a product has a `photo`, the photograph is layered on top and fades in once
+it decodes. The vector garment stays underneath as the loading state and as the
+fallback if the image is ever missing, so the frame is never empty or broken.
 */
 
 const SURFACE = {
@@ -175,19 +177,6 @@ export function GarmentShot({ product, className = '', priority = false }) {
     const surface = SURFACE[tone] ?? SURFACE.black;
     const place = LOGO_PLACEMENT[cut] ?? LOGO_PLACEMENT.tee;
 
-    if (photo) {
-        return (
-            <div className={`relative overflow-hidden ${className}`} style={{ background: surface.ground }}>
-                <img
-                    src={photo}
-                    alt={title}
-                    loading={priority ? 'eager' : 'lazy'}
-                    className="object-cover w-full h-full"
-                />
-            </div>
-        );
-    }
-
     return (
         <div className={`relative overflow-hidden ${className}`} style={{ background: surface.ground }}>
             <div className="absolute inset-0 flex items-center justify-center p-[5%]">
@@ -197,6 +186,8 @@ export function GarmentShot({ product, className = '', priority = false }) {
             <div className="absolute" style={{ top: place.top, right: place.right }} aria-hidden="true">
                 <BrandMark scale={place.scale} />
             </div>
+
+            {photo && <ProductPhoto src={photo} alt={title} priority={priority} />}
         </div>
     );
 }
