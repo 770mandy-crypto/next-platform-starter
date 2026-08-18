@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Assistant:wght@200..800&family=Frank+Ruhl+Libre:wght@300..900&display=swap');
 
 @import 'tailwindcss';
 
@@ -14,6 +15,19 @@
     --color-secondary: #016968;
     --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
+
+    /* מאיה בוטיק — brand palette */
+    --color-cream: #faf7f2;
+    --color-sand: #efe6d9;
+    --color-blush: #e9d5cc;
+    --color-espresso: #33251c;
+    --color-mocha: #6f5949;
+    --color-clay: #b0755c;
+    --color-clay-dark: #90593f;
+    --color-gold: #a98a44;
+
+    --font-display: 'Frank Ruhl Libre', ui-serif, Georgia, serif;
+    --font-body: 'Assistant', ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {
@@ -40,6 +54,59 @@
 }
 
 @layer components {
+    /*
+    Boutique styles are scoped to .store so the Netlify platform demos under
+    /netlify keep the starter's original dark look untouched.
+    */
+    .store {
+        font-family: var(--font-body);
+
+        a:not(.btn):not(.btn-ghost) {
+            @apply no-underline;
+        }
+
+        :where(h1, h2, h3) {
+            font-family: var(--font-display);
+            @apply font-medium tracking-normal;
+        }
+
+        h1 {
+            @apply text-3xl sm:text-5xl;
+        }
+
+        h2 {
+            @apply text-2xl sm:text-4xl;
+        }
+    }
+
+    .btn-clay {
+        @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold tracking-wide no-underline transition-colors rounded-full cursor-pointer bg-clay text-cream;
+
+        &:hover {
+            @apply bg-clay-dark;
+        }
+
+        &:disabled {
+            @apply text-mocha cursor-default bg-sand;
+        }
+    }
+
+    .btn-ghost {
+        @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold tracking-wide no-underline transition-colors border rounded-full cursor-pointer border-espresso/25 text-espresso;
+
+        &:hover {
+            @apply bg-espresso/5;
+        }
+    }
+
+    .eyebrow {
+        @apply text-xs font-semibold tracking-[0.2em] uppercase text-clay;
+    }
+
+    .field {
+        @apply w-full px-4 py-3 text-sm transition-colors bg-white border rounded-lg border-espresso/15 text-espresso placeholder:text-mocha/60 focus:border-clay focus:outline-2 focus:outline-clay/25;
+    }
+
     .markdown {
         > * {
             @apply my-4;

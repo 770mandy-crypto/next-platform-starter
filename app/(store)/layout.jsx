@@ -1,0 +1,15 @@
+import { CartProvider } from 'components/store/cart-provider';
+import { StoreFooter } from 'components/store/store-footer';
+import { StoreHeader } from 'components/store/store-header';
+
+export default function StoreLayout({ children }) {
+    return (
+        <CartProvider>
+            <div className="store flex flex-col min-h-screen">
+                <StoreHeader />
+                <main className="grow">{children}</main>
+                <StoreFooter />
+            </div>
+        </CartProvider>
+    );
+}
