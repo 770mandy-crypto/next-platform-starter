@@ -1,50 +1,59 @@
 import Link from 'next/link';
+import { BrandMark } from 'components/store/brand-mark';
 import { categories } from 'data/products';
 
 export function StoreFooter() {
     return (
-        <footer className="mt-24 border-t bg-sand/60 border-espresso/10">
-            <div className="grid gap-10 px-6 py-14 mx-auto max-w-6xl sm:grid-cols-2 lg:grid-cols-4">
-                <div>
-                    <p className="text-xl font-medium font-display">מאיה בוטיק</p>
-                    <p className="mt-3 text-sm leading-relaxed text-mocha">
-                        בוטיק אופנה עצמאי. סדרות קטנות, בדים טבעיים ותפירה בישראל.
+        <footer className="mt-32 border-t hairline" style={{ background: 'var(--color-ink-2)' }}>
+            <div className="grid gap-12 px-6 py-16 mx-auto max-w-7xl sm:px-10 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="sm:col-span-2 lg:col-span-1">
+                    <BrandMark scale={0.6} />
+                    <p className="max-w-xs mt-6 text-sm leading-relaxed text-muted">
+                        קולקציית פתיחה בסדרה מוגבלת. שחור, לבן וזהב — בלי יותר מדי, ובלי פחות ממה שצריך.
                     </p>
                 </div>
 
                 <div>
-                    <p className="mb-3 text-sm font-semibold">קטגוריות</p>
-                    <ul className="flex flex-col gap-2 text-sm text-mocha">
+                    <p className="mb-5 text-[0.62rem] font-semibold tracking-[0.28em] uppercase text-gold">הקולקציה</p>
+                    <ul className="flex flex-col gap-3 text-sm text-muted">
                         {categories.map((category) => (
                             <li key={category.slug}>
-                                <Link href={`/shop?category=${category.slug}`} className="transition-colors hover:text-clay">
+                                <Link
+                                    href={`/shop?category=${category.slug}`}
+                                    className="transition-colors hover:text-bone"
+                                >
                                     {category.name}
                                 </Link>
                             </li>
                         ))}
+                        <li>
+                            <Link href="/shop" className="transition-colors hover:text-bone">
+                                כל הפריטים
+                            </Link>
+                        </li>
                     </ul>
                 </div>
 
                 <div>
-                    <p className="mb-3 text-sm font-semibold">מידע</p>
-                    <ul className="flex flex-col gap-2 text-sm text-mocha">
+                    <p className="mb-5 text-[0.62rem] font-semibold tracking-[0.28em] uppercase text-gold">מידע</p>
+                    <ul className="flex flex-col gap-3 text-sm text-muted">
                         <li>
-                            <Link href="/about" className="transition-colors hover:text-clay">
-                                הסיפור שלנו
+                            <Link href="/about" className="transition-colors hover:text-bone">
+                                המותג
                             </Link>
                         </li>
                         <li>
-                            <Link href="/contact" className="transition-colors hover:text-clay">
+                            <Link href="/contact" className="transition-colors hover:text-bone">
                                 צור קשר
                             </Link>
                         </li>
                         <li>
-                            <Link href="/shop" className="transition-colors hover:text-clay">
-                                כל הפריטים
+                            <Link href="/contact" className="transition-colors hover:text-bone">
+                                משלוחים והחזרות
                             </Link>
                         </li>
                         <li>
-                            <Link href="/netlify" className="transition-colors hover:text-clay">
+                            <Link href="/netlify" className="transition-colors hover:text-bone">
                                 Netlify platform demos
                             </Link>
                         </li>
@@ -52,23 +61,24 @@ export function StoreFooter() {
                 </div>
 
                 <div>
-                    <p className="mb-3 text-sm font-semibold">הבוטיק</p>
-                    <address className="text-sm not-italic leading-relaxed text-mocha">
-                        רחוב שבזי 12, תל אביב
-                        <br />
-                        ראשון–חמישי 10:00–19:00
-                        <br />
-                        שישי 09:00–14:00
-                        <br />
-                        <span dir="ltr" className="inline-block mt-2">
-                            03-000-0000
+                    <p className="mb-5 text-[0.62rem] font-semibold tracking-[0.28em] uppercase text-gold">יצירת קשר</p>
+                    <address className="text-sm not-italic leading-loose text-muted">
+                        <span dir="ltr" className="block">
+                            hello@valentos.co.il
                         </span>
+                        <span dir="ltr" className="block">
+                            @valentos.clothing
+                        </span>
+                        <span className="block mt-3">משלוחים לכל הארץ, 3–5 ימי עסקים</span>
                     </address>
                 </div>
             </div>
 
-            <div className="px-6 py-6 text-xs border-t border-espresso/10 text-mocha">
-                <div className="mx-auto max-w-6xl">© {new Date().getFullYear()} מאיה בוטיק. כל הזכויות שמורות.</div>
+            <div className="border-t hairline">
+                <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-6 mx-auto text-[0.68rem] tracking-[0.14em] uppercase max-w-7xl sm:px-10 text-muted">
+                    <span>© 2026 VALENTOS CLOTHING</span>
+                    <span>ALL RIGHTS RESERVED</span>
+                </div>
             </div>
         </footer>
     );

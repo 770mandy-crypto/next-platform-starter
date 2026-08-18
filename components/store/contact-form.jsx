@@ -38,10 +38,11 @@ export function ContactForm() {
 
     if (status === 'ok') {
         return (
-            <div className="p-6 rounded-xl bg-sand/70">
-                <h2 className="text-xl font-display">תודה, קיבלנו את ההודעה</h2>
-                <p className="mt-2 text-mocha">נחזור אלייך תוך יום עסקים אחד.</p>
-                <button type="button" onClick={() => setStatus('idle')} className="mt-4 btn-ghost">
+            <div className="p-8 border hairline" style={{ background: 'var(--color-ink-2)' }}>
+                <p className="eyebrow">נשלח</p>
+                <h2 className="mt-3 text-2xl">תודה, קיבלנו את ההודעה</h2>
+                <p className="mt-3 text-muted">נחזור אליכם תוך יום עסקים אחד.</p>
+                <button type="button" onClick={() => setStatus('idle')} className="mt-7 btn-line">
                     שליחת הודעה נוספת
                 </button>
             </div>
@@ -54,25 +55,25 @@ export function ContactForm() {
 
             <div className="grid gap-4 sm:grid-cols-2">
                 <label className="flex flex-col gap-2 text-sm">
-                    <span className="font-semibold">שם מלא</span>
+                    <span className="text-[0.62rem] font-semibold tracking-[0.24em] uppercase text-gold">שם מלא</span>
                     <input name="name" type="text" required autoComplete="name" className="field" />
                 </label>
 
                 <label className="flex flex-col gap-2 text-sm">
-                    <span className="font-semibold">אימייל</span>
+                    <span className="text-[0.62rem] font-semibold tracking-[0.24em] uppercase text-gold">אימייל</span>
                     <input name="email" type="email" required autoComplete="email" dir="ltr" className="field" />
                 </label>
 
                 <label className="flex flex-col gap-2 text-sm">
-                    <span className="font-semibold">טלפון (לא חובה)</span>
+                    <span className="text-[0.62rem] font-semibold tracking-[0.24em] uppercase text-gold">טלפון (לא חובה)</span>
                     <input name="phone" type="tel" autoComplete="tel" dir="ltr" className="field" />
                 </label>
 
                 <label className="flex flex-col gap-2 text-sm">
-                    <span className="font-semibold">נושא</span>
+                    <span className="text-[0.62rem] font-semibold tracking-[0.24em] uppercase text-gold">נושא</span>
                     <select name="subject" className="field" defaultValue="שאלה כללית">
                         <option>שאלה כללית</option>
-                        <option>קביעת מדידה בבוטיק</option>
+                        <option>שאלה על מידה</option>
                         <option>שאלה על הזמנה קיימת</option>
                         <option>החזרה או החלפה</option>
                         <option>שיתוף פעולה</option>
@@ -81,16 +82,16 @@ export function ContactForm() {
             </div>
 
             <label className="flex flex-col gap-2 text-sm">
-                <span className="font-semibold">ההודעה שלך</span>
-                <textarea name="message" required rows={6} className="field resize-y" />
+                <span className="text-[0.62rem] font-semibold tracking-[0.24em] uppercase text-gold">ההודעה שלך</span>
+                <textarea name="message" required rows={7} className="field resize-y" />
             </label>
 
-            <button type="submit" disabled={status === 'pending'} className="self-start btn-clay sm:min-w-48">
+            <button type="submit" disabled={status === 'pending'} className="self-start btn-gold sm:min-w-56">
                 {status === 'pending' ? 'שולח…' : 'שליחה'}
             </button>
 
             {status === 'error' && (
-                <p role="alert" className="text-sm text-red-700">
+                <p role="alert" className="text-sm" style={{ color: '#e2a1a1' }}>
                     השליחה נכשלה ({error}). אפשר לנסות שוב או לכתוב לנו ישירות במייל.
                 </p>
             )}

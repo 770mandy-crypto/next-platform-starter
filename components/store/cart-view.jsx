@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { useState, useTransition } from 'react';
-import { startCheckout } from 'lib/actions';
+import { GarmentShot } from 'components/store/garment-shot';
 import { useCart } from 'components/store/cart-provider';
+import { startCheckout } from 'lib/actions';
 import { cartLineKey, formatPrice } from 'lib/format';
 
 const FREE_SHIPPING_THRESHOLD = 350;
@@ -15,15 +16,15 @@ export function CartView() {
     const [message, setMessage] = useState(null);
 
     if (!hydrated) {
-        return <p className="mt-8 text-mocha">טוען את העגלה…</p>;
+        return <p className="mt-10 text-muted">טוען את העגלה…</p>;
     }
 
     if (!lines.length) {
         return (
-            <div className="mt-8">
-                <p className="text-mocha">העגלה שלך ריקה כרגע.</p>
-                <Link href="/shop" className="mt-6 btn-clay">
-                    לצפייה בקולקציה
+            <div className="mt-10">
+                <p className="text-muted">העגלה שלך ריקה כרגע.</p>
+                <Link href="/shop" className="inline-flex mt-8 btn-gold">
+                    לקולקציה
                 </Link>
             </div>
         );
@@ -31,6 +32,7 @@ export function CartView() {
 
     const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
     const total = subtotal + shipping;
+    const progress = Math.min(100, Math.round((subtotal / FREE_SHIPPING_THRESHOLD) * 100));
 
     function handleCheckout() {
         setMessage(null);
@@ -47,51 +49,56 @@ export function CartView() {
     }
 
     return (
-        <div className="mt-8">
-            <ul className="flex flex-col divide-y divide-espresso/10">
+        <div className="mt-10">
+            <ul className="flex flex-col">
                 {lines.map((line) => {
                     const key = cartLineKey(line);
                     return (
-                        <li key={key} className="flex gap-4 py-6">
+                        <li key={key} className="flex gap-6 py-8 border-b hairline first:border-t">
                             <Link href={`/product/${line.slug}`} className="shrink-0">
-                                <img
-                                    src={line.image}
-                                    alt={line.title}
-                                    className="object-cover w-20 rounded-lg sm:w-24 aspect-[3/4] bg-sand"
-                                />
+                                <div
+                                    className="w-24 overflow-hidden border sm:w-28 hairline"
+                                    style={{ aspectRatio: '3 / 4' }}
+                                >
+                                    <GarmentShot product={line} className="w-full h-full" />
+                                </div>
                             </Link>
 
                             <div className="flex flex-col grow">
-                                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                                    <Link href={`/product/${line.slug}`} className="font-display">
+                                <div className="flex flex-wrap items-baseline justify-between gap-3">
+                                    <Link
+                                        href={`/product/${line.slug}`}
+                                        className="text-sm tracking-[0.14em] uppercase transition-colors hover:text-gold"
+                                        style={{ fontFamily: 'var(--font-display)' }}
+                                    >
                                         {line.title}
                                     </Link>
-                                    <span className="text-sm font-semibold">
+                                    <span className="text-sm text-gold tabular-nums">
                                         {formatPrice(line.price * line.quantity)}
                                     </span>
                                 </div>
 
-                                <p className="mt-1 text-sm text-mocha">
+                                <p className="mt-2 text-xs tracking-[0.12em] uppercase text-muted">
                                     מידה {line.size}
                                     {line.color ? ` · ${line.color}` : ''}
                                 </p>
 
-                                <div className="flex items-center gap-4 mt-auto pt-3">
-                                    <div className="flex items-center border rounded-full border-espresso/20">
+                                <div className="flex items-center gap-6 pt-5 mt-auto">
+                                    <div className="flex items-center border hairline">
                                         <button
                                             type="button"
                                             onClick={() => setQuantity(key, line.quantity - 1)}
                                             aria-label={`הפחת כמות של ${line.title}`}
-                                            className="px-3 py-1 text-lg leading-none cursor-pointer"
+                                            className="px-4 py-2 leading-none transition-colors cursor-pointer hover:text-gold"
                                         >
                                             −
                                         </button>
-                                        <span className="w-7 text-sm text-center">{line.quantity}</span>
+                                        <span className="w-7 text-sm text-center tabular-nums">{line.quantity}</span>
                                         <button
                                             type="button"
                                             onClick={() => setQuantity(key, line.quantity + 1)}
                                             aria-label={`הוסף כמות של ${line.title}`}
-                                            className="px-3 py-1 text-lg leading-none cursor-pointer"
+                                            className="px-4 py-2 leading-none transition-colors cursor-pointer hover:text-gold"
                                         >
                                             +
                                         </button>
@@ -100,7 +107,7 @@ export function CartView() {
                                     <button
                                         type="button"
                                         onClick={() => removeLine(key)}
-                                        className="text-sm cursor-pointer text-mocha hover:text-clay"
+                                        className="text-xs tracking-[0.16em] uppercase transition-colors cursor-pointer text-muted hover:text-gold"
                                     >
                                         הסרה
                                     </button>
@@ -111,33 +118,41 @@ export function CartView() {
                 })}
             </ul>
 
-            <div className="p-6 mt-8 rounded-xl bg-sand/70">
-                <dl className="flex flex-col gap-2 text-sm">
+            <div className="p-8 mt-12 border hairline" style={{ background: 'var(--color-ink-2)' }}>
+                <dl className="flex flex-col gap-3 text-sm">
                     <div className="flex justify-between">
-                        <dt className="text-mocha">סכום ביניים</dt>
-                        <dd>{formatPrice(subtotal)}</dd>
+                        <dt className="text-muted">סכום ביניים</dt>
+                        <dd className="tabular-nums">{formatPrice(subtotal)}</dd>
                     </div>
                     <div className="flex justify-between">
-                        <dt className="text-mocha">משלוח</dt>
-                        <dd>{shipping === 0 ? 'חינם' : formatPrice(shipping)}</dd>
+                        <dt className="text-muted">משלוח</dt>
+                        <dd className="tabular-nums">{shipping === 0 ? 'חינם' : formatPrice(shipping)}</dd>
                     </div>
-                    <div className="flex justify-between pt-3 mt-2 text-base font-semibold border-t border-espresso/10">
-                        <dt>סה״כ לתשלום</dt>
-                        <dd>{formatPrice(total)}</dd>
+                    <div className="flex justify-between pt-4 mt-2 text-base border-t hairline">
+                        <dt className="tracking-[0.14em] uppercase">סה״כ</dt>
+                        <dd className="text-gold tabular-nums">{formatPrice(total)}</dd>
                     </div>
                 </dl>
 
                 {shipping > 0 && (
-                    <p className="mt-3 text-sm text-clay">
-                        עוד {formatPrice(FREE_SHIPPING_THRESHOLD - subtotal)} ומקבלים משלוח חינם.
-                    </p>
+                    <div className="mt-6">
+                        <p className="text-xs tracking-[0.12em] uppercase text-gold">
+                            עוד {formatPrice(FREE_SHIPPING_THRESHOLD - subtotal)} למשלוח חינם
+                        </p>
+                        <div className="h-px mt-3 overflow-hidden" style={{ background: 'var(--color-hairline)' }}>
+                            <div
+                                className="h-full transition-all duration-700 ease-out"
+                                style={{ width: `${progress}%`, background: 'var(--color-gold)' }}
+                            />
+                        </div>
+                    </div>
                 )}
 
-                <button type="button" onClick={handleCheckout} disabled={pending} className="w-full mt-6 btn-clay">
+                <button type="button" onClick={handleCheckout} disabled={pending} className="w-full mt-8 btn-gold">
                     {pending ? 'רגע…' : 'מעבר לתשלום'}
                 </button>
 
-                <p aria-live="polite" className="mt-3 text-sm text-mocha">
+                <p aria-live="polite" className="mt-4 text-sm text-muted">
                     {message}
                 </p>
             </div>

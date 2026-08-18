@@ -35,7 +35,9 @@ export function AddToCart({ product }) {
             slug: product.slug,
             title: product.title,
             price: product.price,
-            image: product.image,
+            cut: product.cut,
+            tone: product.tone,
+            photo: product.photo ?? null,
             size,
             color,
             quantity,
@@ -46,21 +48,28 @@ export function AddToCart({ product }) {
     }
 
     return (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-8">
             <fieldset>
-                <legend className="mb-2 text-sm font-semibold">מידה</legend>
-                <div className="flex flex-wrap gap-2">
+                <legend className="mb-4 text-[0.62rem] font-semibold tracking-[0.28em] uppercase text-gold">
+                    מידה
+                </legend>
+                <div className="flex flex-wrap gap-3">
                     {product.sizes.map((option) => (
                         <button
                             key={option}
                             type="button"
                             onClick={() => setSize(option)}
                             aria-pressed={size === option}
-                            className={`min-w-12 px-3 py-2 text-sm transition-colors border rounded-lg cursor-pointer ${
+                            className="min-w-14 px-4 py-3 text-xs tracking-[0.14em] uppercase transition-all duration-300 border cursor-pointer"
+                            style={
                                 size === option
-                                    ? 'border-clay bg-clay text-cream'
-                                    : 'border-espresso/20 hover:border-espresso/50'
-                            }`}
+                                    ? {
+                                          borderColor: 'var(--color-gold)',
+                                          background: 'var(--color-gold)',
+                                          color: 'var(--color-ink)'
+                                      }
+                                    : { borderColor: 'var(--color-hairline)', color: 'var(--color-bone)' }
+                            }
                         >
                             {option}
                         </button>
@@ -68,31 +77,34 @@ export function AddToCart({ product }) {
                 </div>
             </fieldset>
 
-            {product.colors.length > 0 && (
+            {product.colors.length > 1 && (
                 <fieldset>
-                    <legend className="mb-2 text-sm font-semibold">
-                        צבע: <span className="font-normal text-mocha">{color}</span>
+                    <legend className="mb-4 text-[0.62rem] font-semibold tracking-[0.28em] uppercase text-gold">
+                        צבע — <span className="text-muted">{color}</span>
                     </legend>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-3">
                         {product.colors.map((option) => (
                             <button
                                 key={option.name}
                                 type="button"
                                 onClick={() => setColor(option.name)}
                                 aria-pressed={color === option.name}
-                                aria-label={option.name}
                                 title={option.name}
-                                className={`flex items-center gap-2 px-3 py-2 text-sm transition-colors border rounded-lg cursor-pointer ${
-                                    color === option.name
-                                        ? 'border-clay bg-clay/10'
-                                        : 'border-espresso/20 hover:border-espresso/50'
-                                }`}
+                                className="flex items-center gap-3 px-4 py-3 text-xs transition-all duration-300 border cursor-pointer"
+                                style={{
+                                    borderColor:
+                                        color === option.name ? 'var(--color-gold)' : 'var(--color-hairline)',
+                                    color: 'var(--color-bone)'
+                                }}
                             >
                                 {option.hex && (
                                     <span
                                         aria-hidden="true"
-                                        className="w-4 h-4 border rounded-full border-espresso/20"
-                                        style={{ backgroundColor: option.hex }}
+                                        className="w-4 h-4 border"
+                                        style={{
+                                            backgroundColor: option.hex,
+                                            borderColor: 'var(--color-hairline)'
+                                        }}
                                     />
                                 )}
                                 {option.name}
@@ -102,39 +114,39 @@ export function AddToCart({ product }) {
                 </fieldset>
             )}
 
-            <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center border rounded-full border-espresso/20">
+            <div className="flex flex-wrap items-stretch gap-4">
+                <div className="flex items-center border hairline">
                     <button
                         type="button"
                         onClick={() => setQuantity((current) => Math.max(1, current - 1))}
                         aria-label="הפחת כמות"
-                        className="px-4 py-2 text-lg leading-none cursor-pointer"
+                        className="px-5 py-4 text-lg leading-none transition-colors cursor-pointer hover:text-gold"
                     >
                         −
                     </button>
-                    <span className="w-8 text-sm text-center" aria-live="polite">
+                    <span className="w-8 text-sm text-center tabular-nums" aria-live="polite">
                         {quantity}
                     </span>
                     <button
                         type="button"
                         onClick={() => setQuantity((current) => Math.min(10, current + 1))}
                         aria-label="הוסף כמות"
-                        className="px-4 py-2 text-lg leading-none cursor-pointer"
+                        className="px-5 py-4 text-lg leading-none transition-colors cursor-pointer hover:text-gold"
                     >
                         +
                     </button>
                 </div>
 
-                <button type="button" onClick={handleAdd} className="btn-clay grow sm:grow-0 sm:min-w-56">
+                <button type="button" onClick={handleAdd} className="btn-gold grow sm:grow-0 sm:min-w-64">
                     הוספה לעגלה
                 </button>
             </div>
 
-            <p aria-live="polite" className="min-h-6 text-sm text-clay">
+            <p aria-live="polite" className="min-h-6 text-sm text-gold">
                 {added && (
                     <>
                         נוסף לעגלה.{' '}
-                        <Link href="/cart" className="font-semibold underline underline-offset-4">
+                        <Link href="/cart" className="border-b" style={{ borderColor: 'var(--color-gold)' }}>
                             למעבר לעגלה
                         </Link>
                     </>

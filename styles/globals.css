@@ -1,5 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Assistant:wght@200..800&family=Frank+Ruhl+Libre:wght@300..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Assistant:wght@200..800&family=Cormorant+Garamond:wght@300..700&family=Frank+Ruhl+Libre:wght@300..900&display=swap');
 
 @import 'tailwindcss';
 
@@ -16,17 +16,19 @@
     --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
 
-    /* מאיה בוטיק — brand palette */
-    --color-cream: #faf7f2;
-    --color-sand: #efe6d9;
-    --color-blush: #e9d5cc;
-    --color-espresso: #33251c;
-    --color-mocha: #6f5949;
-    --color-clay: #b0755c;
-    --color-clay-dark: #90593f;
-    --color-gold: #a98a44;
+    /* VALENTOS CLOTHING — a dark house with gold as the single accent. */
+    --color-ink: #0a0a0b;
+    --color-ink-2: #101012;
+    --color-ink-3: #17171a;
+    --color-hairline: #26262b;
+    --color-bone: #f4f1ea;
+    --color-muted: #9d968b;
+    --color-gold: #c2a15e;
+    --color-gold-lo: #8f7439;
+    --color-gold-hi: #e7d3a1;
 
-    --font-display: 'Frank Ruhl Libre', ui-serif, Georgia, serif;
+    /* Latin resolves to Cormorant, Hebrew falls through to Frank Ruhl Libre. */
+    --font-display: 'Cormorant Garamond', 'Frank Ruhl Libre', ui-serif, Georgia, serif;
     --font-body: 'Assistant', ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -55,58 +57,213 @@
 
 @layer components {
     /*
-    Boutique styles are scoped to .store so the Netlify platform demos under
-    /netlify keep the starter's original dark look untouched.
+    Everything for the storefront is scoped to .store so the Netlify platform
+    demos under /netlify keep the starter's original look untouched.
     */
     .store {
         font-family: var(--font-body);
+        color: var(--color-bone);
 
-        a:not(.btn):not(.btn-ghost) {
+        a:not(.btn):not(.btn-line) {
             @apply no-underline;
         }
 
         :where(h1, h2, h3) {
             font-family: var(--font-display);
-            @apply font-medium tracking-normal;
+            @apply font-normal tracking-normal;
         }
 
         h1 {
-            @apply text-3xl sm:text-5xl;
+            @apply text-4xl sm:text-6xl;
         }
 
         h2 {
-            @apply text-2xl sm:text-4xl;
+            @apply text-3xl sm:text-5xl;
+        }
+
+        ::selection {
+            background: var(--color-gold);
+            color: var(--color-ink);
         }
     }
 
-    .btn-clay {
-        @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold tracking-wide no-underline transition-colors rounded-full cursor-pointer bg-clay text-cream;
+    /* Gold is a material here, not a flat colour — it reads as leaf, not paint. */
+    .gold-leaf {
+        background: linear-gradient(
+            135deg,
+            var(--color-gold-lo) 0%,
+            var(--color-gold-hi) 38%,
+            var(--color-gold) 62%,
+            var(--color-gold-hi) 100%
+        );
+        background-clip: text;
+        -webkit-background-clip: text;
+        color: transparent;
+    }
+
+    .btn-gold {
+        @apply relative inline-flex items-center justify-center gap-2 px-8 py-4 overflow-hidden text-xs font-semibold tracking-[0.18em] uppercase no-underline transition-colors cursor-pointer;
+        color: var(--color-ink);
+        background: linear-gradient(135deg, var(--color-gold-lo), var(--color-gold-hi) 50%, var(--color-gold));
 
         &:hover {
-            @apply bg-clay-dark;
+            background: linear-gradient(135deg, var(--color-gold), var(--color-gold-hi) 55%, var(--color-gold-hi));
         }
 
         &:disabled {
-            @apply text-mocha cursor-default bg-sand;
+            @apply cursor-default;
+            background: var(--color-ink-3);
+            color: var(--color-muted);
         }
     }
 
-    .btn-ghost {
-        @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold tracking-wide no-underline transition-colors border rounded-full cursor-pointer border-espresso/25 text-espresso;
+    .btn-line {
+        @apply inline-flex items-center justify-center gap-2 px-8 py-4 text-xs font-semibold tracking-[0.18em] uppercase no-underline transition-colors cursor-pointer border;
+        border-color: var(--color-hairline);
+        color: var(--color-bone);
 
         &:hover {
-            @apply bg-espresso/5;
+            border-color: var(--color-gold);
+            color: var(--color-gold);
         }
     }
 
     .eyebrow {
-        @apply text-xs font-semibold tracking-[0.2em] uppercase text-clay;
+        @apply text-[0.65rem] font-semibold tracking-[0.32em] uppercase;
+        color: var(--color-gold);
     }
 
     .field {
-        @apply w-full px-4 py-3 text-sm transition-colors bg-white border rounded-lg border-espresso/15 text-espresso placeholder:text-mocha/60 focus:border-clay focus:outline-2 focus:outline-clay/25;
+        @apply w-full px-4 py-3 text-sm transition-colors border rounded-none;
+        background: var(--color-ink-2);
+        border-color: var(--color-hairline);
+        color: var(--color-bone);
+
+        &::placeholder {
+            color: color-mix(in oklab, var(--color-muted) 70%, transparent);
+        }
+
+        &:focus {
+            @apply outline-none;
+            border-color: var(--color-gold);
+        }
     }
 
+    .hairline {
+        border-color: var(--color-hairline);
+    }
+}
+
+/*
+Motion. Every animated state starts from its finished position, so if the JS
+never runs — or the visitor prefers reduced motion — the page is simply static
+and complete rather than invisible.
+*/
+@layer utilities {
+    .reveal {
+        opacity: 0;
+        transform: translateY(22px);
+        transition: opacity 0.85s cubic-bezier(0.22, 1, 0.36, 1), transform 0.85s cubic-bezier(0.22, 1, 0.36, 1);
+        transition-delay: var(--reveal-delay, 0ms);
+    }
+
+    .reveal.is-in {
+        opacity: 1;
+        transform: none;
+    }
+
+    /* The hero runs on a load timeline rather than on scroll. */
+    .rise {
+        opacity: 0;
+        transform: translateY(26px);
+        animation: rise 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        animation-delay: var(--rise-delay, 0ms);
+    }
+
+    @keyframes rise {
+        to {
+            opacity: 1;
+            transform: none;
+        }
+    }
+
+    .fade-in {
+        opacity: 0;
+        animation: fade-in 1.2s ease forwards;
+        animation-delay: var(--rise-delay, 0ms);
+    }
+
+    @keyframes fade-in {
+        to {
+            opacity: 1;
+        }
+    }
+
+    /* Signature moment: a single sweep of light across the monogram. */
+    .shimmer {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .shimmer::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+            105deg,
+            transparent 38%,
+            color-mix(in oklab, var(--color-gold-hi) 55%, transparent) 50%,
+            transparent 62%
+        );
+        transform: translateX(-140%);
+        animation: sweep 5.5s ease-in-out 1.4s infinite;
+        pointer-events: none;
+    }
+
+    @keyframes sweep {
+        0% {
+            transform: translateX(-140%);
+        }
+        22%,
+        100% {
+            transform: translateX(140%);
+        }
+    }
+
+    .draw path {
+        stroke-dasharray: var(--len, 1200);
+        stroke-dashoffset: var(--len, 1200);
+        animation: draw 2.2s cubic-bezier(0.65, 0, 0.35, 1) 0.2s forwards;
+    }
+
+    @keyframes draw {
+        to {
+            stroke-dashoffset: 0;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .reveal,
+        .rise,
+        .fade-in {
+            opacity: 1;
+            transform: none;
+            animation: none;
+            transition: none;
+        }
+
+        .shimmer::after,
+        .draw path {
+            animation: none;
+        }
+
+        .draw path {
+            stroke-dashoffset: 0;
+        }
+    }
+}
+
+@layer components {
     .markdown {
         > * {
             @apply my-4;

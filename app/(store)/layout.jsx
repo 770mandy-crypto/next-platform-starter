@@ -5,7 +5,7 @@ import { StoreHeader } from 'components/store/store-header';
 export default function StoreLayout({ children }) {
     return (
         <CartProvider>
-            <div className="store flex flex-col min-h-screen">
+            <div className="store flex flex-col min-h-screen" style={{ background: 'var(--color-ink)' }}>
                 <StoreHeader />
                 <main className="grow">{children}</main>
                 <StoreFooter />

@@ -1,54 +1,64 @@
 import { ContactForm } from 'components/store/contact-form';
+import { Reveal } from 'components/store/reveal';
 
 export const metadata = {
     title: 'צור קשר',
-    description: 'ליצירת קשר עם מאיה בוטיק — שאלות, מדידות אישיות, החזרות ושיתופי פעולה.'
+    description: 'יצירת קשר עם VALENTOS CLOTHING — מידות, הזמנות, החזרות ושיתופי פעולה.'
 };
 
 export default function ContactPage() {
     return (
-        <div className="px-6 py-12 mx-auto max-w-5xl">
-            <p className="eyebrow">נשמח לשמוע</p>
-            <h1 className="mt-3">צור קשר</h1>
-            <p className="max-w-2xl mt-4 text-lg leading-relaxed text-mocha">
-                שאלה על מידה, בקשה למדידה אישית או סתם התלבטות בין שני צבעים — כתבי לנו ונחזור אלייך תוך יום עסקים אחד.
-            </p>
+        <div className="px-6 py-16 mx-auto max-w-6xl sm:px-10 sm:py-24">
+            <Reveal>
+                <p className="eyebrow">יצירת קשר</p>
+                <h1 className="mt-4">דברו איתנו</h1>
+                <p className="max-w-2xl mt-6 text-lg leading-relaxed text-muted">
+                    שאלה על מידה, סטטוס הזמנה או בקשה להחלפה — כתבו לנו ונחזור אליכם תוך יום עסקים אחד.
+                </p>
+            </Reveal>
 
-            <div className="grid gap-12 mt-12 lg:grid-cols-[1fr_18rem]">
-                <ContactForm />
+            <div className="grid gap-16 mt-16 lg:grid-cols-[1fr_18rem]">
+                <Reveal delay={120}>
+                    <ContactForm />
+                </Reveal>
 
-                <aside className="flex flex-col gap-8 text-sm">
-                    <div>
-                        <h2 className="text-lg font-display">הבוטיק</h2>
-                        <address className="mt-2 not-italic leading-relaxed text-mocha">
-                            רחוב שבזי 12, תל אביב־יפו
-                            <br />
-                            ראשון–חמישי 10:00–19:00
-                            <br />
-                            שישי 09:00–14:00
-                        </address>
-                    </div>
+                <Reveal delay={220}>
+                    <aside className="flex flex-col gap-10 text-sm">
+                        <div>
+                            <p className="text-[0.62rem] font-semibold tracking-[0.28em] uppercase text-gold">
+                                ישירות
+                            </p>
+                            <p className="mt-4 leading-loose text-muted">
+                                <span dir="ltr" className="block">
+                                    hello@valentos.co.il
+                                </span>
+                                <span dir="ltr" className="block">
+                                    @valentos.clothing
+                                </span>
+                            </p>
+                        </div>
 
-                    <div>
-                        <h2 className="text-lg font-display">ישירות</h2>
-                        <p className="mt-2 leading-relaxed text-mocha">
-                            <span dir="ltr" className="block">
-                                03-000-0000
-                            </span>
-                            <span dir="ltr" className="block">
-                                hello@maya-boutique.co.il
-                            </span>
-                        </p>
-                    </div>
+                        <div>
+                            <p className="text-[0.62rem] font-semibold tracking-[0.28em] uppercase text-gold">
+                                מידות
+                            </p>
+                            <p className="mt-4 leading-relaxed text-muted">
+                                הגזרות רגילות ונכונות למידה. אם אתם בין שתי מידות ואוהבים גזרה רפויה — קחו את הגדולה.
+                                בספק? כתבו לנו גובה ומשקל ונגיד בדיוק.
+                            </p>
+                        </div>
 
-                    <div>
-                        <h2 className="text-lg font-display">משלוחים והחזרות</h2>
-                        <p className="mt-2 leading-relaxed text-mocha">
-                            משלוח עד הבית תוך 3–5 ימי עסקים, חינם בהזמנה מעל ₪350. אפשר להחזיר או להחליף כל פריט תוך 30
-                            יום, על חשבוננו.
-                        </p>
-                    </div>
-                </aside>
+                        <div>
+                            <p className="text-[0.62rem] font-semibold tracking-[0.28em] uppercase text-gold">
+                                משלוחים והחזרות
+                            </p>
+                            <p className="mt-4 leading-relaxed text-muted">
+                                משלוח עד הבית תוך 3–5 ימי עסקים, חינם בהזמנה מעל ₪350. החלפה או החזרה עד 30 יום, על
+                                חשבוננו.
+                            </p>
+                        </div>
+                    </aside>
+                </Reveal>
             </div>
         </div>
     );

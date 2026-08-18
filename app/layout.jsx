@@ -2,10 +2,11 @@ import '../styles/globals.css';
 
 export const metadata = {
     title: {
-        template: '%s | מאיה בוטיק',
-        default: 'מאיה בוטיק — אופנת נשים'
+        template: '%s | VALENTOS',
+        default: 'VALENTOS CLOTHING — קולקציית 2026'
     },
-    description: 'בוטיק אופנה עצמאי: שמלות, סריגים וחולצות בסדרות קטנות, בעבודת יד ובבדים טבעיים.'
+    description:
+        'VALENTOS CLOTHING — קולקציית פתיחה בסדרה מוגבלת. חולצות ומכנסי פוטר בשחור ולבן, עם רקמת זהב.'
 };
 
 export default function RootLayout({ children }) {
@@ -14,7 +15,9 @@ export default function RootLayout({ children }) {
             <head>
                 <link rel="icon" href="/favicon.svg" sizes="any" />
             </head>
-            <body className="antialiased bg-cream text-espresso">{children}</body>
+            <body className="antialiased" style={{ background: 'var(--color-ink)', color: 'var(--color-bone)' }}>
+                {children}
+            </body>
         </html>
     );
 }
