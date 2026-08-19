@@ -39,7 +39,8 @@ export function ProductPhoto({ src, alt, priority = false }) {
             className="absolute inset-0 object-cover w-full h-full"
             style={{
                 opacity: state === 'loaded' ? 1 : 0,
-                transition: 'opacity 0.7s ease'
+                transform: state === 'loaded' ? 'scale(1)' : 'scale(1.1)',
+                transition: 'opacity 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)'
             }}
         />
     );
