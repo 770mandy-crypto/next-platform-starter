@@ -162,28 +162,30 @@ and complete rather than invisible.
 @layer utilities {
     .reveal {
         opacity: 0;
-        transform: translateY(22px);
-        transition: opacity 0.85s cubic-bezier(0.22, 1, 0.36, 1), transform 0.85s cubic-bezier(0.22, 1, 0.36, 1);
+        transform: translateY(32px) scale(0.92);
+        transition: opacity 0.7s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
         transition-delay: var(--reveal-delay, 0ms);
+        will-change: transform, opacity;
     }
 
     .reveal.is-in {
         opacity: 1;
-        transform: none;
+        transform: translateY(0) scale(1);
     }
 
     /* The hero runs on a load timeline rather than on scroll. */
     .rise {
         opacity: 0;
-        transform: translateY(26px);
-        animation: rise 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        transform: translateY(32px) scale(0.92);
+        animation: rise 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         animation-delay: var(--rise-delay, 0ms);
+        will-change: transform, opacity;
     }
 
     @keyframes rise {
         to {
             opacity: 1;
-            transform: none;
+            transform: translateY(0) scale(1);
         }
     }
 
@@ -251,13 +253,14 @@ and complete rather than invisible.
 
     .word-mask > span {
         display: inline-block;
-        transform: translateY(105%);
-        transition: transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+        transform: translateY(110%) scale(0.96);
+        transition: transform 0.9s cubic-bezier(0.34, 1.56, 0.64, 1);
         transition-delay: var(--word-delay, 0ms);
+        will-change: transform;
     }
 
     .word-mask.is-in > span {
-        transform: none;
+        transform: translateY(0) scale(1);
     }
 
     /* Cards lift and catch a gold edge under the pointer. */
@@ -333,17 +336,17 @@ and complete rather than invisible.
     }
 
     .page-in {
-        animation: page-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.28s both;
+        animation: page-in 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.28s both;
     }
 
     @keyframes page-in {
         from {
             opacity: 0;
-            transform: translateY(14px);
+            transform: translateY(18px) scale(0.95);
         }
         to {
             opacity: 1;
-            transform: none;
+            transform: translateY(0) scale(1);
         }
     }
 
