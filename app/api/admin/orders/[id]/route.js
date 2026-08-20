@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { supabase, updateOrderStatus } from "lib/supabase";
 
 export async function GET(request, { params }) {
   try {
@@ -11,11 +12,35 @@ export async function GET(request, { params }) {
       );
     }
 
-    // TODO: Fetch order from database
-    return NextResponse.json(
-      { error: "Order not found" },
-      { status: 404 }
-    );
+    // Fetch order from database
+    const { data: order, error } = await supabase
+      .from('orders')
+      .select(`
+        *,
+        order_items(*)
+      `)
+      .eq('id', params.id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    if (!order) {
+      return NextResponse.json(
+        { error: "Order not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      order: {
+        id: order.id,
+        customer: order.customer_name,
+        email: order.email,
+        total: order.total,
+        status: order.status,
+        date: order.created_at,
+        items: order.order_items || []
+      }
+    });
   } catch (error) {
     console.error("Order fetch error:", error);
     return NextResponse.json(
@@ -38,13 +63,15 @@ export async function PUT(request, { params }) {
 
     const { status } = await request.json();
 
-    // TODO: Update order status in database
-    const order = {
-      id: params.id,
-      status
-    };
+    // Update order status in database
+    const order = await updateOrderStatus(params.id, status);
 
-    return NextResponse.json({ order });
+    return NextResponse.json({
+      order: {
+        id: order.id,
+        status: order.status
+      }
+    });
   } catch (error) {
     console.error("Order update error:", error);
     return NextResponse.json(

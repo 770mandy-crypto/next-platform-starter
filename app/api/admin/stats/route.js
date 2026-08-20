@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getAdminStats } from "lib/supabase";
 
 export async function GET(request) {
   try {
@@ -11,14 +12,8 @@ export async function GET(request) {
       );
     }
 
-    // TODO: Fetch real stats from database
-    // For now, return placeholder stats
-    const stats = {
-      totalOrders: 0,
-      totalProducts: 8,
-      totalUsers: 0,
-      recentOrders: []
-    };
+    // Fetch real stats from database
+    const stats = await getAdminStats();
 
     return NextResponse.json(stats);
   } catch (error) {

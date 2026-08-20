@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { supabase, getProducts } from "lib/supabase";
 
 export async function GET(request) {
   try {
@@ -11,22 +12,8 @@ export async function GET(request) {
       );
     }
 
-    // TODO: Fetch products from database
-    // For now, return placeholder products
-    const products = [
-      {
-        id: '1',
-        name: 'Classic T-Shirt',
-        price: 199,
-        description: 'Premium quality t-shirt'
-      },
-      {
-        id: '2',
-        name: 'Silk Shorts',
-        price: 299,
-        description: 'Comfortable silk shorts'
-      }
-    ];
+    // Fetch products from database
+    const products = await getProducts();
 
     return NextResponse.json({ products });
   } catch (error) {
@@ -50,17 +37,25 @@ export async function POST(request) {
     }
 
     const { name, price, description, image } = await request.json();
+    const id = Math.random().toString(36).substring(7);
+    const slug = name.toLowerCase().replace(/\s+/g, '-');
 
-    // TODO: Save product to database
-    const product = {
-      id: Math.random().toString(36).substring(7),
-      name,
-      price,
-      description,
-      image
-    };
+    // Save product to database
+    const { data, error } = await supabase
+      .from('products')
+      .insert([{
+        id,
+        name,
+        slug,
+        price: parseFloat(price),
+        description,
+        image_url: image
+      }])
+      .select();
 
-    return NextResponse.json({ product });
+    if (error) throw error;
+
+    return NextResponse.json({ product: data[0] });
   } catch (error) {
     console.error("Product creation error:", error);
     return NextResponse.json(

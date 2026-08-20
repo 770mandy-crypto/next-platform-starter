@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getUserOrders } from "lib/supabase";
 
 export async function GET(request) {
   try {
@@ -22,17 +23,20 @@ export async function GET(request) {
       );
     }
 
-    // TODO: Fetch orders from database
-    // For now, return empty orders array
-    // In production, this would query:
-    // const orders = await db.order.findMany({
-    //   where: { userId: user.id },
-    //   include: { items: true }
-    // });
+    // Fetch orders from database
+    const orders = await getUserOrders(user.id);
 
-    const orders = [];
+    // Map to frontend format
+    const formattedOrders = orders.map(order => ({
+      id: order.id,
+      total: order.total,
+      status: order.status,
+      createdAt: order.created_at,
+      itemCount: order.order_items?.length || 0,
+      items: order.order_items
+    }));
 
-    return NextResponse.json({ orders });
+    return NextResponse.json({ orders: formattedOrders });
   } catch (error) {
     console.error("Orders fetch error:", error);
     return NextResponse.json(

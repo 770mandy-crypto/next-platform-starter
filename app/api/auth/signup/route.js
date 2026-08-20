@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createUser, findUserByEmail } from "lib/supabase";
 
 export async function POST(request) {
   try {
@@ -11,16 +12,24 @@ export async function POST(request) {
       );
     }
 
-    const user = {
-      id: Math.random().toString(36).substring(7),
-      email,
-      password,
-      name,
-      createdAt: new Date().toISOString()
-    };
+    // Check if user already exists
+    const existingUser = await findUserByEmail(email);
+    if (existingUser) {
+      return NextResponse.json(
+        { error: "Email already registered" },
+        { status: 400 }
+      );
+    }
+
+    // Create user in database
+    const user = await createUser(email, password, name);
 
     // Create session token
-    const token = btoa(JSON.stringify(user));
+    const token = btoa(JSON.stringify({
+      id: user.id,
+      email: user.email,
+      name: user.name
+    }));
 
     const response = NextResponse.json({
       user: { id: user.id, email: user.email, name: user.name }

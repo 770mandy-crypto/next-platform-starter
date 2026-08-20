@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { supabase } from "lib/supabase";
 
 export async function GET(request, { params }) {
   try {
@@ -11,11 +12,22 @@ export async function GET(request, { params }) {
       );
     }
 
-    // TODO: Fetch product from database
-    return NextResponse.json(
-      { error: "Product not found" },
-      { status: 404 }
-    );
+    // Fetch product from database
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('id', params.id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    if (!data) {
+      return NextResponse.json(
+        { error: "Product not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ product: data });
   } catch (error) {
     console.error("Product fetch error:", error);
     return NextResponse.json(
@@ -38,16 +50,22 @@ export async function PUT(request, { params }) {
 
     const { name, price, description, image } = await request.json();
 
-    // TODO: Update product in database
-    const product = {
-      id: params.id,
-      name,
-      price,
-      description,
-      image
-    };
+    // Update product in database
+    const { data, error } = await supabase
+      .from('products')
+      .update({
+        name,
+        price: parseFloat(price),
+        description,
+        image_url: image,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', params.id)
+      .select();
 
-    return NextResponse.json({ product });
+    if (error) throw error;
+
+    return NextResponse.json({ product: data[0] });
   } catch (error) {
     console.error("Product update error:", error);
     return NextResponse.json(
@@ -68,7 +86,14 @@ export async function DELETE(request, { params }) {
       );
     }
 
-    // TODO: Delete product from database
+    // Delete product from database
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', params.id);
+
+    if (error) throw error;
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Product deletion error:", error);

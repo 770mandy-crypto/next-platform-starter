@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { updateUser } from "lib/supabase";
 
 export async function PUT(request) {
   try {
@@ -14,23 +15,34 @@ export async function PUT(request) {
     const user = JSON.parse(atob(token));
     const { name, phone, address, city, postalCode, country } = await request.json();
 
-    // TODO: Update user profile in database
-    // const updatedUser = await db.user.update({
-    //   where: { id: user.id },
-    //   data: { name, phone, address, city, postalCode, country }
-    // });
-    //
-    // const newToken = btoa(JSON.stringify(updatedUser));
-    // const response = NextResponse.json({ user: updatedUser });
-    // response.cookies.set('auth-token', newToken, {
-    //   httpOnly: true,
-    //   secure: process.env.NODE_ENV === 'production',
-    //   sameSite: 'lax',
-    //   maxAge: 60 * 60 * 24 * 7
-    // });
-    // return response;
+    // Update user profile in database
+    const updatedUser = await updateUser(user.id, {
+      name,
+      phone,
+      address,
+      city,
+      postal_code: postalCode,
+      country
+    });
 
-    return NextResponse.json({ success: true });
+    const newToken = btoa(JSON.stringify({
+      id: updatedUser.id,
+      email: updatedUser.email,
+      name: updatedUser.name
+    }));
+
+    const response = NextResponse.json({
+      user: { id: updatedUser.id, email: updatedUser.email, name: updatedUser.name }
+    });
+
+    response.cookies.set('auth-token', newToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7
+    });
+
+    return response;
   } catch (error) {
     console.error("Profile update error:", error);
     return NextResponse.json(

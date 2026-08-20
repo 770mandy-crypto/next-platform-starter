@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { findUserByEmail } from "lib/supabase";
 
 export async function POST(request) {
   try {
@@ -11,15 +12,27 @@ export async function POST(request) {
       );
     }
 
-    const user = {
-      id: Math.random().toString(36).substring(7),
-      email,
-      name: email.split('@')[0]
-    };
+    // Find user in database
+    const user = await findUserByEmail(email);
 
-    const token = btoa(JSON.stringify(user));
+    if (!user || user.password !== password) {
+      return NextResponse.json(
+        { error: "Invalid email or password" },
+        { status: 401 }
+      );
+    }
 
-    const response = NextResponse.json({ user });
+    // Create session token
+    const token = btoa(JSON.stringify({
+      id: user.id,
+      email: user.email,
+      name: user.name
+    }));
+
+    const response = NextResponse.json({
+      user: { id: user.id, email: user.email, name: user.name }
+    });
+
     response.cookies.set('auth-token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
