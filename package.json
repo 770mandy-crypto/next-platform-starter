@@ -10,17 +10,27 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@auth/core": "^0.34.3",
+    "@auth/prisma-adapter": "^2.11.3",
     "@netlify/blobs": "^10.5.0",
+    "@prisma/client": "^7.9.1",
+    "@stripe/react-stripe-js": "^6.8.1",
+    "bcryptjs": "^3.0.3",
     "blobshape": "^1.0.0",
     "bright": "^1.0.0",
     "markdown-to-jsx": "^7.7.16",
     "next": "^16.0.8",
+    "next-auth": "^4.24.15",
+    "prisma": "^7.9.1",
     "react": "19.2.1",
     "react-dom": "19.2.1",
+    "react-stripe-js": "^1.1.5",
+    "stripe": "^22.5.0",
     "unique-names-generator": "^4.7.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.15",
+    "@types/node": "26.2.0",
     "babel-plugin-react-compiler": "^1.0.0",
     "eslint": "9.39.2",
     "eslint-config-next": "^16.0.8",
