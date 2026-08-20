@@ -17,6 +17,8 @@ export function StoreHeader() {
     const pathname = usePathname();
     const { count, hydrated } = useCart();
     const [menuOpen, setMenuOpen] = useState(false);
+    const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
     // The header gives the hero its full height, then tightens once you leave it.
     const [condensed, setCondensed] = useState(false);
 
@@ -28,7 +30,20 @@ export function StoreHeader() {
     }, []);
 
     useEffect(() => {
+        async function checkAuth() {
+            try {
+                const res = await fetch('/api/auth/me');
+                setIsAuthenticated(res.ok);
+            } catch (err) {
+                setIsAuthenticated(false);
+            }
+        }
+        checkAuth();
+    }, []);
+
+    useEffect(() => {
         setMenuOpen(false);
+        setUserMenuOpen(false);
     }, [pathname]);
 
     // Kick the badge when a line lands in the cart, but never on first paint.
@@ -107,24 +122,65 @@ export function StoreHeader() {
                     </ul>
                 </nav>
 
-                <Link
-                    href="/cart"
-                    className="flex items-center gap-3 text-xs tracking-[0.22em] uppercase ms-auto text-bone"
-                >
-                    <span className="hidden sm:inline">עגלה</span>
-                    <span
-                        ref={badgeRef}
-                        className="inline-flex items-center justify-center w-7 h-7 text-[0.7rem] font-semibold rounded-full"
-                        style={{
-                            background: hydrated && count ? 'var(--color-gold)' : 'transparent',
-                            color: hydrated && count ? 'var(--color-ink)' : 'var(--color-muted)',
-                            border: hydrated && count ? 'none' : '1px solid var(--color-hairline)',
-                            transition: 'all 0.35s ease'
-                        }}
+                <div className="flex items-center gap-6 ms-auto">
+                    {isAuthenticated ? (
+                        <div className="relative group hidden sm:block">
+                            <button
+                                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                                className="text-xs tracking-[0.22em] uppercase text-bone hover:text-gold transition-colors"
+                            >
+                                חשבון
+                            </button>
+                            {userMenuOpen && (
+                                <div className="absolute top-full right-0 mt-2 w-48 bg-ink-2 border border-hairline rounded shadow-lg">
+                                    <Link href="/account/orders" className="block px-4 py-2 text-xs text-bone hover:text-gold transition-colors border-b border-hairline">
+                                        ההזמנות שלי
+                                    </Link>
+                                    <Link href="/account/profile" className="block px-4 py-2 text-xs text-bone hover:text-gold transition-colors border-b border-hairline">
+                                        הפרופיל שלי
+                                    </Link>
+                                    <button
+                                        onClick={async () => {
+                                            await fetch('/api/auth/logout', { method: 'POST' });
+                                            window.location.href = '/';
+                                        }}
+                                        className="w-full text-left px-4 py-2 text-xs text-bone hover:text-gold transition-colors"
+                                    >
+                                        התנתקות
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="flex gap-4">
+                            <Link href="/auth/signin" className="text-xs tracking-[0.22em] uppercase text-bone hover:text-gold transition-colors hidden sm:inline">
+                                כניסה
+                            </Link>
+                            <Link href="/auth/signup" className="text-xs tracking-[0.22em] uppercase text-bone hover:text-gold transition-colors hidden sm:inline">
+                                הרשמה
+                            </Link>
+                        </div>
+                    )}
+
+                    <Link
+                        href="/cart"
+                        className="flex items-center gap-3 text-xs tracking-[0.22em] uppercase text-bone"
                     >
-                        {hydrated ? count : 0}
-                    </span>
-                </Link>
+                        <span className="hidden sm:inline">עגלה</span>
+                        <span
+                            ref={badgeRef}
+                            className="inline-flex items-center justify-center w-7 h-7 text-[0.7rem] font-semibold rounded-full"
+                            style={{
+                                background: hydrated && count ? 'var(--color-gold)' : 'transparent',
+                                color: hydrated && count ? 'var(--color-ink)' : 'var(--color-muted)',
+                                border: hydrated && count ? 'none' : '1px solid var(--color-hairline)',
+                                transition: 'all 0.35s ease'
+                            }}
+                        >
+                            {hydrated ? count : 0}
+                        </span>
+                    </Link>
+                </div>
             </div>
 
             {menuOpen && (
@@ -143,6 +199,36 @@ export function StoreHeader() {
                                 </Link>
                             </li>
                         ))}
+                        <li className="border-t border-hairline pt-3 mt-3">
+                            {isAuthenticated ? (
+                                <>
+                                    <Link href="/account/orders" className="block py-3 text-xs tracking-[0.22em] uppercase text-muted hover:text-gold">
+                                        ההזמנות שלי
+                                    </Link>
+                                    <Link href="/account/profile" className="block py-3 text-xs tracking-[0.22em] uppercase text-muted hover:text-gold">
+                                        הפרופיל שלי
+                                    </Link>
+                                    <button
+                                        onClick={async () => {
+                                            await fetch('/api/auth/logout', { method: 'POST' });
+                                            window.location.href = '/';
+                                        }}
+                                        className="block w-full text-left py-3 text-xs tracking-[0.22em] uppercase text-muted hover:text-gold"
+                                    >
+                                        התנתקות
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <Link href="/auth/signin" className="block py-3 text-xs tracking-[0.22em] uppercase text-muted hover:text-gold">
+                                        כניסה
+                                    </Link>
+                                    <Link href="/auth/signup" className="block py-3 text-xs tracking-[0.22em] uppercase text-muted hover:text-gold">
+                                        הרשמה
+                                    </Link>
+                                </>
+                            )}
+                        </li>
                     </ul>
                 </nav>
             )}
