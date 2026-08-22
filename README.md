@@ -110,6 +110,9 @@ GET /api/diag                                # per-stage provider connectivity p
 | Variable | Required | Effect |
 | --- | --- | --- |
 | `ANTHROPIC_API_KEY` | No | When set, the verbal summary is written by Claude. Without it a built-in rule-based Hebrew summary is used instead — all numeric analysis works either way. |
+| `FINNHUB_API_KEY` | No | Enables fundamentals. Required in practice wherever Yahoo is blocked, which includes most cloud hosts. Free key from finnhub.io. |
+| `FUNDAMENTALS_PROVIDER` | No | Pin fundamentals to one provider (`finnhub` or `yahoo`) instead of trying them in order. |
+| `FINNHUB_HOST` | No | Point the fundamentals provider at a fixture server for local development or CI. |
 | `YAHOO_CHART_HOST` / `YAHOO_QUOTE_HOST` / `YAHOO_COOKIE_HOST` | No | Point the data layer at a fixture server for local development or CI. Defaults to the real Yahoo Finance hosts. |
 | `STOOQ_HOST` | No | Same, for the fallback price provider. |
 | `PRICE_PROVIDER` | No | Pin prices to one provider (`yahoo` or `stooq`) instead of trying them in order. |
@@ -127,10 +130,22 @@ blocking. Each report says which provider served it. A genuine 404 does not trig
 fallback — a symbol that does not exist gets the same answer everywhere, so there is no point
 asking twice.
 
-Two limits worth knowing:
+Fundamentals have their own chain (`lib/fundamentals.js`), ordered the **opposite** way:
+Finnhub first whenever `FINNHUB_API_KEY` is set, Yahoo only as a fallback. Prices put Yahoo
+first because it carries metadata Stooq lacks; fundamentals cannot, because Yahoo's blocked
+handshake takes seconds to fail and putting it first would add that delay to every report.
 
-- **Stooq has no fundamentals.** When Yahoo is blocked, reports degrade to technical-only.
-  Restoring fundamentals in that state needs a keyed provider, not more tuning here.
+Finnhub's numbers are **not on Yahoo's scale**, and the conversion is the risky part of that
+integration: it reports margins, growth and ROE as ready percentages where Yahoo reports
+fractions, and debt-to-equity as a ratio (1.45) where Yahoo reports a percentage (145). The
+scoring thresholds are calibrated to Yahoo, so `providers/finnhub.js` normalises to that
+scale, and a test asserts the same company scores identically through either provider — a
+silent mismatch would produce confidently wrong scores rather than an obvious failure.
+
+Limits worth knowing:
+
+- **Stooq has no fundamentals**, and **Finnhub's free tier has no price targets or PEG.**
+  Those fields stay null and drop out of the score rather than counting as zero.
 - **Stooq has no Tel Aviv mapping.** `^TA125.TA` and `.TA` tickers are declined rather than
   guessed at, so they show as unavailable when Yahoo is unreachable.
 

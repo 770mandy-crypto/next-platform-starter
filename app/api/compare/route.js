@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { buildReport } from 'lib/analysis';
-import { YahooError, fetchFundamentals, normaliseSymbol } from 'lib/yahoo';
+import { YahooError, normaliseSymbol } from 'lib/yahoo';
+import { fetchCompanyFundamentals } from 'lib/fundamentals';
 import { fetchHistory } from 'lib/prices';
 
 export const dynamic = 'force-dynamic';
@@ -44,7 +45,7 @@ export async function GET(request) {
 async function analyseOne(symbol) {
     const [historyResult, fundamentalsResult] = await Promise.allSettled([
         fetchHistory(symbol),
-        fetchFundamentals(symbol)
+        fetchCompanyFundamentals(symbol)
     ]);
     if (historyResult.status === 'rejected') throw historyResult.reason;
 

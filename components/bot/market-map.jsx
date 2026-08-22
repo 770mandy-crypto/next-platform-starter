@@ -211,8 +211,11 @@ export function MarketMap() {
             </div>
 
             <p className="text-xs leading-relaxed opacity-50">
-                הניתוח מבוסס על נתוני Yahoo Finance ועל מודל ציון אוטומטי, וכולל מדדים ותעודות סל בלבד — ולכן הוא טכני
-                במהותו. אין לראות בו ייעוץ השקעות או תחליף לייעוץ אישי.
+                הדף כולל מדדים ותעודות סל בלבד, ולכן הניתוח טכני במהותו. מקור המחירים:{' '}
+                {[...new Set(map.indices.concat(map.sectors).filter((entry) => entry.ok).map((entry) => entry.provider))]
+                    .map((provider) => (provider === 'stooq' ? 'Stooq' : 'Yahoo Finance'))
+                    .join(' · ') || 'לא ידוע'}
+                . אין לראות בניתוח ייעוץ השקעות או תחליף לייעוץ אישי.
             </p>
         </div>
     );

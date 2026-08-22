@@ -50,6 +50,18 @@ function SignalRow({ signal }) {
     );
 }
 
+const PROVIDER_NAMES = { yahoo: 'Yahoo Finance', stooq: 'Stooq', finnhub: 'Finnhub' };
+
+function describeSources(report) {
+    const parts = [];
+    if (report.provider) parts.push(`מחירים מ-${PROVIDER_NAMES[report.provider] || report.provider}`);
+    const fundamentalsProvider = report.raw?.provider;
+    if (fundamentalsProvider) {
+        parts.push(`נתוני חברה מ-${PROVIDER_NAMES[fundamentalsProvider] || fundamentalsProvider}`);
+    }
+    return parts.length ? parts.join(' · ') : 'לא ידוע';
+}
+
 function Stat({ label, children }) {
     return (
         <div className="px-3 py-2 rounded bg-white/5">
@@ -176,8 +188,10 @@ export function ReportView({ report }) {
             )}
 
             <p className="text-xs leading-relaxed opacity-50">
-                הניתוח מבוסס על נתוני Yahoo Finance ועל מודל ציון אוטומטי. אין לראות בו ייעוץ השקעות, שיווק השקעות או
-                תחליף לייעוץ אישי המתחשב בנתונים ובצרכים של כל אדם.
+                {/* Name the providers that actually served this report — a fixed
+                    "Yahoo Finance" line is wrong whenever a fallback served it. */}
+                מקורות הנתונים: {describeSources(report)}. הציון מופק ממודל אוטומטי. אין לראות בניתוח ייעוץ השקעות,
+                שיווק השקעות או תחליף לייעוץ אישי המתחשב בנתונים ובצרכים של כל אדם.
             </p>
         </div>
     );

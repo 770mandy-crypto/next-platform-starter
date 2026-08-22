@@ -1,25 +1,28 @@
 import { NextResponse } from 'next/server';
 import { buildReport } from 'lib/analysis';
 import { narrateReport } from 'lib/bot';
-import { YahooError, fetchFundamentals, normaliseSymbol } from 'lib/yahoo';
+import { YahooError, normaliseSymbol } from 'lib/yahoo';
+import { fetchCompanyFundamentals } from 'lib/fundamentals';
 import { fetchHistory } from 'lib/prices';
 
 export const dynamic = 'force-dynamic'; // Prices are live; never serve this from the cache
 
-const STEP_LABELS = {
-    cookie: 'Yahoo לא הנפיק cookie של סשן',
-    crumb: 'Yahoo לא הנפיק crumb',
-    quoteSummary: 'בקשת הנתונים הפונדמנטליים נדחתה'
-};
-
-// Yahoo's cookie+crumb handshake is the fragile part of this flow, so the
-// report says which stage broke instead of a generic "unavailable" — that is
-// what makes a failure in production diagnosable.
+// A missing key is a configuration state, not a fault, so it reads as a setup
+// instruction rather than an error. Anything else names the provider and the
+// stage that broke — a generic "unavailable" gives nothing to debug from.
 function describeFundamentalsFailure(error) {
-    const step = error?.step;
-    const label = STEP_LABELS[step] || 'שליפת הנתונים הפונדמנטליים נכשלה';
-    const detail = error?.message ? ` (${error.message})` : '';
-    return `${label}${detail}. הניתוח מבוסס על מחירים בלבד.`;
+    if (error?.unconfigured) {
+        return (
+            'נתונים פונדמנטליים אינם זמינים: Yahoo חוסם את השרת, ולא הוגדר מפתח Finnhub. ' +
+            'הוסף FINNHUB_API_KEY במשתני הסביבה כדי להפעיל אותם. הניתוח מבוסס על מחירים בלבד.'
+        );
+    }
+
+    const attempts = error?.attempts?.length
+        ? error.attempts.map((attempt) => `${attempt.provider}: ${attempt.error}`).join(' | ')
+        : error?.message;
+
+    return `שליפת הנתונים הפונדמנטליים נכשלה (${attempts}). הניתוח מבוסס על מחירים בלבד.`;
 }
 
 export async function GET(request) {
@@ -35,7 +38,7 @@ export async function GET(request) {
         // Fundamentals are optional, so settle rather than race-to-reject.
         const [historyResult, fundamentalsResult] = await Promise.allSettled([
             fetchHistory(symbol),
-            fetchFundamentals(symbol)
+            fetchCompanyFundamentals(symbol)
         ]);
 
         if (historyResult.status === 'rejected') throw historyResult.reason;

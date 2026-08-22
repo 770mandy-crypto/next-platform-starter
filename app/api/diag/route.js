@@ -102,22 +102,54 @@ export async function GET() {
     steps.push(await probe('stooq / aapl.us (fallback)', 'https://stooq.com/q/d/l/?s=aapl.us&i=d'));
     steps.push(await probe('stooq / ^spx (fallback index)', 'https://stooq.com/q/d/l/?s=%5Espx&i=d'));
 
+    // 7. Finnhub, the fundamentals provider, when a key is configured.
+    const finnhubKey = process.env.FINNHUB_API_KEY;
+    if (finnhubKey) {
+        steps.push(
+            await probe('finnhub / metrics AAPL', 'https://finnhub.io/api/v1/stock/metric?symbol=AAPL&metric=all', {
+                // The key goes in a header so it never reaches the reported URL.
+                headers: { ...HEADERS, 'X-Finnhub-Token': finnhubKey }
+            })
+        );
+    } else {
+        steps.push({
+            name: 'finnhub / metrics AAPL',
+            url: 'https://finnhub.io/api/v1/stock/metric',
+            ok: false,
+            status: null,
+            ms: 0,
+            error: 'FINNHUB_API_KEY is not set — fundamentals are disabled'
+        });
+    }
+
     const chartWorks = steps[0].ok && steps[0].bodyPrefix?.includes('chart');
     const anyCookie = steps.some((step) => step.setCookieCount > 0);
     const stooqStep = steps.find((step) => step.name.startsWith('stooq / aapl'));
     const stooqWorks = Boolean(stooqStep?.ok && stooqStep.bodyPrefix?.toLowerCase().startsWith('date'));
+    const finnhubStep = steps.find((step) => step.name.startsWith('finnhub'));
+    const finnhubWorks = Boolean(finnhubStep?.ok && finnhubStep.bodyPrefix?.includes('metric'));
+
+    const priceVerdict = chartWorks
+        ? anyCookie
+            ? 'Prices reachable and a cookie was issued — the crumb exchange is the remaining suspect.'
+            : 'Prices reachable but NO cookie from any Yahoo host — Yahoo fundamentals cannot work.'
+        : stooqWorks
+          ? 'Yahoo is blocked from this host, but Stooq works — prices are served by the fallback.'
+          : 'Neither Yahoo nor Stooq is reachable from this host — prices are down.';
+
+    const fundamentalsVerdict = finnhubWorks
+        ? 'Finnhub is reachable — fundamentals are live.'
+        : finnhubKey
+          ? `Finnhub is configured but failing (${finnhubStep?.status ?? finnhubStep?.error}) — fundamentals are down.`
+          : 'No FINNHUB_API_KEY — reports are technical-only.';
 
     return NextResponse.json({
-        verdict: chartWorks
-            ? anyCookie
-                ? 'Prices reachable and a cookie was issued — the crumb exchange is the remaining suspect.'
-                : 'Prices reachable but NO cookie from any Yahoo host — fundamentals cannot work.'
-            : stooqWorks
-              ? 'Yahoo is blocked from this host, but Stooq works — prices will be served by the fallback, and fundamentals need an API-key provider.'
-              : 'Neither Yahoo nor Stooq is reachable from this host — an API-key provider is required.',
+        verdict: `${priceVerdict} ${fundamentalsVerdict}`,
         chartWorks,
         anyCookie,
         stooqWorks,
+        finnhubWorks,
+        finnhubConfigured: Boolean(finnhubKey),
         runtime: {
             region: process.env.AWS_REGION || process.env.NETLIFY_REGION || null,
             node: process.version,
