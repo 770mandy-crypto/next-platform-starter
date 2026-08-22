@@ -76,6 +76,23 @@ Indices and ETFs have no company fundamentals, so this page is technical-only an
 touches the cookie+crumb handshake. Results are cached in memory for 60 seconds; `?force=true`
 bypasses it.
 
+### Scanner (`/scan`)
+
+Scans a curated universe — 25 to 100 large US names, by preset — and ranks every symbol
+by its technical score. Results are sortable by a minimum-score slider, and each symbol
+deep-links into `/bot?symbol=X` for the full report.
+
+Netlify functions time out at roughly ten seconds, which a hundred-symbol scan will not fit
+inside. So the scan is not one long request: the client walks the universe in batches of 12,
+publishing results after each one. That keeps every request well within the timeout, shows
+progress as it goes, and makes the scan cancellable mid-run. A batch of 12 completes in
+under a second against a local fixture.
+
+The universes are hand-written rather than scraped from an index — a constituent list would
+go stale and add its own fetch and its own failure mode to every scan. A test asserts that
+every symbol in every universe passes validation and has a Stooq mapping, so a bad ticker
+fails at `npm test` rather than silently on every run.
+
 ### Endpoints
 
 ```
@@ -84,6 +101,8 @@ GET /api/analyze?symbol=AAPL&narrate=false   # skip the verbal summary
 GET /api/compare?symbols=AAPL,MSFT,NVDA      # ranked comparison, up to 6 symbols
 GET /api/market                              # indices + sectors + breadth
 GET /api/market?force=true                   # bypass the 60s cache
+GET /api/scan?symbols=AAPL,MSFT,…            # technical-only rows, max 12 per call
+GET /api/diag                                # per-stage provider connectivity probe
 ```
 
 ### Configuration

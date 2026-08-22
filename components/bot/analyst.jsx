@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ReportView, formatValue } from './report-view';
 import { ScoreGauge } from './score-gauge';
 
@@ -10,6 +10,20 @@ export function Analyst() {
     const [input, setInput] = useState('');
     const [mode, setMode] = useState('single');
     const [state, setState] = useState({ status: 'idle' });
+    const autoRan = useRef(false);
+
+    // The scanner links here as /bot?symbol=NVDA, so honour that and analyse
+    // immediately. Read from location rather than useSearchParams to avoid
+    // forcing a Suspense boundary around the whole page.
+    useEffect(() => {
+        if (autoRan.current) return;
+        const symbol = new URLSearchParams(window.location.search).get('symbol');
+        if (!symbol) return;
+        autoRan.current = true;
+        setInput(symbol);
+        run(symbol, 'single');
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     async function run(rawInput, requestedMode) {
         const symbols = rawInput
