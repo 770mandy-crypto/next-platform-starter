@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Analyst } from 'components/bot/analyst';
+import { FinnhubBanner } from 'components/bot/finnhub-banner';
 import { isClaudeConfigured } from 'lib/bot';
-import { isFinnhubConfigured } from 'lib/providers/finnhub';
 
 export const metadata = {
     title: 'שוקי — בוט ניתוח בורסה'
@@ -9,7 +9,6 @@ export const metadata = {
 
 export default function BotPage() {
     const claudeReady = isClaudeConfigured();
-    const finnhubReady = isFinnhubConfigured();
 
     return (
         <div dir="rtl" className="flex flex-col gap-8">
@@ -31,13 +30,7 @@ export default function BotPage() {
                 </p>
             </header>
 
-            {!finnhubReady && (
-                <div className="p-4 text-sm rounded-lg bg-yellow-500/15 border border-yellow-400/40">
-                    <strong>הניתוח כרגע טכני בלבד.</strong> Yahoo חוסם את השרת, ולכן הנתונים הפונדמנטליים דורשים ספק
-                    חלופי. הוסף <code>FINNHUB_API_KEY</code> במשתני הסביבה של Netlify (מפתח חינמי מ-finnhub.io) כדי
-                    להפעיל מכפילי רווח, צמיחה, שולי רווח ורמת מינוף — ואת השקלול המלא של 60% פונדמנטלי / 40% טכני.
-                </div>
-            )}
+            <FinnhubBanner />
 
             {!claudeReady && (
                 <div className="p-4 text-sm rounded-lg bg-white/5 border border-white/15">
