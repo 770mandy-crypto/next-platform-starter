@@ -1,3 +1,4 @@
+import { providerName } from 'lib/provider-names';
 import { ScoreGauge } from './score-gauge';
 import { Sparkline } from './sparkline';
 
@@ -50,14 +51,12 @@ function SignalRow({ signal }) {
     );
 }
 
-const PROVIDER_NAMES = { yahoo: 'Yahoo Finance', stooq: 'Stooq', finnhub: 'Finnhub' };
-
 function describeSources(report) {
     const parts = [];
-    if (report.provider) parts.push(`מחירים מ-${PROVIDER_NAMES[report.provider] || report.provider}`);
+    if (report.provider) parts.push(`מחירים מ-${providerName(report.provider)}`);
     const fundamentalsProvider = report.raw?.provider;
     if (fundamentalsProvider) {
-        parts.push(`נתוני חברה מ-${PROVIDER_NAMES[fundamentalsProvider] || fundamentalsProvider}`);
+        parts.push(`נתוני חברה מ-${providerName(fundamentalsProvider)}`);
     }
     return parts.length ? parts.join(' · ') : 'לא ידוע';
 }

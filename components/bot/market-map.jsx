@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { providerName } from 'lib/provider-names';
 import { ScoreGauge } from './score-gauge';
 import { Sparkline } from './sparkline';
 
@@ -213,7 +214,7 @@ export function MarketMap() {
             <p className="text-xs leading-relaxed opacity-50">
                 הדף כולל מדדים ותעודות סל בלבד, ולכן הניתוח טכני במהותו. מקור המחירים:{' '}
                 {[...new Set(map.indices.concat(map.sectors).filter((entry) => entry.ok).map((entry) => entry.provider))]
-                    .map((provider) => (provider === 'stooq' ? 'Stooq' : 'Yahoo Finance'))
+                    .map(providerName)
                     .join(' · ') || 'לא ידוע'}
                 . אין לראות בניתוח ייעוץ השקעות או תחליף לייעוץ אישי.
             </p>
