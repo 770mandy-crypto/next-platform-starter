@@ -1,0 +1,24 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [claude/clothing-boutique-site-4y5odd]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - run: npm ci
+      - run: npm run build
+      
+      - uses: actions/upload-pages-artifact@v1
+        with:
+          path: ./out
+      
+      - uses: actions/deploy-pages@v1
