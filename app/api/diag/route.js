@@ -102,6 +102,27 @@ export async function GET() {
     steps.push(await probe('stooq / aapl.us (fallback)', 'https://stooq.com/q/d/l/?s=aapl.us&i=d'));
     steps.push(await probe('stooq / ^spx (fallback index)', 'https://stooq.com/q/d/l/?s=%5Espx&i=d'));
 
+    // 6b. Twelve Data, the keyed price provider. Yahoo and Stooq both fail from
+    // a datacenter IP, so this is the one expected to work in production.
+    const twelveKey = process.env.TWELVEDATA_API_KEY;
+    if (twelveKey) {
+        steps.push(
+            await probe(
+                'twelvedata / AAPL (keyed prices)',
+                `https://api.twelvedata.com/time_series?symbol=AAPL&interval=1day&outputsize=5&apikey=${encodeURIComponent(twelveKey)}`
+            )
+        );
+    } else {
+        steps.push({
+            name: 'twelvedata / AAPL (keyed prices)',
+            url: 'https://api.twelvedata.com/time_series',
+            ok: false,
+            status: null,
+            ms: 0,
+            error: 'TWELVEDATA_API_KEY is not set — no keyed price provider configured'
+        });
+    }
+
     // 7. Finnhub, the fundamentals provider, when a key is configured.
     const finnhubKey = process.env.FINNHUB_API_KEY;
     if (finnhubKey) {
@@ -129,13 +150,20 @@ export async function GET() {
     const finnhubStep = steps.find((step) => step.name.startsWith('finnhub'));
     const finnhubWorks = Boolean(finnhubStep?.ok && finnhubStep.bodyPrefix?.includes('metric'));
 
-    const priceVerdict = chartWorks
-        ? anyCookie
-            ? 'Prices reachable and a cookie was issued — the crumb exchange is the remaining suspect.'
-            : 'Prices reachable but NO cookie from any Yahoo host — Yahoo fundamentals cannot work.'
-        : stooqWorks
-          ? 'Yahoo is blocked from this host, but Stooq works — prices are served by the fallback.'
-          : 'Neither Yahoo nor Stooq is reachable from this host — prices are down.';
+    const twelveStep = steps.find((step) => step.name.startsWith('twelvedata'));
+    const twelveWorks = Boolean(twelveStep?.ok && twelveStep.bodyPrefix?.includes('values'));
+
+    // Twelve Data decides the verdict when it is configured: it is the only
+    // price provider expected to survive a datacenter IP.
+    const priceVerdict = twelveWorks
+        ? 'Twelve Data is serving prices — the price path is healthy.'
+        : twelveKey
+          ? `Twelve Data is configured but failing (${twelveStep?.status ?? twelveStep?.error}) — prices are down.`
+          : chartWorks
+            ? 'Yahoo prices are reachable from this host.'
+            : stooqWorks
+              ? 'Yahoo is unavailable, but Stooq works — prices are served by the fallback.'
+              : 'No price provider works from this host. Yahoo and Stooq both fail from a datacenter IP; set TWELVEDATA_API_KEY.';
 
     const fundamentalsVerdict = finnhubWorks
         ? 'Finnhub is reachable — fundamentals are live.'
@@ -148,6 +176,8 @@ export async function GET() {
         chartWorks,
         anyCookie,
         stooqWorks,
+        twelveWorks,
+        twelveConfigured: Boolean(twelveKey),
         finnhubWorks,
         finnhubConfigured: Boolean(finnhubKey),
         runtime: {

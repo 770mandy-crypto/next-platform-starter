@@ -110,6 +110,7 @@ GET /api/diag                                # per-stage provider connectivity p
 | Variable | Required | Effect |
 | --- | --- | --- |
 | `ANTHROPIC_API_KEY` | No | When set, the verbal summary is written by Claude. Without it a built-in rule-based Hebrew summary is used instead — all numeric analysis works either way. |
+| `TWELVEDATA_API_KEY` | On a cloud host | Enables prices where Yahoo and Stooq are blocked. Not needed locally. Free key (800/day) from twelvedata.com. |
 | `FINNHUB_API_KEY` | No | Enables fundamentals. Required in practice wherever Yahoo is blocked, which includes most cloud hosts. Free key from finnhub.io. |
 | `FUNDAMENTALS_PROVIDER` | No | Pin fundamentals to one provider (`finnhub` or `yahoo`) instead of trying them in order. |
 | `FINNHUB_HOST` | No | Point the fundamentals provider at a fixture server for local development or CI. |
@@ -117,18 +118,39 @@ GET /api/diag                                # per-stage provider connectivity p
 | `STOOQ_HOST` | No | Same, for the fallback price provider. |
 | `PRICE_PROVIDER` | No | Pin prices to one provider (`yahoo` or `stooq`) instead of trying them in order. |
 
-### Price providers and the datacenter-IP problem
+### Running it locally
 
-Yahoo blocks datacenter IP ranges. The practical consequence is that the price
-endpoint works fine from a laptop and can refuse *every* request from a serverless host —
-which is exactly what happened on the deploy preview here, taking down both `/bot` and
-`/market` even though the market map never touches the fundamentals handshake.
+```bash
+npm install
+npm run dev          # http://localhost:3000/market
+```
 
-So prices go through a fallback chain (`lib/prices.js`): Yahoo first, because it carries
-currency and exchange metadata, then Stooq, which serves plain CSV with no key and no such
-blocking. Each report says which provider served it. A genuine 404 does not trigger a
-fallback — a symbol that does not exist gets the same answer everywhere, so there is no point
-asking twice.
+**No API keys are needed locally.** From a normal connection Yahoo answers fine and the app
+uses it automatically. Copy `.env.example` to `.env.local` only if you want fundamentals or
+the Claude-written summary.
+
+This matters because the deployed app is the harder case, not the easier one — see below.
+
+### The datacenter-IP problem
+
+Free financial data is free because it is served to browsers. From a shared cloud IP the same
+endpoints behave completely differently, and `/diag` measured all three from Netlify:
+
+| Provider | From a laptop | From Netlify (us-east-2) |
+| --- | --- | --- |
+| Yahoo | works | `429 Too Many Requests` in 155ms |
+| Stooq | works | `200` with a JavaScript browser-verification page, not CSV |
+| Twelve Data | works | works — being keyed is exactly why |
+
+So the keyless approach cannot survive a cloud host, and no amount of header tuning changes
+that. Prices go through a chain (`lib/prices.js`): **Twelve Data first when a key is set**,
+then Yahoo (metadata-rich, fine locally), then Stooq. Each report names the provider that
+served it. A genuine 404 does not trigger a fallback — a symbol that does not exist gets the
+same answer everywhere.
+
+Yahoo also gets a circuit breaker: one failure takes it out of rotation for ten minutes, so a
+seventeen-symbol market map pays its timeout at most once rather than seventeen times. A 404
+does not trip it, since a missing symbol says nothing about reachability.
 
 Fundamentals have their own chain (`lib/fundamentals.js`), ordered the **opposite** way:
 Finnhub first whenever `FINNHUB_API_KEY` is set, Yahoo only as a fallback. Prices put Yahoo
