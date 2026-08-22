@@ -92,6 +92,32 @@ GET /api/market?force=true                   # bypass the 60s cache
 | --- | --- | --- |
 | `ANTHROPIC_API_KEY` | No | When set, the verbal summary is written by Claude. Without it a built-in rule-based Hebrew summary is used instead — all numeric analysis works either way. |
 | `YAHOO_CHART_HOST` / `YAHOO_QUOTE_HOST` / `YAHOO_COOKIE_HOST` | No | Point the data layer at a fixture server for local development or CI. Defaults to the real Yahoo Finance hosts. |
+| `STOOQ_HOST` | No | Same, for the fallback price provider. |
+| `PRICE_PROVIDER` | No | Pin prices to one provider (`yahoo` or `stooq`) instead of trying them in order. |
+
+### Price providers and the datacenter-IP problem
+
+Yahoo blocks datacenter IP ranges. The practical consequence is that the price
+endpoint works fine from a laptop and can refuse *every* request from a serverless host —
+which is exactly what happened on the deploy preview here, taking down both `/bot` and
+`/market` even though the market map never touches the fundamentals handshake.
+
+So prices go through a fallback chain (`lib/prices.js`): Yahoo first, because it carries
+currency and exchange metadata, then Stooq, which serves plain CSV with no key and no such
+blocking. Each report says which provider served it. A genuine 404 does not trigger a
+fallback — a symbol that does not exist gets the same answer everywhere, so there is no point
+asking twice.
+
+Two limits worth knowing:
+
+- **Stooq has no fundamentals.** When Yahoo is blocked, reports degrade to technical-only.
+  Restoring fundamentals in that state needs a keyed provider, not more tuning here.
+- **Stooq has no Tel Aviv mapping.** `^TA125.TA` and `.TA` tickers are declined rather than
+  guessed at, so they show as unavailable when Yahoo is unreachable.
+
+`/diag` probes every stage of both providers and prints what the wire returned. It exists
+because this failure mode is invisible from a development machine that can reach Yahoo — or,
+as here, from one that can reach neither.
 
 Price data comes from Yahoo Finance and needs no API key. Fundamentals go through Yahoo's
 cookie+crumb handshake; if that fails the report degrades to technicals only rather than

@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { buildReport } from 'lib/analysis';
 import { narrateReport } from 'lib/bot';
-import { YahooError, fetchFundamentals, fetchPriceHistory, normaliseSymbol } from 'lib/yahoo';
+import { YahooError, fetchFundamentals, normaliseSymbol } from 'lib/yahoo';
+import { fetchHistory } from 'lib/prices';
 
 export const dynamic = 'force-dynamic'; // Prices are live; never serve this from the cache
 
@@ -33,7 +34,7 @@ export async function GET(request) {
     try {
         // Fundamentals are optional, so settle rather than race-to-reject.
         const [historyResult, fundamentalsResult] = await Promise.allSettled([
-            fetchPriceHistory(symbol),
+            fetchHistory(symbol),
             fetchFundamentals(symbol)
         ]);
 
@@ -52,11 +53,22 @@ export async function GET(request) {
 
         return NextResponse.json(report);
     } catch (error) {
-        if (error instanceof YahooError) {
-            const status = error.status === 404 || error.status === 422 ? 404 : 502;
+        // fetchHistory throws its own error once every provider has been tried,
+        // so branch on the status rather than on the Yahoo error class.
+        const status = error?.status;
+        if (status === 404 || status === 422) {
+            return NextResponse.json({ error: `לא מצאתי נתונים עבור ${symbol}.` }, { status: 404 });
+        }
+        if (status === 502 || error instanceof YahooError) {
+            console.error('Price providers failed:', error.attempts ?? error.message);
             return NextResponse.json(
-                { error: status === 404 ? `לא מצאתי נתונים עבור ${symbol}.` : 'שירות הנתונים לא זמין כרגע.' },
-                { status }
+                {
+                    error: 'אף ספק נתונים לא הצליח לספק מחירים כרגע.',
+                    // The per-provider reasons are what make this debuggable in
+                    // production, where the sandbox cannot reach either host.
+                    attempts: error.attempts ?? null
+                },
+                { status: 502 }
             );
         }
         console.error('Analysis failed:', error);
