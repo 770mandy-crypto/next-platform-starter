@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Assistant:wght@200..800&family=Cormorant+Garamond:wght@300..700&family=Frank+Ruhl+Libre:wght@300..900&display=swap');
 
 @import 'tailwindcss';
 
@@ -14,6 +15,21 @@
     --color-secondary: #016968;
     --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
+
+    /* VALENTOS CLOTHING — a dark house with gold as the single accent. */
+    --color-ink: #0a0a0b;
+    --color-ink-2: #101012;
+    --color-ink-3: #17171a;
+    --color-hairline: #26262b;
+    --color-bone: #f4f1ea;
+    --color-muted: #9d968b;
+    --color-gold: #c2a15e;
+    --color-gold-lo: #8f7439;
+    --color-gold-hi: #e7d3a1;
+
+    /* Latin resolves to Cormorant, Hebrew falls through to Frank Ruhl Libre. */
+    --font-display: 'Cormorant Garamond', 'Frank Ruhl Libre', ui-serif, Georgia, serif;
+    --font-body: 'Assistant', ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {
@@ -36,6 +52,417 @@
     :not(pre) > code {
         @apply px-1 py-0.5 font-mono rounded bg-neutral-900 text-yellow-200;
         font-size: 0.9em;
+    }
+}
+
+@layer components {
+    /*
+    Everything for the storefront is scoped to .store so the Netlify platform
+    demos under /netlify keep the starter's original look untouched.
+    */
+    .store {
+        font-family: var(--font-body);
+        color: var(--color-bone);
+
+        a:not(.btn):not(.btn-line) {
+            @apply no-underline;
+        }
+
+        :where(h1, h2, h3) {
+            font-family: var(--font-display);
+            @apply font-normal tracking-normal;
+        }
+
+        h1 {
+            @apply text-4xl sm:text-6xl;
+        }
+
+        h2 {
+            @apply text-3xl sm:text-5xl;
+        }
+
+        ::selection {
+            background: var(--color-gold);
+            color: var(--color-ink);
+        }
+    }
+
+    /* Gold is a material here, not a flat colour — it reads as leaf, not paint. */
+    .gold-leaf {
+        background: linear-gradient(
+            135deg,
+            var(--color-gold-lo) 0%,
+            var(--color-gold-hi) 38%,
+            var(--color-gold) 62%,
+            var(--color-gold-hi) 100%
+        );
+        background-clip: text;
+        -webkit-background-clip: text;
+        color: transparent;
+    }
+
+    .btn-gold {
+        @apply relative inline-flex items-center justify-center gap-2 px-8 py-4 overflow-hidden text-xs font-semibold tracking-[0.18em] uppercase no-underline transition-colors cursor-pointer;
+        color: var(--color-ink);
+        background: linear-gradient(135deg, var(--color-gold-lo), var(--color-gold-hi) 50%, var(--color-gold));
+
+        &:hover {
+            background: linear-gradient(135deg, var(--color-gold), var(--color-gold-hi) 55%, var(--color-gold-hi));
+        }
+
+        &:disabled {
+            @apply cursor-default;
+            background: var(--color-ink-3);
+            color: var(--color-muted);
+        }
+    }
+
+    .btn-line {
+        @apply inline-flex items-center justify-center gap-2 px-8 py-4 text-xs font-semibold tracking-[0.18em] uppercase no-underline transition-colors cursor-pointer border;
+        border-color: var(--color-hairline);
+        color: var(--color-bone);
+
+        &:hover {
+            border-color: var(--color-gold);
+            color: var(--color-gold);
+        }
+    }
+
+    .eyebrow {
+        @apply text-[0.65rem] font-semibold tracking-[0.32em] uppercase;
+        color: var(--color-gold);
+    }
+
+    .field {
+        @apply w-full px-4 py-3 text-sm transition-colors border rounded-none;
+        background: var(--color-ink-2);
+        border-color: var(--color-hairline);
+        color: var(--color-bone);
+
+        &::placeholder {
+            color: color-mix(in oklab, var(--color-muted) 70%, transparent);
+        }
+
+        &:focus {
+            @apply outline-none;
+            border-color: var(--color-gold);
+        }
+    }
+
+    .hairline {
+        border-color: var(--color-hairline);
+    }
+}
+
+/*
+Motion. Every animated state starts from its finished position, so if the JS
+never runs — or the visitor prefers reduced motion — the page is simply static
+and complete rather than invisible.
+*/
+@layer utilities {
+    .reveal {
+        opacity: 0;
+        transform: translateY(32px) scale(0.92);
+        transition: opacity 0.7s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+        transition-delay: var(--reveal-delay, 0ms);
+        will-change: transform, opacity;
+    }
+
+    .reveal.is-in {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+    /* The hero runs on a load timeline rather than on scroll. */
+    .rise {
+        opacity: 0;
+        transform: translateY(32px) scale(0.92);
+        animation: rise 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        animation-delay: var(--rise-delay, 0ms);
+        will-change: transform, opacity;
+    }
+
+    @keyframes rise {
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    .fade-in {
+        opacity: 0;
+        animation: fade-in 1.2s ease forwards;
+        animation-delay: var(--rise-delay, 0ms);
+    }
+
+    @keyframes fade-in {
+        to {
+            opacity: 1;
+        }
+    }
+
+    /* Signature moment: a single sweep of light across the monogram. */
+    .shimmer {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .shimmer::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+            105deg,
+            transparent 38%,
+            color-mix(in oklab, var(--color-gold-hi) 55%, transparent) 50%,
+            transparent 62%
+        );
+        transform: translateX(-140%);
+        animation: sweep 5.5s ease-in-out 1.4s infinite;
+        pointer-events: none;
+    }
+
+    @keyframes sweep {
+        0% {
+            transform: translateX(-140%);
+        }
+        22%,
+        100% {
+            transform: translateX(140%);
+        }
+    }
+
+    .draw path {
+        stroke-dasharray: var(--len, 1200);
+        stroke-dashoffset: var(--len, 1200);
+        animation: draw 2.2s cubic-bezier(0.65, 0, 0.35, 1) 0.2s forwards;
+    }
+
+    @keyframes draw {
+        to {
+            stroke-dashoffset: 0;
+        }
+    }
+
+    /* Heading reveal: each word rises out of its own clipping box. */
+    .word-mask {
+        display: inline-block;
+        overflow: hidden;
+        vertical-align: bottom;
+    }
+
+    .word-mask > span {
+        display: inline-block;
+        transform: translateY(110%) scale(0.96);
+        transition: transform 0.9s cubic-bezier(0.34, 1.56, 0.64, 1);
+        transition-delay: var(--word-delay, 0ms);
+        will-change: transform;
+    }
+
+    .word-mask.is-in > span {
+        transform: translateY(0) scale(1);
+    }
+
+    /* Cards lift and catch a gold edge under the pointer. */
+    .tilt {
+        transform-style: preserve-3d;
+        transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+        will-change: transform;
+    }
+
+    .tilt-glare {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.5s ease;
+        background: radial-gradient(
+            32rem circle at var(--gx, 50%) var(--gy, 50%),
+            color-mix(in oklab, var(--color-gold-hi) 20%, transparent),
+            transparent 55%
+        );
+    }
+
+    .tilt-host:hover .tilt-glare {
+        opacity: 1;
+    }
+
+    /* Marquee: the track holds two identical runs, so -50% loops seamlessly. */
+    .marquee {
+        display: flex;
+        overflow: hidden;
+        user-select: none;
+        mask-image: linear-gradient(to left, transparent, #000 12%, #000 88%, transparent);
+    }
+
+    .marquee-track {
+        display: flex;
+        flex-shrink: 0;
+        gap: 3rem;
+        padding-inline-end: 3rem;
+        animation: marquee var(--marquee-duration, 34s) linear infinite;
+    }
+
+    @keyframes marquee {
+        to {
+            transform: translateX(50%);
+        }
+    }
+
+    /* Route transition: a gold blade wipes across, then lifts. */
+    .page-wipe {
+        position: fixed;
+        inset: 0;
+        z-index: 90;
+        pointer-events: none;
+        transform-origin: right center;
+        animation: wipe 0.9s cubic-bezier(0.76, 0, 0.24, 1) forwards;
+        background: linear-gradient(90deg, var(--color-gold-lo), var(--color-gold-hi) 50%, var(--color-gold-lo));
+    }
+
+    @keyframes wipe {
+        0% {
+            transform: scaleX(1);
+            transform-origin: right center;
+        }
+        45% {
+            transform: scaleX(1);
+            transform-origin: left center;
+        }
+        100% {
+            transform: scaleX(0);
+            transform-origin: left center;
+        }
+    }
+
+    .page-in {
+        animation: page-in 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.28s both;
+    }
+
+    @keyframes page-in {
+        from {
+            opacity: 0;
+            transform: translateY(18px) scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    /* Intro curtain */
+    .curtain {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--color-ink);
+        animation: curtain-out 0.9s cubic-bezier(0.76, 0, 0.24, 1) 2.5s forwards;
+    }
+
+    @keyframes curtain-out {
+        to {
+            transform: translateY(-100%);
+        }
+    }
+
+    .curtain-mark {
+        animation: curtain-mark 2.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    @keyframes curtain-mark {
+        0% {
+            opacity: 0;
+            transform: scale(0.94);
+            filter: blur(6px);
+        }
+        26% {
+            opacity: 1;
+            transform: none;
+            filter: none;
+        }
+        82% {
+            opacity: 1;
+            transform: none;
+        }
+        100% {
+            opacity: 0;
+            transform: scale(1.03);
+        }
+    }
+
+    .curtain-rule {
+        animation: curtain-rule 1.7s cubic-bezier(0.22, 1, 0.36, 1) 0.5s both;
+    }
+
+    @keyframes curtain-rule {
+        from {
+            transform: scaleX(0);
+        }
+        to {
+            transform: scaleX(1);
+        }
+    }
+
+    /* The cart badge kicks when a line lands in it. */
+    .badge-pop {
+        animation: badge-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes badge-pop {
+        0% {
+            transform: scale(1);
+        }
+        35% {
+            transform: scale(1.42);
+        }
+        100% {
+            transform: scale(1);
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .reveal,
+        .rise,
+        .fade-in,
+        .page-in {
+            opacity: 1;
+            transform: none;
+            animation: none;
+            transition: none;
+        }
+
+        .word-mask > span {
+            transform: none;
+            transition: none;
+        }
+
+        .shimmer::after,
+        .draw path,
+        .marquee-track,
+        .curtain,
+        .curtain-mark,
+        .curtain-rule,
+        .badge-pop,
+        .page-wipe {
+            animation: none;
+        }
+
+        .draw path {
+            stroke-dashoffset: 0;
+        }
+
+        .tilt {
+            transform: none !important;
+            transition: none;
+        }
+
+        .page-wipe,
+        .curtain {
+            display: none;
+        }
     }
 }
 
