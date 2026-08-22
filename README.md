@@ -75,7 +75,15 @@ GET /api/compare?symbols=AAPL,MSFT,NVDA      # ranked comparison, up to 6 symbol
 | `YAHOO_CHART_HOST` / `YAHOO_QUOTE_HOST` / `YAHOO_COOKIE_HOST` | No | Point the data layer at a fixture server for local development or CI. Defaults to the real Yahoo Finance hosts. |
 
 Price data comes from Yahoo Finance and needs no API key. Fundamentals go through Yahoo's
-cookie+crumb flow; if that fails the report degrades to technicals only rather than erroring.
+cookie+crumb handshake; if that fails the report degrades to technicals only rather than
+erroring.
+
+That handshake is the fragile part of the flow, so when it breaks the fundamentals panel
+names the stage that failed (cookie, crumb or quoteSummary) and what each Yahoo host
+returned, rather than a generic "unavailable". Two things matter for it to work at all:
+the cookie request must not follow redirects (Yahoo sets the session cookie on the 30x
+itself, and `fetch` only exposes the final response's headers), and every `Set-Cookie` on
+that response has to be forwarded, not just the first.
 
 ### Tests
 

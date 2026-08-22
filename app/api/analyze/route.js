@@ -5,6 +5,22 @@ import { YahooError, fetchFundamentals, fetchPriceHistory, normaliseSymbol } fro
 
 export const dynamic = 'force-dynamic'; // Prices are live; never serve this from the cache
 
+const STEP_LABELS = {
+    cookie: 'Yahoo לא הנפיק cookie של סשן',
+    crumb: 'Yahoo לא הנפיק crumb',
+    quoteSummary: 'בקשת הנתונים הפונדמנטליים נדחתה'
+};
+
+// Yahoo's cookie+crumb handshake is the fragile part of this flow, so the
+// report says which stage broke instead of a generic "unavailable" — that is
+// what makes a failure in production diagnosable.
+function describeFundamentalsFailure(error) {
+    const step = error?.step;
+    const label = STEP_LABELS[step] || 'שליפת הנתונים הפונדמנטליים נכשלה';
+    const detail = error?.message ? ` (${error.message})` : '';
+    return `${label}${detail}. הניתוח מבוסס על מחירים בלבד.`;
+}
+
 export async function GET(request) {
     const requested = request.nextUrl.searchParams.get('symbol');
     const withNarration = request.nextUrl.searchParams.get('narrate') !== 'false';
@@ -27,9 +43,7 @@ export async function GET(request) {
             history: historyResult.value,
             fundamentals: fundamentalsResult.status === 'fulfilled' ? fundamentalsResult.value : null,
             fundamentalsError:
-                fundamentalsResult.status === 'rejected'
-                    ? 'לא הצלחתי לשלוף נתונים פונדמנטליים מ-Yahoo — הניתוח מבוסס על מחירים בלבד.'
-                    : null
+                fundamentalsResult.status === 'rejected' ? describeFundamentalsFailure(fundamentalsResult.reason) : null
         });
 
         if (withNarration) {
