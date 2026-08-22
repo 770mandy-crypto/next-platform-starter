@@ -59,12 +59,31 @@ stock with no fundamentals data still gets a valid technical-only score. The ban
 
 Every signal keeps the number it came from, so the UI shows its work rather than just a verdict.
 
+### Market map (`/market`)
+
+A whole-market view: the major indices (S&P 500, Nasdaq, Dow, Russell 2000, TA-125) and all
+eleven SPDR sector ETFs, each scored by the same technical engine and ranked strongest to
+weakest as a heat map.
+
+The headline number is not just the benchmark. It blends the S&P 500's score with **breadth** —
+how many sectors are actually above their 50-day moving average — in equal parts, because an
+index carried by two or three sectors is a weaker market than its level suggests. The VIX is
+shown as a level with a plain-language reading, and is deliberately excluded from both the
+breadth maths and the ranking: it measures fear, so scoring it on the same scale would be
+backwards.
+
+Indices and ETFs have no company fundamentals, so this page is technical-only and never
+touches the cookie+crumb handshake. Results are cached in memory for 60 seconds; `?force=true`
+bypasses it.
+
 ### Endpoints
 
 ```
-GET /api/analyze?symbol=AAPL          # full report for one symbol
+GET /api/analyze?symbol=AAPL                 # full report for one symbol
 GET /api/analyze?symbol=AAPL&narrate=false   # skip the verbal summary
 GET /api/compare?symbols=AAPL,MSFT,NVDA      # ranked comparison, up to 6 symbols
+GET /api/market                              # indices + sectors + breadth
+GET /api/market?force=true                   # bypass the 60s cache
 ```
 
 ### Configuration
