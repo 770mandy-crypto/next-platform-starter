@@ -7,9 +7,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "node --test 'lib/*.test.mjs'"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.120.0",
     "@netlify/blobs": "^10.5.0",
     "blobshape": "^1.0.0",
     "bright": "^1.0.0",
