@@ -25,6 +25,16 @@ export function ProductCard({ product, priority = false }) {
                         </span>
                     )}
 
+                    {/* A gold sheen crosses the shot on hover, under the hem prompt. */}
+                    <span
+                        aria-hidden="true"
+                        className="absolute inset-0 z-0 transition-opacity duration-700 opacity-0 pointer-events-none group-hover:opacity-100"
+                        style={{
+                            background:
+                                'linear-gradient(115deg, transparent 38%, color-mix(in oklab, var(--color-gold) 16%, transparent) 50%, transparent 62%)'
+                        }}
+                    />
+
                     {/* The prompt to open the product slides up from the hem on hover. */}
                     <span
                         className="absolute inset-x-0 bottom-0 z-10 py-3 text-[0.62rem] font-semibold tracking-[0.26em] text-center uppercase translate-y-full transition-transform duration-500 group-hover:translate-y-0"

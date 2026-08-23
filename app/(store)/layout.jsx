@@ -1,5 +1,6 @@
 import { CartProvider } from 'components/store/cart-provider';
 import { GoldCursor, IntroCurtain, ScrollProgress } from 'components/store/motion/chrome';
+import { Magnetic } from 'components/store/motion/magnetic';
 import { StoreFooter } from 'components/store/store-footer';
 import { StoreHeader } from 'components/store/store-header';
 
@@ -10,6 +11,7 @@ export default function StoreLayout({ children }) {
                 <IntroCurtain />
                 <ScrollProgress />
                 <GoldCursor />
+                <Magnetic />
                 <StoreHeader />
                 <main className="grow">{children}</main>
                 <StoreFooter />
