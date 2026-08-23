@@ -6,7 +6,7 @@ import { getProducts } from 'lib/catalog';
 
 export const metadata = {
     title: 'הקולקציה',
-    description: 'קולקציית VALENTOS 2026 — חולצות טי ומכנסי פוטר בשחור ולבן, עם רקמת זהב.'
+    description: 'קולקציית AM 2026 — חולצות טי ומכנסי פוטר בשחור ולבן, עם רקמת זהב.'
 };
 
 export default async function ShopPage({ searchParams }) {

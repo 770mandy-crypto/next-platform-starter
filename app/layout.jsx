@@ -2,11 +2,11 @@ import '../styles/globals.css';
 
 export const metadata = {
     title: {
-        template: '%s | VALENTOS',
-        default: 'VALENTOS CLOTHING — קולקציית 2026'
+        template: '%s | AM',
+        default: 'AM CLOTHING — קולקציית 2026'
     },
     description:
-        'VALENTOS CLOTHING — קולקציית פתיחה בסדרה מוגבלת. חולצות ומכנסי פוטר בשחור ולבן, עם רקמת זהב.'
+        'AM CLOTHING — קולקציית פתיחה בסדרה מוגבלת. חולצות ומכנסי פוטר בשחור ולבן, עם רקמת זהב.'
 };
 
 export default function RootLayout({ children }) {

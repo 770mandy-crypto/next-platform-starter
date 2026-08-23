@@ -23,8 +23,8 @@ export function IntroCurtain() {
     useEffect(() => {
         if (prefersStill()) return;
         try {
-            if (window.sessionStorage.getItem('valentos-intro') === 'seen') return;
-            window.sessionStorage.setItem('valentos-intro', 'seen');
+            if (window.sessionStorage.getItem('am-intro') === 'seen') return;
+            window.sessionStorage.setItem('am-intro', 'seen');
         } catch {
             // Private mode: play it, just don't remember.
         }

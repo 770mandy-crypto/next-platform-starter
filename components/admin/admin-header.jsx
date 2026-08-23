@@ -52,7 +52,7 @@ export function AdminHeader() {
         <aside className="w-64 border-r border-hairline" style={{ background: 'var(--color-ink-2)' }}>
             <div className="p-6 border-b border-hairline">
                 <h1 className="text-xl font-bold text-bone">Admin Panel</h1>
-                <p className="text-xs text-muted">VALENTOS Management</p>
+                <p className="text-xs text-muted">AM Management</p>
             </div>
 
             <nav className="p-4">

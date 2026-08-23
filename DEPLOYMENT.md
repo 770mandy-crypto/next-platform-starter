@@ -1,4 +1,4 @@
-# Deployment Guide - VALENTOS Store
+# Deployment Guide - AM Store
 
 ## Deploy to Netlify (5 minutes)
 
@@ -73,4 +73,4 @@ Once you have a live URL, we'll connect Supabase database to make it fully funct
 
 ---
 
-**Support**: Check `VALENTOS_PROGRESS.md` for full project status
+**Support**: Check `AM_PROGRESS.md` for full project status

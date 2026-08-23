@@ -3,7 +3,7 @@ import { Reveal } from 'components/store/reveal';
 
 export const metadata = {
     title: 'צור קשר',
-    description: 'יצירת קשר עם VALENTOS CLOTHING — מידות, הזמנות, החזרות ושיתופי פעולה.'
+    description: 'יצירת קשר עם AM CLOTHING — מידות, הזמנות, החזרות ושיתופי פעולה.'
 };
 
 export default function ContactPage() {
@@ -30,10 +30,10 @@ export default function ContactPage() {
                             </p>
                             <p className="mt-4 leading-loose text-muted">
                                 <span dir="ltr" className="block">
-                                    hello@valentos.co.il
+                                    hello@amclothing.co.il
                                 </span>
                                 <span dir="ltr" className="block">
-                                    @valentos.clothing
+                                    @am.clothing
                                 </span>
                             </p>
                         </div>

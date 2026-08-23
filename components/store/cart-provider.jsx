@@ -3,8 +3,8 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { cartLineKey } from 'lib/format';
 
-// Bumped with the VALENTOS rebrand so carts saved against the old catalog are dropped.
-const STORAGE_KEY = 'valentos-cart-v1';
+// Bumped with the AM rebrand so carts saved against the old catalog are dropped.
+const STORAGE_KEY = 'am-cart-v1';
 
 const CartContext = createContext(null);
 

@@ -1,4 +1,4 @@
-# 🚀 VALENTOS - Quick Deploy Guide
+# 🚀 AM - Quick Deploy Guide
 
 ## **Your Website is Ready! Deploy in 2 Minutes**
 
@@ -12,7 +12,7 @@
 # 5. Click "Deploy"
 ```
 
-**That's it!** You'll get a live URL like: `https://valentos-xyz.vercel.app`
+**That's it!** You'll get a live URL like: `https://am-xyz.vercel.app`
 
 ---
 

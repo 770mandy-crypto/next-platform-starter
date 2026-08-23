@@ -12,8 +12,8 @@ import { getFeaturedProducts, getProducts } from 'lib/catalog';
 export default async function HomePage() {
     const featured = await getFeaturedProducts(4);
     const all = await getProducts();
-    const blackTee = all.find((p) => p.slug === 'valentos-tee-black') ?? all[0];
-    const whiteShorts = all.find((p) => p.slug === 'valentos-shorts-white') ?? all[1] ?? all[0];
+    const blackTee = all.find((p) => p.slug === 'am-tee-black') ?? all[0];
+    const whiteShorts = all.find((p) => p.slug === 'am-shorts-white') ?? all[1] ?? all[0];
 
     return (
         <>
@@ -76,7 +76,7 @@ export default async function HomePage() {
                 </div>
             </section>
 
-            <Marquee items={['LIMITED SERIES', 'VALENTOS 2026', 'GOLD EMBROIDERY', 'MADE IN ISRAEL']} />
+            <Marquee items={['LIMITED SERIES', 'AM 2026', 'GOLD EMBROIDERY', 'MADE IN ISRAEL']} />
 
             {/* The three things worth promising. */}
             <section style={{ background: 'var(--color-ink-2)' }} className="border-b hairline">
@@ -129,7 +129,7 @@ export default async function HomePage() {
             <section className="border-y hairline" style={{ background: 'var(--color-ink-2)' }}>
                 <div className="px-6 py-24 mx-auto text-center max-w-3xl sm:px-10 sm:py-32">
                     <Reveal>
-                        <p className="eyebrow">VALENTOS</p>
+                        <p className="eyebrow">AM</p>
                         <SplitHeading as="h2" className="mt-6">
                             לא עוד מותג עם לוגו גדול
                         </SplitHeading>

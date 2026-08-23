@@ -1,5 +1,5 @@
 /*
-VALENTOS CLOTHING — local catalog.
+AM CLOTHING — local catalog.
 
 This is the fallback source of truth: when the Shopify Storefront credentials are
 configured (see lib/shopify.js), products are pulled live from Shopify instead and
@@ -21,8 +21,8 @@ const SIZES = ['S', 'M', 'L', 'XL', 'XXL'];
 
 export const products = [
     {
-        slug: 'valentos-tee-black',
-        title: 'VALENTOS TEE — BLACK',
+        slug: 'am-tee-black',
+        title: 'AM TEE — BLACK',
         titleHe: 'חולצת טי שחורה',
         category: 'tees',
         cut: 'tee',
@@ -34,7 +34,7 @@ export const products = [
         featured: true,
         shortDescription: 'טי כותנה כבדה בגזרה נקייה, עם הלוגו רקום בזהב על החזה.',
         description:
-            'החולצה שפותחת את הקולקציה. כותנה מסורקת כבדה שנופלת ישר ולא מתעוותת בכביסה, גזרה נקייה שאינה צמודה ואינה אוברסייז, והלוגו של VALENTOS ברקמת זהב על החזה השמאלי. שחור עמוק שנשאר שחור.',
+            'החולצה שפותחת את הקולקציה. כותנה מסורקת כבדה שנופלת ישר ולא מתעוותת בכביסה, גזרה נקייה שאינה צמודה ואינה אוברסייז, והלוגו של AM ברקמת זהב על החזה השמאלי. שחור עמוק שנשאר שחור.',
         details: [
             '100% כותנה מסורקת, 240 גרם למ״ר',
             'רקמת זהב על החזה השמאלי',
@@ -46,8 +46,8 @@ export const products = [
         sizes: SIZES
     },
     {
-        slug: 'valentos-tee-white',
-        title: 'VALENTOS TEE — WHITE',
+        slug: 'am-tee-white',
+        title: 'AM TEE — WHITE',
         titleHe: 'חולצת טי לבנה',
         category: 'tees',
         cut: 'tee',
@@ -71,8 +71,8 @@ export const products = [
         sizes: SIZES
     },
     {
-        slug: 'valentos-shorts-black',
-        title: 'VALENTOS SHORTS — BLACK',
+        slug: 'am-shorts-black',
+        title: 'AM SHORTS — BLACK',
         titleHe: 'מכנסי פוטר שחורים',
         category: 'shorts',
         cut: 'shorts',
@@ -96,8 +96,8 @@ export const products = [
         sizes: SIZES
     },
     {
-        slug: 'valentos-shorts-white',
-        title: 'VALENTOS SHORTS — WHITE',
+        slug: 'am-shorts-white',
+        title: 'AM SHORTS — WHITE',
         titleHe: 'מכנסי פוטר לבנים',
         category: 'shorts',
         cut: 'shorts',
@@ -121,8 +121,8 @@ export const products = [
         sizes: SIZES
     },
     {
-        slug: 'valentos-set-black',
-        title: 'VALENTOS SET — BLACK',
+        slug: 'am-set-black',
+        title: 'AM SET — BLACK',
         titleHe: 'סט שחור מלא',
         category: 'sets',
         cut: 'tee',
@@ -145,8 +145,8 @@ export const products = [
         sizes: SIZES
     },
     {
-        slug: 'valentos-set-white',
-        title: 'VALENTOS SET — WHITE',
+        slug: 'am-set-white',
+        title: 'AM SET — WHITE',
         titleHe: 'סט לבן מלא',
         category: 'sets',
         cut: 'shorts',

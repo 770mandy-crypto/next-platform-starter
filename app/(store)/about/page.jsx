@@ -6,7 +6,7 @@ import { Reveal } from 'components/store/reveal';
 
 export const metadata = {
     title: 'המותג',
-    description: 'VALENTOS CLOTHING — למה סדרה מוגבלת, למה רקמה ולמה רק שחור, לבן וזהב.'
+    description: 'AM CLOTHING — למה סדרה מוגבלת, למה רקמה ולמה רק שחור, לבן וזהב.'
 };
 
 const principles = [
@@ -38,14 +38,14 @@ export default function AboutPage() {
             <Reveal delay={120} className="mt-16">
                 <p className="eyebrow">המותג</p>
                 <SplitHeading className="mt-4" delay={120}>
-                    התחיל מרקמה אחת
+                    הכל התחיל מרקמה אחת
                 </SplitHeading>
             </Reveal>
 
             <Reveal delay={200}>
                 <div className="flex flex-col gap-6 mt-10 text-lg leading-relaxed text-muted">
                     <p>
-                        VALENTOS נולד מתוך שאלה פשוטה: למה בגד בסיסי טוב עולה או מעט מדי ומתפרק, או הרבה מדי בגלל
+                        AM נולד מתוך שאלה פשוטה: למה בגד בסיסי טוב עולה או מעט מדי ומתפרק, או הרבה מדי בגלל
                         השם שכתוב עליו. רצינו את הנקודה באמצע — בד שבאמת שווה את המחיר, ולוגו שלא צריך לצעוק.
                     </p>
                     <p>
@@ -63,8 +63,8 @@ export default function AboutPage() {
             <Reveal delay={120} className="mt-20">
                 <Tilt className="overflow-hidden border hairline" max={5}>
                     <img
-                        src="/images/products/logo-embroidery.jpg"
-                        alt="רקמת הזהב של VALENTOS על בד"
+                        src="/images/products/brand-logo.jpg"
+                        alt="רקמת הזהב של AM על בד"
                         loading="lazy"
                         className="block object-cover w-full"
                         style={{ aspectRatio: '16 / 9' }}

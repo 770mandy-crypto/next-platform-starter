@@ -64,10 +64,10 @@ export function StoreFooter() {
                     <p className="mb-5 text-[0.62rem] font-semibold tracking-[0.28em] uppercase text-gold">יצירת קשר</p>
                     <address className="text-sm not-italic leading-loose text-muted">
                         <span dir="ltr" className="block">
-                            hello@valentos.co.il
+                            hello@amclothing.co.il
                         </span>
                         <span dir="ltr" className="block">
-                            @valentos.clothing
+                            @am.clothing
                         </span>
                         <span className="block mt-3">משלוחים לכל הארץ, 3–5 ימי עסקים</span>
                     </address>
@@ -76,7 +76,7 @@ export function StoreFooter() {
 
             <div className="border-t hairline">
                 <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-6 mx-auto text-[0.68rem] tracking-[0.14em] uppercase max-w-7xl sm:px-10 text-muted">
-                    <span>© 2026 VALENTOS CLOTHING</span>
+                    <span>© 2026 AM CLOTHING</span>
                     <span>ALL RIGHTS RESERVED</span>
                 </div>
             </div>

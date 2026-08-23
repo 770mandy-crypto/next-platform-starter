@@ -1,7 +1,7 @@
-# VALENTOS Clothing Store - Development Progress
+# AM Clothing Store - Development Progress
 
 ## Project Overview
-Building a production-ready, independent e-commerce platform for VALENTOS CLOTHING brand - not a Shopify store, but a complete custom Next.js application with product catalog, shopping cart, user authentication, payments (Stripe), and admin dashboard.
+Building a production-ready, independent e-commerce platform for AM CLOTHING brand - not a Shopify store, but a complete custom Next.js application with product catalog, shopping cart, user authentication, payments (Stripe), and admin dashboard.
 
 **Goal**: Full-featured online store visible on Google with real transactions, user accounts, and order management.
 
@@ -11,7 +11,7 @@ Building a production-ready, independent e-commerce platform for VALENTOS CLOTHI
 
 ### Completed Features:
 - **Brand Identity**
-  - VALENTOS branding (gold, ink, bone color palette)
+  - AM branding (gold, ink, bone color palette)
   - Logo with shimmer animation
   - RTL (right-to-left) Hebrew language support throughout
   - Professional typography and styling

@@ -86,7 +86,7 @@ export function StoreHeader() {
                     </span>
                 </button>
 
-                <Link href="/" aria-label="VALENTOS — לדף הבית" className="shrink-0">
+                <Link href="/" aria-label="AM — לדף הבית" className="shrink-0">
                     <span
                         className="block origin-[right_center]"
                         style={{
