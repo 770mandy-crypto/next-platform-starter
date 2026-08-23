@@ -61,6 +61,28 @@ async function checkProvider({ key, configured, probe, label, missingHint }) {
     }
 }
 
+// Reports which relevant variable NAMES the function can see — never a value.
+// A key that is added, redeployed, and still invisible is usually one of: the
+// wrong Netlify site, a deploy context that excludes this one, a scope that
+// excludes Functions, or a typo in the name. Those look identical from outside
+// and different from in here, so this is what separates them.
+function environmentReport() {
+    const names = Object.keys(process.env);
+    const relevant = names.filter((name) => /TWELVE|FINNHUB|ANTHROPIC|STOOQ|YAHOO/i.test(name));
+
+    return {
+        // Presence and length only. A length of 0 means the variable exists but
+        // is empty, which is a different fix from it being absent.
+        relevantVariables: relevant.map((name) => ({ name, length: (process.env[name] || '').length })),
+        totalVariables: names.length,
+        // Netlify sets these; they confirm which site and context is answering.
+        site: process.env.SITE_NAME || null,
+        context: process.env.CONTEXT || null,
+        branch: process.env.BRANCH || null,
+        deployId: process.env.DEPLOY_ID || null
+    };
+}
+
 export async function GET() {
     const [prices, fundamentals] = await Promise.all([
         checkProvider({
@@ -97,6 +119,7 @@ export async function GET() {
             : 'המחירים לא מוגדרים — זה מה שחוסם את הכל',
         prices,
         fundamentals,
+        environment: environmentReport(),
         checkedAt: new Date().toISOString()
     });
 }

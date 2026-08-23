@@ -118,6 +118,40 @@ export function SetupGuide() {
                 </ol>
             )}
 
+            {/* What the function itself can see. A key that was added and
+                redeployed but is still invisible is a scoping or naming problem,
+                and only this view tells those apart. Names and lengths only —
+                never a value. */}
+            {payload.environment && (
+                <details className="p-4 text-sm rounded-lg bg-white/5" open={!payload.ready}>
+                    <summary className="cursor-pointer font-semibold">מה השרת באמת רואה</summary>
+                    <div className="flex flex-col gap-3 mt-3">
+                        {payload.environment.relevantVariables.length === 0 ? (
+                            <p className="leading-relaxed">
+                                לשרת אין <strong>אף משתנה</strong> מהמשתנים הרלוונטיים. אם הוספת מפתח ופרסת מחדש, כמעט
+                                תמיד הסיבה היא אחת משתיים: ה-<strong>Scopes</strong> של המשתנה ב-Netlify לא כולל{' '}
+                                <code dir="ltr">Functions</code>, או שהמשתנה נוסף לאתר אחר.
+                            </p>
+                        ) : (
+                            <ul className="flex flex-col gap-1">
+                                {payload.environment.relevantVariables.map((entry) => (
+                                    <li key={entry.name} dir="ltr" className="flex gap-2">
+                                        <code className="px-2 py-0.5 rounded bg-black/30">{entry.name}</code>
+                                        <span className={entry.length ? 'text-green-400' : 'text-red-400'}>
+                                            {entry.length ? `${entry.length} chars` : 'empty'}
+                                        </span>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                        <div className="text-xs opacity-60" dir="ltr">
+                            site: {payload.environment.site || '—'} · context: {payload.environment.context || '—'} ·
+                            branch: {payload.environment.branch || '—'} · {payload.environment.totalVariables} env vars
+                        </div>
+                    </div>
+                </details>
+            )}
+
             <p className="text-xs opacity-50" dir="ltr">
                 Checked {new Date(payload.checkedAt).toLocaleString('he-IL')}
             </p>
