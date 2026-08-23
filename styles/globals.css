@@ -627,3 +627,47 @@ and complete rather than invisible.
         }
     }
 }
+
+/* ============ AMBIENT BACKGROUND ============ */
+/*
+A canvas behind the whole page: slow pools of gold light that drift and breathe,
+with fine motes rising through them. Kept at very low alpha so photographs and
+type always win. Content is lifted above it with a stacking context.
+*/
+#ambient {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 1.6s ease 0.2s;
+}
+
+#ambient.on {
+    opacity: 1;
+}
+
+/* A soft vignette keeps the eye centred and the edges calm. */
+.vignette {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: radial-gradient(
+        120% 85% at 50% 42%,
+        transparent 42%,
+        color-mix(in oklab, var(--color-ink) 72%, transparent) 100%
+    );
+}
+
+/* Lift in-flow content above the ambient background. */
+.store header,
+.store main,
+.store footer {
+    position: relative;
+    z-index: 1;
+}
+
+.store header {
+    z-index: 60;
+}
