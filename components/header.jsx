@@ -8,6 +8,7 @@ const navItems = [
     { linkText: '🤖 Stock Bot', href: '/bot' },
     { linkText: '🗺️ Market', href: '/market' },
     { linkText: '🔍 Scan', href: '/scan' },
+    { linkText: '🔑 Setup', href: '/setup' },
     { linkText: 'Revalidation', href: '/revalidation' },
     { linkText: 'Image CDN', href: '/image-cdn' },
     { linkText: 'Edge Function', href: '/edge' },
