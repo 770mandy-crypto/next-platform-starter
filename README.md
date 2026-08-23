@@ -76,6 +76,38 @@ Indices and ETFs have no company fundamentals, so this page is technical-only an
 touches the cookie+crumb handshake. Results are cached in memory for 60 seconds; `?force=true`
 bypasses it.
 
+### Screenshot analysis (`/upload`)
+
+Drop in a screenshot from a trading app — or just paste it, since that is where a
+screenshot usually lives — and get two things at once.
+
+**A reading of the chart in the picture.** Claude describes the trend, patterns and
+support/resistance it can see, and lists any figures legible in the image. This half needs
+only `ANTHROPIC_API_KEY`, so it works even with no price provider configured at all.
+
+**The full analysis**, when the ticker can be identified, run through exactly the same
+pipeline as a typed symbol.
+
+The two are shown as separate things on purpose. One is measured from fetched prices; the
+other is an interpretation of a picture, and its numbers were read off an image. They can
+legitimately disagree — a stale screenshot, another currency — and the page says which to
+trust rather than letting them look equally authoritative.
+
+Some deliberate limits:
+
+- **A low-confidence identification produces no report.** Showing a confident analysis of
+  the wrong company is worse than showing the chart reading alone, so the ticker only
+  drives the pipeline when the model is reasonably sure, and the page says why when it is
+  not.
+- **The model's output is never trusted as a symbol.** It goes through the same validation
+  a typed symbol does (`lib/resolve-symbol.js`), so a hallucinated string cannot reach a
+  provider.
+- **Israeli tickers regain their `.TA` suffix** from the detected market, since a
+  screenshot shows `TEVA`, not `TEVA.TA`. They always get the chart reading; the full
+  report depends on Yahoo, the only provider here with real TASE coverage.
+- **Each upload is a paid vision call** against your own Anthropic key. Images are held in
+  memory for the request only — never written to disk or logged.
+
 ### Scanner (`/scan`)
 
 Scans a curated universe — 25 to 100 large US names, by preset — and ranks every symbol
@@ -103,13 +135,15 @@ GET /api/market                              # indices + sectors + breadth
 GET /api/market?force=true                   # bypass the 60s cache
 GET /api/scan?symbols=AAPL,MSFT,…            # technical-only rows, max 12 per call
 GET /api/diag                                # per-stage provider connectivity probe
+GET /api/setup-status                        # live per-provider configuration check
+POST /api/analyze-image                      # {mediaType, data} -> chart reading + report
 ```
 
 ### Configuration
 
 | Variable | Required | Effect |
 | --- | --- | --- |
-| `ANTHROPIC_API_KEY` | No | When set, the verbal summary is written by Claude. Without it a built-in rule-based Hebrew summary is used instead — all numeric analysis works either way. |
+| `ANTHROPIC_API_KEY` | For `/upload` | Writes the verbal summary, and powers screenshot reading — `/upload` is the one page that does nothing without it. Every number elsewhere is computed either way. |
 | `TWELVEDATA_API_KEY` | On a cloud host | Enables prices where Yahoo and Stooq are blocked. Not needed locally. Free key (800/day) from twelvedata.com. |
 | `FINNHUB_API_KEY` | No | Enables fundamentals. Required in practice wherever Yahoo is blocked, which includes most cloud hosts. Free key from finnhub.io. |
 | `FUNDAMENTALS_PROVIDER` | No | Pin fundamentals to one provider (`finnhub` or `yahoo`) instead of trying them in order. |
