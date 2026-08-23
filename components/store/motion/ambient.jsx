@@ -30,9 +30,9 @@ export function Ambient() {
         const gctx = glow.getContext('2d');
 
         const POOLS = [
-            { hue: '194, 161, 94', r: 0.52, a: 0.16, ax: 0.20, ay: 0.13, sx: 0.00011, sy: 0.00008, px: 0.0, py: 1.1 },
-            { hue: '231, 211, 161', r: 0.36, a: 0.10, ax: 0.24, ay: 0.16, sx: 0.00009, sy: 0.00013, px: 2.1, py: 0.4 },
-            { hue: '143, 116, 57', r: 0.62, a: 0.13, ax: 0.16, ay: 0.20, sx: 0.00007, sy: 0.00006, px: 4.2, py: 2.7 }
+            { hue: '194, 161, 94', r: 0.52, a: 0.24, ax: 0.20, ay: 0.13, sx: 0.00011, sy: 0.00008, px: 0.0, py: 1.1 },
+            { hue: '231, 211, 161', r: 0.36, a: 0.16, ax: 0.24, ay: 0.16, sx: 0.00009, sy: 0.00013, px: 2.1, py: 0.4 },
+            { hue: '143, 116, 57', r: 0.62, a: 0.20, ax: 0.16, ay: 0.20, sx: 0.00007, sy: 0.00006, px: 4.2, py: 2.7 }
         ];
 
         function spawn(anywhere) {
@@ -44,7 +44,7 @@ export function Ambient() {
                 drift: (Math.random() - 0.5) * 0.22,
                 phase: Math.random() * Math.PI * 2,
                 twinkle: 0.7 + Math.random() * 1.6,
-                alpha: 0.10 + Math.random() * 0.30
+                alpha: 0.18 + Math.random() * 0.42
             };
         }
 
@@ -62,7 +62,7 @@ export function Ambient() {
             glow.width = Math.max(1, Math.round(config.w / SCALE));
             glow.height = Math.max(1, Math.round(config.h / SCALE));
 
-            const count = Math.min(90, Math.round((config.w * config.h) / 14000));
+            const count = Math.min(120, Math.round((config.w * config.h) / 10000));
             config.motes = Array.from({ length: count }, () => spawn(true));
         }
 
