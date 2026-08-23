@@ -976,3 +976,431 @@ type always win. Content is lifted above it with a stacking context.
         animation: none;
     }
 }
+
+/* ============ ADVANCED MOTION LAYER ============ */
+
+/* Parallax effect on scroll */
+@keyframes parallax-up {
+    0% {
+        transform: translateY(0);
+    }
+    100% {
+        transform: translateY(-40px);
+    }
+}
+
+@keyframes parallax-down {
+    0% {
+        transform: translateY(0);
+    }
+    100% {
+        transform: translateY(40px);
+    }
+}
+
+/* Intense glow pulse */
+@keyframes intense-glow {
+    0% {
+        box-shadow: 0 0 0 0 rgba(194, 161, 94, 0.7),
+                    inset 0 0 20px rgba(194, 161, 94, 0.1);
+    }
+    50% {
+        box-shadow: 0 0 0 20px rgba(194, 161, 94, 0),
+                    inset 0 0 40px rgba(194, 161, 94, 0.2);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(194, 161, 94, 0),
+                    inset 0 0 20px rgba(194, 161, 94, 0.1);
+    }
+}
+
+/* Blur in effect */
+@keyframes blur-in {
+    from {
+        filter: blur(10px);
+        opacity: 0;
+    }
+    to {
+        filter: blur(0);
+        opacity: 1;
+    }
+}
+
+/* Scale and fade */
+@keyframes scale-fade {
+    from {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Slide from right */
+@keyframes slide-from-right {
+    from {
+        transform: translateX(100px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Slide from left */
+@keyframes slide-from-left {
+    from {
+        transform: translateX(-100px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Bounce in */
+@keyframes bounce-in {
+    0% {
+        transform: scale(0.3);
+        opacity: 0;
+    }
+    50% {
+        opacity: 1;
+    }
+    70% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Rotating glow */
+@keyframes rotate-glow {
+    0% {
+        transform: rotate(0deg);
+        box-shadow: 0 0 0 0 rgba(194, 161, 94, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 20px 10px rgba(194, 161, 94, 0.2);
+    }
+    100% {
+        transform: rotate(360deg);
+        box-shadow: 0 0 0 0 rgba(194, 161, 94, 0.3);
+    }
+}
+
+/* Floating in 3D */
+@keyframes float-3d {
+    0%, 100% {
+        transform: translateY(0) rotateX(0deg);
+    }
+    25% {
+        transform: translateY(-12px) rotateX(5deg);
+    }
+    50% {
+        transform: translateY(-20px) rotateX(10deg);
+    }
+    75% {
+        transform: translateY(-12px) rotateX(5deg);
+    }
+}
+
+.store {
+    /* Enhanced product cards with parallax */
+    article.card {
+        perspective: 1200px;
+        animation: float-3d 4s ease-in-out infinite;
+        
+        &:nth-child(odd) {
+            animation-delay: 0s;
+        }
+        &:nth-child(even) {
+            animation-delay: 0.5s;
+        }
+        
+        &:hover {
+            animation: none;
+            transform: translateY(-12px) scale(1.02);
+        }
+        
+        .shot {
+            position: relative;
+            overflow: hidden;
+            
+            /* Glow overlay on hover */
+            &::after {
+                content: '';
+                position: absolute;
+                inset: 0;
+                background: radial-gradient(circle at center, 
+                    rgba(194, 161, 94, 0.2), transparent 70%);
+                opacity: 0;
+                transition: opacity 0.5s ease;
+            }
+        }
+        
+        &:hover .shot::after {
+            opacity: 1;
+            animation: intense-glow 0.8s ease;
+        }
+        
+        img {
+            transition: transform 1.2s cubic-bezier(0.22, 1, 0.36, 1),
+                        filter 0.5s ease;
+            filter: brightness(0.95);
+        }
+        
+        &:hover img {
+            transform: scale(1.08) rotateY(2deg);
+            filter: brightness(1.1) drop-shadow(0 0 20px rgba(194, 161, 94, 0.4));
+        }
+    }
+
+    /* Hero section with blur-in */
+    .hero {
+        animation: blur-in 1.2s ease 0.1s backwards;
+        
+        h1 {
+            animation: blur-in 1.2s ease 0.3s backwards;
+            position: relative;
+            
+            em {
+                position: relative;
+                display: inline-block;
+                
+                &::before {
+                    content: '';
+                    position: absolute;
+                    inset: 0;
+                    background: linear-gradient(90deg, 
+                        var(--color-gold-lo), 
+                        var(--color-gold-hi) 50%, 
+                        var(--color-gold));
+                    animation: shimmer-wave 2s infinite;
+                    opacity: 0.3;
+                    filter: blur(8px);
+                    z-index: -1;
+                }
+            }
+        }
+    }
+
+    /* Enhanced buttons with intense effects */
+    .btn-gold {
+        position: relative;
+        overflow: hidden;
+        transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+        
+        &::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(255, 255, 255, 0.4), 
+                transparent);
+            transform: translateX(-100%);
+            transition: transform 0.8s ease;
+        }
+        
+        &:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 28px rgba(194, 161, 94, 0.3);
+            
+            &::before {
+                transform: translateX(100%);
+            }
+        }
+        
+        &:active {
+            animation: intense-glow 0.5s ease-out;
+            transform: scale(0.94) translateY(2px) !important;
+        }
+    }
+
+    /* Brand section entrance */
+    .brand {
+        animation: slide-from-left 1s cubic-bezier(0.22, 1, 0.36, 1) 0.2s backwards;
+        
+        h2 {
+            animation: blur-in 1s ease 0.4s backwards;
+        }
+        
+        .brand-shot {
+            animation: slide-from-right 1s cubic-bezier(0.22, 1, 0.36, 1) 0.2s backwards;
+            
+            img {
+                transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+                filter: brightness(0.9) contrast(1.1);
+                
+                &:hover {
+                    transform: scale(1.08) rotate(2deg);
+                    filter: brightness(1) contrast(1.2) drop-shadow(0 20px 40px rgba(194, 161, 94, 0.3));
+                }
+            }
+        }
+    }
+
+    /* Section headings with underline animation */
+    .sec-head {
+        animation: bounce-in 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s backwards;
+        
+        h2 {
+            position: relative;
+            
+            &::after {
+                content: '';
+                position: absolute;
+                bottom: -8px;
+                left: 0;
+                width: 0;
+                height: 3px;
+                background: linear-gradient(90deg, 
+                    var(--color-gold), 
+                    var(--color-gold-hi));
+                transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+                box-shadow: 0 0 20px rgba(194, 161, 94, 0.4);
+            }
+        }
+        
+        &:hover h2::after {
+            width: 100%;
+        }
+    }
+
+    /* Enhanced filter buttons */
+    .filters button {
+        position: relative;
+        transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+        
+        &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(194, 161, 94, 0.2);
+        }
+        
+        &[aria-pressed="true"] {
+            animation: bounce-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 0 20px rgba(194, 161, 94, 0.4);
+        }
+    }
+
+    /* Cart badge enhanced */
+    .cart-count {
+        transition: all 0.35s ease;
+        position: relative;
+        
+        &.has {
+            animation: rotate-glow 0.8s ease;
+        }
+    }
+
+    /* Drawer with enhanced entrance */
+    .drawer.on {
+        animation: slide-from-left 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+        
+        .line {
+            animation: scale-fade 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        
+        .line:nth-child(1) { animation-delay: 0.16s; }
+        .line:nth-child(2) { animation-delay: 0.24s; }
+        .line:nth-child(3) { animation-delay: 0.32s; }
+        .line:nth-child(n+4) { animation-delay: 0.4s; }
+    }
+
+    /* Product detail page entrance */
+    .pdp.on {
+        animation: fade-in 0.4s ease;
+        
+        .pdp-side > * {
+            animation: slide-from-right 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        
+        .pdp-side > *:nth-child(1) { animation-delay: 0.24s; }
+        .pdp-side > *:nth-child(2) { animation-delay: 0.32s; }
+        .pdp-side > *:nth-child(3) { animation-delay: 0.4s; }
+        .pdp-side > *:nth-child(n+4) { animation-delay: 0.48s; }
+    }
+
+    /* Links with enhanced underline */
+    a {
+        position: relative;
+        
+        &::before {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--color-gold), var(--color-gold-hi));
+            transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+            box-shadow: 0 0 8px rgba(194, 161, 94, 0.3);
+        }
+        
+        &:hover::before {
+            width: 100%;
+        }
+    }
+
+    /* Ticker with glow effect */
+    .ticker {
+        position: relative;
+        overflow: hidden;
+        
+        &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(194, 161, 94, 0.15), 
+                transparent);
+            animation: shimmer-wave 3s infinite;
+            z-index: 1;
+            pointer-events: none;
+        }
+    }
+}
+
+@keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .store article.card {
+        animation: none;
+        
+        &:hover {
+            transform: translateY(-8px);
+        }
+    }
+    
+    .store .btn-gold:hover {
+        box-shadow: 0 8px 16px rgba(194, 161, 94, 0.2);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .store article.card,
+    .store .hero,
+    .store .hero h1,
+    .store .brand,
+    .store .sec-head {
+        animation: none !important;
+    }
+    
+    .store .btn-gold:active {
+        animation: none !important;
+    }
+}
