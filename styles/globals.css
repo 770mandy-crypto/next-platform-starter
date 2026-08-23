@@ -423,7 +423,28 @@ and complete rather than invisible.
         }
     }
 
+    /* The quick-add panel unfolds in place of the button on the catalog card. */
+    .quick-add-panel {
+        animation: quick-add-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+        transform-origin: top center;
+    }
+
+    @keyframes quick-add-in {
+        from {
+            opacity: 0;
+            transform: translateY(-6px) scaleY(0.94);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scaleY(1);
+        }
+    }
+
     @media (prefers-reduced-motion: reduce) {
+        .quick-add-panel {
+            animation: none;
+        }
+
         .reveal,
         .rise,
         .fade-in,

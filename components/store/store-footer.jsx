@@ -53,8 +53,8 @@ export function StoreFooter() {
                             </Link>
                         </li>
                         <li>
-                            <Link href="/netlify" className="transition-colors hover:text-bone">
-                                Netlify platform demos
+                            <Link href="/auth/signin" className="transition-colors hover:text-bone">
+                                החשבון שלי
                             </Link>
                         </li>
                     </ul>
