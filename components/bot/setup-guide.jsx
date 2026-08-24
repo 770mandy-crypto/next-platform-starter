@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { apiFetch } from 'components/bot/keys';
 
 const STATE_STYLES = {
     ok: 'bg-green-500/15 border-green-400/40',
@@ -36,7 +37,7 @@ export function SetupGuide() {
     async function check() {
         setState({ status: 'loading' });
         try {
-            const response = await fetch('/api/setup-status');
+            const response = await apiFetch('/api/setup-status');
             setState({ status: 'done', payload: await response.json() });
         } catch {
             setState({ status: 'error' });

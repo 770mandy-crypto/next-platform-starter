@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { narrateMarket } from 'lib/bot';
 import { fetchMarketMap } from 'lib/market';
+import { withRequestKeys } from 'lib/request-key';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request) {
+async function handleGET(request) {
     const withNarration = request.nextUrl.searchParams.get('narrate') !== 'false';
     const force = request.nextUrl.searchParams.get('force') === 'true';
 
@@ -30,3 +31,7 @@ export async function GET(request) {
         return NextResponse.json({ error: 'הפקת מפת השוק נכשלה. נסה שוב בעוד רגע.' }, { status: 500 });
     }
 }
+
+// A key pasted into the site arrives on the request rather than from the
+// host's environment, so every handler runs inside the store that carries it.
+export const GET = (request) => withRequestKeys(request, () => handleGET(request));

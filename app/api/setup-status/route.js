@@ -10,6 +10,7 @@
 import { NextResponse } from 'next/server';
 import { fetchTwelveDataHistory, isTwelveDataConfigured } from 'lib/providers/twelvedata';
 import { fetchFinnhubFundamentals, isFinnhubConfigured } from 'lib/providers/finnhub';
+import { withRequestKeys } from 'lib/request-key';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,7 +84,7 @@ function environmentReport() {
     };
 }
 
-export async function GET() {
+async function handleGET(request) {
     const [prices, fundamentals] = await Promise.all([
         checkProvider({
             key: 'TWELVEDATA_API_KEY',
@@ -123,3 +124,7 @@ export async function GET() {
         checkedAt: new Date().toISOString()
     });
 }
+
+// A key pasted into the site arrives on the request rather than from the
+// host's environment, so every handler runs inside the store that carries it.
+export const GET = (request) => withRequestKeys(request, () => handleGET(request));

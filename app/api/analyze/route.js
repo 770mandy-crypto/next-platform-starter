@@ -4,6 +4,7 @@ import { narrateReport } from 'lib/bot';
 import { YahooError, normaliseSymbol } from 'lib/yahoo';
 import { fetchCompanyFundamentals } from 'lib/fundamentals';
 import { fetchHistory } from 'lib/prices';
+import { withRequestKeys } from 'lib/request-key';
 
 export const dynamic = 'force-dynamic'; // Prices are live; never serve this from the cache
 
@@ -25,7 +26,7 @@ function describeFundamentalsFailure(error) {
     return `שליפת הנתונים הפונדמנטליים נכשלה (${attempts}). הניתוח מבוסס על מחירים בלבד.`;
 }
 
-export async function GET(request) {
+async function handleGET(request) {
     const requested = request.nextUrl.searchParams.get('symbol');
     const withNarration = request.nextUrl.searchParams.get('narrate') !== 'false';
 
@@ -78,3 +79,7 @@ export async function GET(request) {
         return NextResponse.json({ error: 'הניתוח נכשל. נסה שוב בעוד רגע.' }, { status: 500 });
     }
 }
+
+// A key pasted into the site arrives on the request rather than from the
+// host's environment, so every handler runs inside the store that carries it.
+export const GET = (request) => withRequestKeys(request, () => handleGET(request));

@@ -1,3 +1,4 @@
+import { KeyBox } from 'components/bot/key-box';
 import { SetupGuide } from 'components/bot/setup-guide';
 
 export const metadata = {
@@ -18,6 +19,8 @@ export default function SetupPage() {
                     צורך.
                 </p>
             </header>
+
+            <KeyBox />
 
             <SetupGuide />
         </div>

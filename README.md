@@ -155,6 +155,28 @@ GET /api/setup-status                        # live per-provider configuration c
 POST /api/analyze-image                      # {mediaType, data} -> chart reading + report
 ```
 
+### Getting a key in without touching the host
+
+A key in the host's environment failed three times over on Netlify, in ways that
+are indistinguishable from outside: a scope that excludes `Functions`, a deploy
+context that excludes this build, or the wrong site all present as "the variable
+isn't there", and each round of guessing costs a redeploy.
+
+So a key can also travel on the request instead. Paste it into the box on
+`/setup` — or into the one that appears inline the moment prices fail — and it is
+kept in that browser's `localStorage` and sent as a header on every API call.
+Nothing to configure, nothing to redeploy.
+
+`lib/request-key.js` holds it in an `AsyncLocalStorage` for the life of the
+request; the providers sit four layers below the route handler, and threading a
+key parameter through every function in between would touch code that has
+nothing to do with keys. The request's key beats the environment's, so a stale
+server key cannot silently override the one the visitor can actually see.
+
+Keys are validated as `[A-Za-z0-9_-]{1,128}` before use, so a paste that caught
+surrounding text, or one carrying `&`, `\r\n` or path characters, is dropped
+rather than forwarded into a URL or header. A test covers each of those cases.
+
 ### Configuration
 
 | Variable | Required | Effect |

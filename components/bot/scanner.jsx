@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { UNIVERSES, batchSymbols } from 'lib/universe';
+import { apiFetch } from 'components/bot/keys';
 
 const TONE_COLORS = {
     'strong-buy': '#22c55e',
@@ -44,7 +45,7 @@ export function Scanner() {
         for (const batch of batches) {
             if (cancelled.current) break;
             try {
-                const response = await fetch(`/api/scan?symbols=${encodeURIComponent(batch.join(','))}`);
+                const response = await apiFetch(`/api/scan?symbols=${encodeURIComponent(batch.join(','))}`);
                 const payload = await response.json();
                 if (response.ok) {
                     for (const row of payload.results) {

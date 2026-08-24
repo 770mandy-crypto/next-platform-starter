@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { providerName } from 'lib/provider-names';
 import { ScoreGauge } from './score-gauge';
 import { Sparkline } from './sparkline';
+import { apiFetch } from 'components/bot/keys';
 
 function pct(value, digits = 1) {
     if (!Number.isFinite(value)) return '—';
@@ -101,7 +102,7 @@ export function MarketMap() {
     async function load(force = false) {
         setState({ status: 'loading' });
         try {
-            const response = await fetch(`/api/market${force ? '?force=true' : ''}`);
+            const response = await apiFetch(`/api/market${force ? '?force=true' : ''}`);
             const payload = await response.json();
             if (!response.ok) {
                 setState({ status: 'error', error: payload.error || 'הבקשה נכשלה.' });
