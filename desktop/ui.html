@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>שוקי — אנליסט הבורסה</title>
+<style>
+  /* Self-contained on purpose: no CDN, so it works with no network beyond the
+     data fetch itself, and nothing to install. */
+  :root {
+    --bg: #0b1b3a; --panel: rgba(255,255,255,.06); --line: rgba(255,255,255,.14);
+    --text: #eaf0ff; --dim: rgba(234,240,255,.62); --primary: #2bdcd2;
+    --green: #22c55e; --red: #ef4444; --amber: #eab308;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text); min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    padding: 28px 20px 60px;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  h1 { font-size: 30px; margin: 0 0 6px; }
+  .sub { color: var(--dim); margin: 0 0 24px; line-height: 1.6; }
+  form { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  input[type=text] {
+    flex: 1; min-width: 220px; padding: 14px 16px; font-size: 16px; direction: ltr;
+    background: rgba(255,255,255,.09); border: 1px solid var(--line);
+    border-radius: 8px; color: var(--text);
+  }
+  input::placeholder { color: rgba(234,240,255,.38); }
+  button {
+    padding: 14px 24px; font-size: 16px; font-weight: 700; cursor: pointer;
+    background: var(--primary); color: #0b1b3a; border: 0; border-radius: 8px;
+  }
+  button:disabled { opacity: .55; cursor: default; }
+  button.ghost { background: rgba(255,255,255,.1); color: var(--text); font-weight: 500; padding: 8px 14px; font-size: 14px; }
+  .examples { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; color: var(--dim); font-size: 14px; margin-bottom: 26px; }
+  .panel { background: var(--panel); border-radius: 12px; padding: 22px; margin-bottom: 18px; }
+  .row { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; justify-content: space-between; }
+  .name { font-size: 24px; font-weight: 700; direction: ltr; text-align: right; }
+  .meta { color: var(--dim); direction: ltr; text-align: right; font-size: 14px; }
+  .price { font-size: 30px; font-weight: 700; direction: ltr; margin-top: 10px; }
+  .gauge { text-align: center; min-width: 128px; }
+  .gauge .num { font-size: 40px; font-weight: 700; line-height: 1; }
+  .gauge .of { color: var(--dim); font-size: 12px; }
+  .badge { display: inline-block; margin-top: 8px; padding: 5px 14px; border-radius: 999px; font-weight: 700; color: #0b1b3a; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 18px 0; }
+  .stat { background: rgba(255,255,255,.05); border-radius: 8px; padding: 10px 12px; }
+  .stat .k { color: var(--dim); font-size: 12px; }
+  .stat .v { font-weight: 700; direction: ltr; text-align: right; }
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; }
+  h3 { font-size: 18px; margin: 0 0 12px; }
+  ul { list-style: none; padding: 0; margin: 0; }
+  li { display: flex; gap: 10px; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,.08); }
+  li:last-child { border-bottom: 0; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; margin-top: 7px; flex: 0 0 auto; }
+  .sig { flex: 1; min-width: 0; }
+  .sig .top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+  .sig .lbl { font-weight: 600; }
+  .sig .val { color: var(--dim); font-size: 14px; direction: ltr; }
+  .sig .note { color: var(--dim); font-size: 14px; margin-top: 2px; }
+  .says { border: 1px solid rgba(43,220,210,.4); background: rgba(43,220,210,.07); }
+  .says p { margin: 0; line-height: 1.75; }
+  .err { background: rgba(239,68,68,.14); border: 1px solid rgba(239,68,68,.4); }
+  .warn { background: rgba(234,179,8,.14); border: 1px solid rgba(234,179,8,.4); font-size: 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 10px 8px; text-align: right; border-bottom: 1px solid rgba(255,255,255,.08); }
+  th { color: var(--dim); font-weight: 600; }
+  .ltr { direction: ltr; }
+  .up { color: var(--green); } .down { color: var(--red); }
+  .muted { color: var(--dim); font-size: 12px; line-height: 1.7; }
+  .spin { text-align: center; color: var(--dim); padding: 26px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🤖 שוקי — אנליסט הבורסה</h1>
+  <p class="sub">
+    הזן סימבול של מניה וקבל ניתוח טכני ופונדמנטלי, ציון מ-0 עד 100 והמלצה מנומקת.
+    כמה סימבולים מופרדים בפסיק יציגו טבלת דירוג.
+  </p>
+
+  <form id="f">
+    <input id="q" type="text" placeholder="AAPL   או   AAPL, NVDA, MSFT" autocomplete="off" spellcheck="false">
+    <button id="go" type="submit">נתח</button>
+  </form>
+  <div class="examples">
+    <span>נסה:</span>
+    <button class="ghost" data-s="AAPL">AAPL</button>
+    <button class="ghost" data-s="NVDA">NVDA</button>
+    <button class="ghost" data-s="MSFT">MSFT</button>
+    <button class="ghost" data-s="TSLA">TSLA</button>
+    <button class="ghost" data-s="AAPL, NVDA, MSFT, TSLA">השוואה</button>
+  </div>
+
+  <div id="out"></div>
+
+  <p class="muted">
+    הנתונים נשלפים מ-Yahoo Finance בזמן אמת. הציון מופק ממודל אוטומטי, ואין לראות בניתוח
+    ייעוץ השקעות או תחליף לייעוץ אישי.
+  </p>
+</div>
+
+<script>
+const out = document.getElementById('out');
+const q = document.getElementById('q');
+const go = document.getElementById('go');
+const TONES = { 'strong-buy': '#22c55e', buy: '#84cc16', hold: '#eab308', sell: '#f97316', 'strong-sell': '#ef4444' };
+
+const num = (v, d = 2) => Number.isFinite(v) ? v.toFixed(d) : '—';
+const pct = (v, d = 1) => Number.isFinite(v) ? `<span class="${v >= 0 ? 'up' : 'down'}">${v >= 0 ? '+' : ''}${v.toFixed(d)}%</span>` : '—';
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function dot(impact) {
+  if (impact === null || impact === undefined) return 'rgba(255,255,255,.25)';
+  return impact > 0.15 ? 'var(--green)' : impact < -0.15 ? 'var(--red)' : 'var(--amber)';
+}
+
+function signals(list) {
+  return list.map((s) => `
+    <li>
+      <span class="dot" style="background:${dot(s.impact)}"></span>
+      <span class="sig">
+        <span class="top"><span class="lbl">${esc(s.label)}</span><span class="val">${num(s.value)}</span></span>
+        <span class="note">${esc(s.note)}</span>
+      </span>
+    </li>`).join('');
+}
+
+function gauge(score, verdict, tone) {
+  const colour = TONES[tone] || 'var(--primary)';
+  return `<div class="gauge">
+    <div class="num">${Number.isFinite(score) ? score : '—'}</div>
+    <div class="of">מתוך 100</div>
+    ${verdict ? `<div class="badge" style="background:${colour}">${esc(verdict)}</div>` : ''}
+  </div>`;
+}
+
+function renderReport(r) {
+  const m = r.technical?.metrics || {};
+  const t = m.returns || {};
+  out.innerHTML = `
+    <div class="panel">
+      <div class="row">
+        <div>
+          <div class="name">${esc(r.name)}</div>
+          <div class="meta">${esc(r.symbol)}${r.exchange ? ' · ' + esc(r.exchange) : ''}${r.sector ? ' · ' + esc(r.sector) : ''}</div>
+          <div class="price">${num(r.price)} ${esc(r.currency || '')}</div>
+        </div>
+        ${gauge(r.overall?.score, r.overall?.verdict, r.overall?.tone)}
+      </div>
+    </div>
+
+    <div class="panel says">
+      <h3>🤖 מה שוקי אומר</h3>
+      <p>${esc(r.narration?.text)}</p>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="k">תשואה חודש</div><div class="v">${pct(t.oneMonth)}</div></div>
+      <div class="stat"><div class="k">תשואה 3 חודשים</div><div class="v">${pct(t.threeMonths)}</div></div>
+      <div class="stat"><div class="k">תשואה שנה</div><div class="v">${pct(t.oneYear)}</div></div>
+      <div class="stat"><div class="k">תנודתיות שנתית</div><div class="v">${num(m.volatility, 1)}%</div></div>
+      <div class="stat"><div class="k">RSI (14)</div><div class="v">${num(m.rsi, 1)}</div></div>
+      <div class="stat"><div class="k">ממוצע נע 50</div><div class="v">${num(m.ma50)}</div></div>
+      <div class="stat"><div class="k">ממוצע נע 200</div><div class="v">${num(m.ma200)}</div></div>
+      <div class="stat"><div class="k">ירידה מקסימלית</div><div class="v">${num(m.maxDrawdown, 1)}%</div></div>
+    </div>
+
+    <div class="cols">
+      <div class="panel">
+        <div class="row"><h3>ניתוח טכני</h3>${gauge(r.technical?.score)}</div>
+        <ul>${signals(r.technical?.signals || [])}</ul>
+      </div>
+      <div class="panel">
+        <div class="row"><h3>ניתוח פונדמנטלי</h3>${r.fundamental ? gauge(r.fundamental.score) : ''}</div>
+        ${r.fundamental ? `<ul>${signals(r.fundamental.signals)}</ul>` : `<p class="muted">${esc(r.fundamentalsError)}</p>`}
+      </div>
+    </div>`;
+}
+
+function renderTable(rows) {
+  const ok = rows.filter((r) => r.ok);
+  const bad = rows.filter((r) => !r.ok);
+  out.innerHTML = `
+    <div class="panel">
+      <h3>דירוג — מהחזק לחלש</h3>
+      <table>
+        <thead><tr><th>#</th><th>נייר</th><th>מחיר</th><th>חודש</th><th>שנה</th><th>RSI</th><th>ציון</th><th>המלצה</th></tr></thead>
+        <tbody>
+          ${ok.map((r, i) => `<tr>
+            <td>${i + 1}</td>
+            <td class="ltr" style="font-weight:600">${esc(r.symbol)}</td>
+            <td class="ltr">${num(r.price)}</td>
+            <td class="ltr">${pct(r.returns?.oneMonth)}</td>
+            <td class="ltr">${pct(r.returns?.oneYear)}</td>
+            <td class="ltr">${num(r.rsi, 0)}</td>
+            <td style="font-weight:700">${r.score}</td>
+            <td><span class="badge" style="background:${TONES[r.tone]};font-size:13px">${esc(r.verdict)}</span></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+      ${bad.length ? `<p class="muted" style="margin-top:12px">לא נותחו: ${bad.map((r) => esc(r.symbol) + ' (' + esc(r.error) + ')').join(', ')}</p>` : ''}
+    </div>
+    <p class="muted">הדירוג טכני בלבד. לחץ על סימבול בודד לניתוח מלא הכולל נתונים פונדמנטליים.</p>`;
+}
+
+async function run(text) {
+  const symbols = text.split(/[\s,]+/).filter(Boolean);
+  if (!symbols.length) return;
+
+  go.disabled = true;
+  out.innerHTML = '<div class="panel spin">🤖 שוקי אוסף נתונים…</div>';
+
+  try {
+    const many = symbols.length > 1;
+    const url = many
+      ? '/api/watchlist?symbols=' + encodeURIComponent(symbols.join(','))
+      : '/api/analyze?symbol=' + encodeURIComponent(symbols[0]);
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (!res.ok) {
+      out.innerHTML = `<div class="panel err">${esc(data.error || 'הבקשה נכשלה.')}</div>`;
+    } else if (many) {
+      renderTable(data.rows);
+    } else {
+      renderReport(data);
+    }
+  } catch (e) {
+    out.innerHTML = '<div class="panel err">לא הצלחתי להגיע לשרת המקומי. ודא שהחלון של שוקי עדיין פתוח.</div>';
+  } finally {
+    go.disabled = false;
+  }
+}
+
+document.getElementById('f').addEventListener('submit', (e) => { e.preventDefault(); run(q.value); });
+document.querySelectorAll('button[data-s]').forEach((b) =>
+  b.addEventListener('click', () => { q.value = b.dataset.s; run(b.dataset.s); }));
+</script>
+</body>
+</html>

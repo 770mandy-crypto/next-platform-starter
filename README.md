@@ -38,6 +38,22 @@ netlify dev
 
 If your browser doesn't navigate to the site automatically, visit [localhost:8888](http://localhost:8888).
 
+## שוקי Desktop — the no-setup build (`desktop/`)
+
+A local build that needs **no API key at all**, because the datacenter-IP problem that
+forces one on a hosted deploy simply does not exist on a home connection.
+
+Double-click `desktop/שוקי.command` on macOS and the browser opens to a working analyst.
+Zero npm dependencies — it runs on Node's standard library, so there is no install step
+between opening the file and using it. Node itself is a one-time install, and the launcher
+detects its absence and says so in Hebrew rather than failing with a stack trace.
+
+It reuses `lib/` unchanged, so the scoring is the same engine the site uses. The verbal
+summary comes from the rule-based Hebrew narration in `lib/narration.js` — extracted so it
+carries no imports, which is what keeps the desktop build dependency-free.
+
+See `desktop/README.md` (Hebrew) for the user-facing instructions.
+
 ## שוקי — Stock Analyst Bot (`/bot`)
 
 A Hebrew-language stock analysis bot. Enter a ticker and it fetches a year of prices plus
