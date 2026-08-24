@@ -3,12 +3,13 @@ import { buildReport } from 'lib/analysis';
 import { YahooError, normaliseSymbol } from 'lib/yahoo';
 import { fetchCompanyFundamentals } from 'lib/fundamentals';
 import { fetchHistory } from 'lib/prices';
+import { withRequestKeys } from 'lib/request-key';
 
 export const dynamic = 'force-dynamic';
 
 const MAX_SYMBOLS = 6;
 
-export async function GET(request) {
+async function handleGET(request) {
     const requested = request.nextUrl.searchParams.get('symbols') || '';
     const symbols = [...new Set(requested.split(',').map(normaliseSymbol).filter(Boolean))].slice(0, MAX_SYMBOLS);
 
@@ -68,3 +69,7 @@ function describeError(error) {
     if (status === 502 || error instanceof YahooError) return 'שירות הנתונים לא זמין';
     return 'הניתוח נכשל';
 }
+
+// A key pasted into the site arrives on the request rather than from the
+// host's environment, so every handler runs inside the store that carries it.
+export const GET = (request) => withRequestKeys(request, () => handleGET(request));

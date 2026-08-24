@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ReportView, formatValue } from './report-view';
 import { ScoreGauge } from './score-gauge';
+import { apiFetch } from 'components/bot/keys';
 
 const EXAMPLES = ['AAPL', 'NVDA', 'MSFT', 'TSLA', 'GOOGL', 'TEVA.TA'];
 
@@ -52,7 +53,7 @@ export function Analyst() {
                 : `/api/analyze?symbol=${encodeURIComponent(symbols[0])}`;
 
         try {
-            const response = await fetch(url);
+            const response = await apiFetch(url);
             const payload = await response.json();
             if (!response.ok) {
                 setState({ status: 'error', error: payload.error || 'הבקשה נכשלה.' });

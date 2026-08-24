@@ -4,6 +4,7 @@ import { fetchCompanyFundamentals } from 'lib/fundamentals';
 import { fetchHistory } from 'lib/prices';
 import { resolveSymbol } from 'lib/resolve-symbol';
 import { ImageInputError, isVisionConfigured, readChartImage, validateImage } from 'lib/vision';
+import { withRequestKeys } from 'lib/request-key';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,7 @@ const NO_REPORT_REASONS = {
     'invalid-symbol': 'מה שזיהיתי לא נראה כמו סימבול תקין, אז יש כאן קריאת גרף בלבד.'
 };
 
-export async function POST(request) {
+async function handlePOST(request) {
     if (!isVisionConfigured()) {
         return NextResponse.json(
             {
@@ -89,3 +90,7 @@ export async function POST(request) {
 
     return NextResponse.json({ vision, resolvedSymbol: symbol, report, dataError: null });
 }
+
+// A key pasted into the site arrives on the request rather than from the
+// host's environment, so every handler runs inside the store that carries it.
+export const POST = (request) => withRequestKeys(request, () => handlePOST(request));

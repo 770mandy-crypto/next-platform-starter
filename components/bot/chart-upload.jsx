@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ReportView } from './report-view';
+import { apiFetch } from 'components/bot/keys';
 
 // A phone screenshot is several megabytes; the function's request body is far
 // smaller than that. Downscaling in the browser keeps the upload inside the
@@ -119,7 +120,7 @@ export function ChartUpload() {
             const { dataUrl, mediaType, data } = await downscale(file);
             setPreview(dataUrl);
 
-            const response = await fetch('/api/analyze-image', {
+            const response = await apiFetch('/api/analyze-image', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ mediaType, data })

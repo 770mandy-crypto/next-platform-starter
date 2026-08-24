@@ -38,6 +38,22 @@ netlify dev
 
 If your browser doesn't navigate to the site automatically, visit [localhost:8888](http://localhost:8888).
 
+## שוקי Desktop — the no-setup build (`desktop/`)
+
+A local build that needs **no API key at all**, because the datacenter-IP problem that
+forces one on a hosted deploy simply does not exist on a home connection.
+
+Double-click `desktop/שוקי.command` on macOS and the browser opens to a working analyst.
+Zero npm dependencies — it runs on Node's standard library, so there is no install step
+between opening the file and using it. Node itself is a one-time install, and the launcher
+detects its absence and says so in Hebrew rather than failing with a stack trace.
+
+It reuses `lib/` unchanged, so the scoring is the same engine the site uses. The verbal
+summary comes from the rule-based Hebrew narration in `lib/narration.js` — extracted so it
+carries no imports, which is what keeps the desktop build dependency-free.
+
+See `desktop/README.md` (Hebrew) for the user-facing instructions.
+
 ## שוקי — Stock Analyst Bot (`/bot`)
 
 A Hebrew-language stock analysis bot. Enter a ticker and it fetches a year of prices plus
@@ -138,6 +154,28 @@ GET /api/diag                                # per-stage provider connectivity p
 GET /api/setup-status                        # live per-provider configuration check
 POST /api/analyze-image                      # {mediaType, data} -> chart reading + report
 ```
+
+### Getting a key in without touching the host
+
+A key in the host's environment failed three times over on Netlify, in ways that
+are indistinguishable from outside: a scope that excludes `Functions`, a deploy
+context that excludes this build, or the wrong site all present as "the variable
+isn't there", and each round of guessing costs a redeploy.
+
+So a key can also travel on the request instead. Paste it into the box on
+`/setup` — or into the one that appears inline the moment prices fail — and it is
+kept in that browser's `localStorage` and sent as a header on every API call.
+Nothing to configure, nothing to redeploy.
+
+`lib/request-key.js` holds it in an `AsyncLocalStorage` for the life of the
+request; the providers sit four layers below the route handler, and threading a
+key parameter through every function in between would touch code that has
+nothing to do with keys. The request's key beats the environment's, so a stale
+server key cannot silently override the one the visitor can actually see.
+
+Keys are validated as `[A-Za-z0-9_-]{1,128}` before use, so a paste that caught
+surrounding text, or one carrying `&`, `\r\n` or path characters, is dropped
+rather than forwarded into a URL or header. A test covers each of those cases.
 
 ### Configuration
 

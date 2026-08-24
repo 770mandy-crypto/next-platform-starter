@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { apiFetch } from 'components/bot/keys';
 
 function StepRow({ step }) {
     const good = step.ok;
@@ -37,7 +38,7 @@ export function DiagRunner() {
         setState({ status: 'loading' });
         setCopied(false);
         try {
-            const response = await fetch('/api/diag');
+            const response = await apiFetch('/api/diag');
             const payload = await response.json();
             setState({ status: 'done', payload });
         } catch (error) {

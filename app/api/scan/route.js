@@ -3,6 +3,7 @@ import { analyseTechnicals, combineScores } from 'lib/analysis';
 import { fetchHistory } from 'lib/prices';
 import { normaliseSymbol } from 'lib/yahoo';
 import { SCAN_BATCH_SIZE } from 'lib/universe';
+import { withRequestKeys } from 'lib/request-key';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,7 +55,7 @@ async function scanOne(symbol) {
     }
 }
 
-export async function GET(request) {
+async function handleGET(request) {
     const requested = request.nextUrl.searchParams.get('symbols') || '';
     const symbols = [...new Set(requested.split(',').map(normaliseSymbol).filter(Boolean))].slice(0, MAX_PER_REQUEST);
 
@@ -65,3 +66,7 @@ export async function GET(request) {
     const results = await mapWithConcurrency(symbols, CONCURRENCY, scanOne);
     return NextResponse.json({ results, generatedAt: new Date().toISOString() });
 }
+
+// A key pasted into the site arrives on the request rather than from the
+// host's environment, so every handler runs inside the store that carries it.
+export const GET = (request) => withRequestKeys(request, () => handleGET(request));

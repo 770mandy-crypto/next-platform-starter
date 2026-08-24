@@ -9,6 +9,7 @@
 // values. Safe to remove once the data path is confirmed healthy.
 
 import { NextResponse } from 'next/server';
+import { withRequestKeys } from 'lib/request-key';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,7 +63,7 @@ async function probe(name, url, options = {}) {
     }
 }
 
-export async function GET() {
+async function handleGET(request) {
     const steps = [];
 
     // 1. Plain price fetch — the endpoint everything else depends on.
@@ -189,3 +190,7 @@ export async function GET() {
         generatedAt: new Date().toISOString()
     });
 }
+
+// A key pasted into the site arrives on the request rather than from the
+// host's environment, so every handler runs inside the store that carries it.
+export const GET = (request) => withRequestKeys(request, () => handleGET(request));
