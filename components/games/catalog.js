@@ -53,6 +53,60 @@ export const GAMES = [
             description: "Colourful balloons float up. Pop them before they get away, and never touch a black bomb.",
             controls: 'Click or tap a balloon to pop it'
         }
+    },
+    {
+        slug: 'snake',
+        emoji: '🐍',
+        gradient: 'from-lime-400 via-green-500 to-emerald-600',
+        glow: 'shadow-green-500/40',
+        he: {
+            title: 'נחש',
+            tagline: 'אכול, גדל, אל תתנגש',
+            description: 'הובל את הנחש אל התפוחים בלי לפגוע בקיר או בגוף שלך. כל תפוח מאריך אותו — ומקשה עליך.',
+            controls: 'חצים / WASD לכיוון — או החלק עם האצבע על המסך'
+        },
+        en: {
+            title: 'Snake',
+            tagline: 'Eat, grow, don’t crash',
+            description: 'Guide the snake to the apples without hitting the wall or your own tail. Every apple makes it longer.',
+            controls: 'Arrows / WASD to steer — or swipe on the screen'
+        }
+    },
+    {
+        slug: '2048',
+        emoji: '🔢',
+        gradient: 'from-amber-300 via-yellow-500 to-orange-600',
+        glow: 'shadow-amber-500/40',
+        he: {
+            title: '2048',
+            tagline: 'מזג מספרים עד לניצחון',
+            description: 'החלק אריחים לכל כיוון, מזג מספרים זהים והגע ל־2048. הלוח מתמלא בכל תזוזה — תכנן קדימה.',
+            controls: 'חצים / WASD להחלקה — או החלק עם האצבע על המסך'
+        },
+        en: {
+            title: '2048',
+            tagline: 'Merge your way to victory',
+            description: 'Slide tiles in any direction, merge matching numbers and reach 2048. The board fills with every move.',
+            controls: 'Arrows / WASD to slide — or swipe on the screen'
+        }
+    },
+    {
+        slug: 'memory-match',
+        emoji: '🃏',
+        gradient: 'from-violet-500 via-purple-500 to-fuchsia-600',
+        glow: 'shadow-purple-500/40',
+        he: {
+            title: 'זיכרון קלפים',
+            tagline: 'מצא את הזוגות',
+            description: 'הפוך שני קלפים בכל תור ומצא זוגות תואמים. סיים את כל הלוח במינימום הפיכות ובזמן הכי קצר.',
+            controls: 'לחץ או הקש על קלף כדי להפוך אותו'
+        },
+        en: {
+            title: 'Memory Match',
+            tagline: 'Find the pairs',
+            description: 'Flip two cards each turn and find matching pairs. Clear the board in as few flips and as little time as possible.',
+            controls: 'Click or tap a card to flip it'
+        }
     }
 ];
 
