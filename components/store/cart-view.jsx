@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useState, useTransition } from 'react';
 import { GarmentShot } from 'components/store/garment-shot';
 import { useCart } from 'components/store/cart-provider';
-import { startCheckout } from 'lib/actions';
 import { cartLineKey, formatPrice } from 'lib/format';
 
 const FREE_SHIPPING_THRESHOLD = 350;
@@ -35,17 +34,9 @@ export function CartView() {
     const progress = Math.min(100, Math.round((subtotal / FREE_SHIPPING_THRESHOLD) * 100));
 
     function handleCheckout() {
-        setMessage(null);
-        startTransition(async () => {
-            const result = await startCheckout(
-                lines.map((line) => ({ variantId: line.variantId, quantity: line.quantity }))
-            );
-            if (result.ok) {
-                window.location.href = result.checkoutUrl;
-            } else {
-                setMessage(result.message);
-            }
-        });
+        // Orders are taken on /checkout and settled by contact; no payment provider
+        // is involved, so the cart simply advances to the order form.
+        window.location.href = '/checkout';
     }
 
     return (

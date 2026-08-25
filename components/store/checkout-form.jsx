@@ -7,6 +7,7 @@ export function CheckoutForm({ items, total }) {
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [placed, setPlaced] = useState(null);
     const router = useRouter();
 
     async function handleCheckout(e) {
@@ -27,14 +28,40 @@ export function CheckoutForm({ items, total }) {
                 throw new Error(data.error || 'Checkout failed');
             }
 
-            // Redirect to Stripe checkout
             if (data.checkoutUrl) {
                 window.location.href = data.checkoutUrl;
+                return;
             }
+
+            // Payments are off: the order is recorded and settled by contact.
+            setPlaced({ orderId: data.orderId, total: data.total });
+            setLoading(false);
         } catch (err) {
             setError(err.message || 'Failed to process checkout');
             setLoading(false);
         }
+    }
+
+    if (placed) {
+        return (
+            <div className="max-w-md mx-auto mt-8 text-center space-y-4">
+                <p className="text-2xl font-semibold">ההזמנה נקלטה</p>
+                <p className="text-sm opacity-70">מספר הזמנה</p>
+                <p className="text-xl tracking-widest">{placed.orderId}</p>
+                <p className="leading-relaxed">
+                    לא בוצע חיוב. ניצור איתך קשר בוואטסאפ או באימייל לתיאום התשלום
+                    והמשלוח, בדרך כלל תוך יום עסקים.
+                </p>
+                <a
+                    href="https://wa.me/972559725632"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block border px-6 py-3"
+                >
+                    שליחת הודעה בוואטסאפ
+                </a>
+            </div>
+        );
     }
 
     return (
@@ -69,8 +96,11 @@ export function CheckoutForm({ items, total }) {
                         disabled={loading}
                         className="w-full bg-gold text-ink py-3 font-semibold rounded hover:opacity-90 disabled:opacity-50"
                     >
-                        {loading ? 'טוען...' : 'לתשלום'}
+                        {loading ? 'שולח...' : 'שליחת הזמנה'}
                     </button>
+                    <p className="mt-3 text-sm opacity-70 leading-relaxed">
+                        לא נגבה תשלום בשלב הזה. נחזור אליך לתיאום התשלום והמשלוח.
+                    </p>
                 </div>
             </div>
         </form>

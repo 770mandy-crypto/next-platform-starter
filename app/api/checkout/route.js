@@ -6,6 +6,13 @@ import { products } from "data/products";
 const MAX_QTY = 20;
 
 /**
+ * Card payment stays off until PAYMENTS_ENABLED is set to "true".
+ * With it off the order is still recorded in full — only the Stripe step is
+ * skipped, and the shop contacts the customer to arrange payment.
+ */
+const PAYMENTS_ENABLED = process.env.PAYMENTS_ENABLED === "true";
+
+/**
  * Rebuild every cart line from the server-side catalogue.
  *
  * The browser posts its own cart, prices included. Those numbers can be edited
@@ -68,9 +75,13 @@ export async function POST(request) {
     const total = lines.reduce((sum, line) => sum + line.price * line.quantity, 0);
 
     const order = await createOrder(userId, email, email.split("@")[0], total, lines);
-    const checkoutSession = await createCheckoutSession(lines, order.id, email);
 
-    return NextResponse.json({ orderId: order.id, checkoutUrl: checkoutSession.url });
+    if (!PAYMENTS_ENABLED) {
+      return NextResponse.json({ orderId: order.id, checkoutUrl: null, total, awaitingContact: true });
+    }
+
+    const checkoutSession = await createCheckoutSession(lines, order.id, email);
+    return NextResponse.json({ orderId: order.id, checkoutUrl: checkoutSession.url, total });
   } catch (error) {
     // Validation problems are the caller's to fix and safe to name; anything else stays generic.
     if (!lines) {
