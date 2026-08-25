@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { stripe } from "lib/stripe";
+import { PAYMENTS_ENABLED, paymentsDisabledResponse } from "lib/payments";
 
 export async function POST(request) {
+  // No payments are taken, so there are no genuine Stripe events to process.
+  if (!PAYMENTS_ENABLED) {
+    return paymentsDisabledResponse();
+  }
+
   const body = await request.text();
   const signature = request.headers.get("stripe-signature");
 
