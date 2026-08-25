@@ -1,6 +1,11 @@
 import '../styles/globals.css';
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://am-clothing.vercel.app';
+const SITE =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    // Vercel injects these itself, so the right domain is used with no manual setup.
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL && `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`) ||
+    (process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`) ||
+    'http://localhost:3000';
 const DESCRIPTION =
     'AM CLOTHING — קולקציית פתיחה בסדרה מוגבלת. חולצות ומכנסי פוטר בשחור ולבן, עם רקמת זהב.';
 

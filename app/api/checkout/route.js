@@ -1,62 +1,83 @@
 import { NextResponse } from "next/server";
 import { createCheckoutSession } from "lib/stripe";
 import { createOrder } from "lib/supabase";
+import { products } from "data/products";
+
+const MAX_QTY = 20;
+
+/**
+ * Rebuild every cart line from the server-side catalogue.
+ *
+ * The browser posts its own cart, prices included. Those numbers can be edited
+ * before the request is sent, so they are discarded here: the slug is the only
+ * field trusted from the client, and price, name and size validity all come
+ * from `data/products`.
+ */
+function resolveLines(items) {
+  return items.map((item) => {
+    const product = products.find((p) => p.slug === item.slug);
+    if (!product) {
+      throw new Error(`Unknown product: ${item.slug}`);
+    }
+
+    const quantity = Number(item.quantity);
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_QTY) {
+      throw new Error(`Invalid quantity for ${product.slug}`);
+    }
+
+    const size = item.size ?? null;
+    if (size && !product.sizes.includes(size)) {
+      throw new Error(`Invalid size for ${product.slug}`);
+    }
+
+    return {
+      slug: product.slug,
+      name: size ? `${product.titleHe} · מידה ${size}` : product.titleHe,
+      price: product.price,
+      size,
+      quantity
+    };
+  });
+}
 
 export async function POST(request) {
+  let lines;
+
   try {
-    const body = await request.json();
-    const { items, email } = body;
-    const token = request.cookies.get('auth-token')?.value;
+    const { items, email } = await request.json();
 
-    if (!items || items.length === 0) {
-      return NextResponse.json(
-        { error: "No items in cart" },
-        { status: 400 }
-      );
+    if (!Array.isArray(items) || items.length === 0) {
+      return NextResponse.json({ error: "הסל ריק" }, { status: 400 });
+    }
+    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      return NextResponse.json({ error: "נא להזין כתובת אימייל תקינה" }, { status: 400 });
     }
 
-    if (!email) {
-      return NextResponse.json(
-        { error: "Email is required" },
-        { status: 400 }
-      );
-    }
+    lines = resolveLines(items);
 
-    // Parse user from token if authenticated
+    const token = request.cookies.get("auth-token")?.value;
     let userId = null;
     if (token) {
-      const user = JSON.parse(atob(token));
-      userId = user.id;
+      try {
+        userId = JSON.parse(atob(token)).id ?? null;
+      } catch {
+        userId = null; // a malformed cookie means guest checkout, not a failed order
+      }
     }
 
-    // Calculate total
-    const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const total = lines.reduce((sum, line) => sum + line.price * line.quantity, 0);
 
-    // Create order in database
-    const order = await createOrder(
-      userId,
-      email,
-      email.split('@')[0],
-      total,
-      items
-    );
+    const order = await createOrder(userId, email, email.split("@")[0], total, lines);
+    const checkoutSession = await createCheckoutSession(lines, order.id, email);
 
-    // Create Stripe checkout session
-    const checkoutSession = await createCheckoutSession(
-      items,
-      order.id,
-      email
-    );
-
-    return NextResponse.json({
-      orderId: order.id,
-      checkoutUrl: checkoutSession.url
-    });
+    return NextResponse.json({ orderId: order.id, checkoutUrl: checkoutSession.url });
   } catch (error) {
+    // Validation problems are the caller's to fix and safe to name; anything else stays generic.
+    if (!lines) {
+      console.error("Checkout validation failed:", error.message);
+      return NextResponse.json({ error: "בקשת התשלום אינה תקינה" }, { status: 400 });
+    }
     console.error("Checkout error:", error);
-    return NextResponse.json(
-      { error: "Failed to create checkout session" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "יצירת התשלום נכשלה. נסו שוב." }, { status: 500 });
   }
 }
