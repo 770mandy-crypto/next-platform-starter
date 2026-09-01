@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300..900&family=Heebo:wght@200..800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 
 @import 'tailwindcss';
@@ -153,5 +154,384 @@
             left: 0;
             pointer-events: none;
         }
+    }
+}
+
+/* ------------------------------------------------------------------ *
+ *  AYIN storefront                                                    *
+ *  Scoped under .shop so the Netlify starter pages keep their styles. *
+ * ------------------------------------------------------------------ */
+
+@theme {
+    --color-bone: #f4f1ea;
+    --color-paper: #fbfaf7;
+    --color-ink: #14110f;
+    --color-inksoft: #6d655c;
+    --color-brass: #a9793e;
+    --color-line: #e2ddd3;
+    --font-display: 'Frank Ruhl Libre', 'Georgia', serif;
+    --font-body: 'Heebo', ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer components {
+    .shop {
+        font-family: var(--font-body);
+        color: var(--color-ink);
+        background: var(--color-paper);
+        font-weight: 300;
+        letter-spacing: -0.005em;
+    }
+
+    .shop a {
+        text-decoration: none;
+        transition: color 0.25s ease, opacity 0.25s ease;
+    }
+
+    .shop h1,
+    .shop h2,
+    .shop h3,
+    .shop h4 {
+        font-family: var(--font-display);
+        font-weight: 400;
+        letter-spacing: -0.02em;
+        line-height: 1.04;
+    }
+
+    .shop h1 {
+        font-size: clamp(2.8rem, 9vw, 7.5rem);
+    }
+
+    .shop h2 {
+        font-size: clamp(1.9rem, 4.4vw, 3.4rem);
+    }
+
+    .shop h3 {
+        font-size: clamp(1.15rem, 2vw, 1.6rem);
+        font-weight: 500;
+    }
+
+    .shop button {
+        cursor: pointer;
+        font-family: inherit;
+    }
+
+    .shop input,
+    .shop select,
+    .shop textarea {
+        font-family: inherit;
+    }
+
+    .shop ::selection {
+        background: var(--color-ink);
+        color: var(--color-bone);
+    }
+
+    /* ---- type helpers ---- */
+    .eyebrow {
+        font-size: 0.68rem;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        font-weight: 500;
+        color: var(--color-inksoft);
+    }
+
+    .display {
+        font-family: var(--font-display);
+    }
+
+    /* ---- buttons ---- */
+    .btn-ayin {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.6rem;
+        padding: 1rem 2.2rem;
+        border-radius: 999px;
+        font-size: 0.85rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-weight: 500;
+        background: var(--color-ink);
+        color: var(--color-bone);
+        border: 1px solid var(--color-ink);
+        overflow: hidden;
+        transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), background 0.35s ease, color 0.35s ease;
+    }
+
+    .btn-ayin::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: var(--color-brass);
+        transform: translateY(101%);
+        transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+        z-index: 0;
+    }
+
+    .btn-ayin > * {
+        position: relative;
+        z-index: 1;
+    }
+
+    .btn-ayin:hover::after {
+        transform: translateY(0);
+    }
+
+    .btn-ayin:hover {
+        border-color: var(--color-brass);
+    }
+
+    .btn-ayin:active {
+        transform: scale(0.975);
+    }
+
+    .btn-ghost {
+        background: transparent;
+        color: var(--color-ink);
+        border-color: color-mix(in oklab, var(--color-ink) 30%, transparent);
+    }
+
+    .btn-ghost:hover {
+        color: var(--color-bone);
+    }
+
+    .btn-sm {
+        padding: 0.65rem 1.4rem;
+        font-size: 0.72rem;
+    }
+
+    /* ---- underline-on-hover link ---- */
+    .link-line {
+        position: relative;
+        display: inline-block;
+    }
+
+    .link-line::after {
+        content: '';
+        position: absolute;
+        inset-inline-start: 0;
+        bottom: -2px;
+        width: 100%;
+        height: 1px;
+        background: currentColor;
+        transform: scaleX(0);
+        transform-origin: inline-end;
+        transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .link-line:hover::after {
+        transform: scaleX(1);
+        transform-origin: inline-start;
+    }
+
+    .link-line-active::after {
+        transform: scaleX(1);
+    }
+
+    /* ---- reveal on scroll ---- */
+    .reveal {
+        opacity: 0;
+        transform: translateY(28px);
+        transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1), transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+        will-change: opacity, transform;
+    }
+
+    .reveal.is-in {
+        opacity: 1;
+        transform: none;
+    }
+
+    .reveal-mask {
+        clip-path: inset(0 0 100% 0);
+        transition: clip-path 1.1s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .reveal-mask.is-in {
+        clip-path: inset(0 0 0 0);
+    }
+
+    /* ---- marquee ---- */
+    .marquee-track {
+        display: flex;
+        width: max-content;
+        animation: ayin-marquee 34s linear infinite;
+    }
+
+    .marquee-host:hover .marquee-track {
+        animation-play-state: paused;
+    }
+
+    /* ---- product card ---- */
+    .frame-shot {
+        transition: transform 0.9s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease;
+    }
+
+    .card-ayin:hover .frame-shot {
+        transform: scale(1.06) translateY(-4px);
+    }
+
+    .card-ayin .card-veil {
+        opacity: 0;
+        transform: translateY(10px);
+        transition: opacity 0.4s ease, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .card-ayin:hover .card-veil {
+        opacity: 1;
+        transform: none;
+    }
+
+    /* ---- 360 stage ---- */
+    .spin-stage {
+        perspective: 1400px;
+        perspective-origin: 50% 45%;
+        touch-action: pan-y;
+        cursor: grab;
+    }
+
+    .spin-stage.is-dragging {
+        cursor: grabbing;
+    }
+
+    .spin-object {
+        transform-style: preserve-3d;
+        will-change: transform;
+    }
+
+    .spin-shadow {
+        filter: blur(18px);
+        transition: opacity 0.2s linear;
+    }
+
+    /* ---- misc ---- */
+    .hairline {
+        border-color: var(--color-line);
+    }
+
+    .noise-soft::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image: url('/images/noise.png');
+        opacity: 0.32;
+        mix-blend-mode: multiply;
+        pointer-events: none;
+    }
+
+    .shimmer {
+        background: linear-gradient(
+            100deg,
+            transparent 20%,
+            color-mix(in oklab, var(--color-brass) 45%, transparent) 50%,
+            transparent 80%
+        );
+        background-size: 220% 100%;
+        animation: ayin-shimmer 2.6s ease-in-out infinite;
+    }
+
+    .scrollbar-hidden {
+        scrollbar-width: none;
+    }
+
+    .scrollbar-hidden::-webkit-scrollbar {
+        display: none;
+    }
+
+    .ticker-digit {
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+@keyframes ayin-marquee {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(-50%);
+    }
+}
+
+[dir='rtl'] .marquee-track {
+    animation-name: ayin-marquee-rtl;
+}
+
+@keyframes ayin-marquee-rtl {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(50%);
+    }
+}
+
+@keyframes ayin-shimmer {
+    from {
+        background-position: 200% 0;
+    }
+    to {
+        background-position: -100% 0;
+    }
+}
+
+@keyframes ayin-float {
+    0%,
+    100% {
+        transform: translateY(0) rotate(-1deg);
+    }
+    50% {
+        transform: translateY(-14px) rotate(1deg);
+    }
+}
+
+@keyframes ayin-in {
+    from {
+        opacity: 0;
+        transform: translateY(18px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes ayin-scroll-hint {
+    0% {
+        transform: translateY(-100%);
+    }
+    60%,
+    100% {
+        transform: translateY(100%);
+    }
+}
+
+.animate-float {
+    animation: ayin-float 7s ease-in-out infinite;
+}
+
+.animate-in-up {
+    animation: ayin-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.scroll-hint-bar {
+    animation: ayin-scroll-hint 2.4s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .shop *,
+    .shop *::before,
+    .shop *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    .reveal {
+        opacity: 1;
+        transform: none;
+    }
+
+    .reveal-mask {
+        clip-path: none;
     }
 }
