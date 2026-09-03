@@ -1,6 +1,7 @@
 import { providerName } from 'lib/provider-names';
 import { ScoreGauge } from './score-gauge';
 import { Sparkline } from './sparkline';
+import { SaveToPortfolio } from './save-to-portfolio';
 
 const CONSENSUS_LABELS = {
     strong_buy: 'קנייה חזקה',
@@ -103,7 +104,10 @@ export function ReportView({ report }) {
                         <p className="mt-1 text-xs opacity-50">שנה אחרונה · נכון ל-{report.asOf}</p>
                     </div>
                 </div>
-                <ScoreGauge score={overall?.score} verdict={overall?.verdict} tone={overall?.tone} />
+                <div className="flex flex-col items-end gap-3">
+                    <ScoreGauge score={overall?.score} verdict={overall?.verdict} tone={overall?.tone} />
+                    <SaveToPortfolio symbol={report.symbol} />
+                </div>
             </header>
 
             {report.narration && (

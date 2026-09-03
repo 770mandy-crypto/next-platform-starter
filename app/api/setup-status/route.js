@@ -10,6 +10,7 @@
 import { NextResponse } from 'next/server';
 import { fetchTwelveDataHistory, isTwelveDataConfigured } from 'lib/providers/twelvedata';
 import { fetchFinnhubFundamentals, isFinnhubConfigured } from 'lib/providers/finnhub';
+import { isGoogleConfigured } from 'lib/auth.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,7 +69,7 @@ async function checkProvider({ key, configured, probe, label, missingHint }) {
 // and different from in here, so this is what separates them.
 function environmentReport() {
     const names = Object.keys(process.env);
-    const relevant = names.filter((name) => /TWELVE|FINNHUB|ANTHROPIC|STOOQ|YAHOO/i.test(name));
+    const relevant = names.filter((name) => /TWELVE|FINNHUB|ANTHROPIC|STOOQ|YAHOO|AUTH_SECRET|GOOGLE_CLIENT/i.test(name));
 
     return {
         // Presence and length only. A length of 0 means the variable exists but
@@ -109,6 +110,16 @@ export async function GET() {
 
     // Prices are the blocking dependency; fundamentals only enrich the score.
     const ready = prices.state === 'ok';
+    const accounts = {
+        secretConfigured: Boolean(process.env.AUTH_SECRET),
+        googleConfigured: isGoogleConfigured(),
+        headline: process.env.AUTH_SECRET
+            ? isGoogleConfigured()
+                ? 'התחברות עם אימייל ועם Google פעילות שתיהן'
+                : 'התחברות עם אימייל פעילה. AUTH_SECRET מוגדר, אבל Google לא — כפתור ה-Google פשוט מוסתר'
+            : 'AUTH_SECRET לא מוגדר — הכרחי בסביבת ייצור, אחרת כל פריסה מנתקת את כל המשתמשים'
+    };
+
     return NextResponse.json({
         ready,
         full: ready && fundamentals.state === 'ok',
@@ -119,6 +130,7 @@ export async function GET() {
             : 'המחירים לא מוגדרים — זה מה שחוסם את הכל',
         prices,
         fundamentals,
+        accounts,
         environment: environmentReport(),
         checkedAt: new Date().toISOString()
     });

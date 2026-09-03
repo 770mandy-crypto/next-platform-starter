@@ -84,6 +84,31 @@ export function SetupGuide() {
                 <ProviderCard check={payload.fundamentals} required={false} />
             </div>
 
+            {payload.accounts && (
+                <div
+                    className={`flex flex-col gap-2 p-4 border rounded-lg ${
+                        payload.accounts.secretConfigured ? 'bg-green-500/15 border-green-400/40' : 'bg-yellow-500/15 border-yellow-400/40'
+                    }`}
+                >
+                    <div className="flex flex-wrap items-baseline gap-2">
+                        <span>{payload.accounts.secretConfigured ? '✅' : '⚠️'}</span>
+                        <strong>התחברות ואזור אישי</strong>
+                    </div>
+                    <p className="text-sm leading-relaxed opacity-90">{payload.accounts.headline}</p>
+                    <div className="flex flex-wrap gap-2">
+                        <code className="px-2 py-1 text-xs rounded bg-black/30" dir="ltr">
+                            AUTH_SECRET
+                        </code>
+                        <code className="px-2 py-1 text-xs rounded bg-black/30" dir="ltr">
+                            GOOGLE_CLIENT_ID
+                        </code>
+                        <code className="px-2 py-1 text-xs rounded bg-black/30" dir="ltr">
+                            GOOGLE_CLIENT_SECRET
+                        </code>
+                    </div>
+                </div>
+            )}
+
             <button type="button" onClick={check} className="self-start px-5 py-3 font-bold rounded bg-primary text-primary-content">
                 בדוק שוב
             </button>

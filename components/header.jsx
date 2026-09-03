@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import netlifyLogo from 'public/netlify-logo.svg';
 import githubLogo from 'public/images/github-mark-white.svg';
+import { AuthStatus } from './auth/auth-status';
 
 const navItems = [
     { linkText: 'Home', href: '/' },
@@ -36,14 +37,16 @@ export function Header() {
                     ))}
                 </ul>
             )}
-            <Link
-                href="https://github.com/netlify-templates/next-platform-starter"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="ml-auto"
-            >
-                <Image src={githubLogo} alt="GitHub logo" className="w-7" />
-            </Link>
+            <div className="flex items-center gap-2 ml-auto">
+                <AuthStatus />
+                <Link
+                    href="https://github.com/netlify-templates/next-platform-starter"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    <Image src={githubLogo} alt="GitHub logo" className="w-7" />
+                </Link>
+            </div>
         </nav>
     );
 }

@@ -125,6 +125,31 @@ go stale and add its own fetch and its own failure mode to every scan. A test as
 every symbol in every universe passes validation and has a Stooq mapping, so a bad ticker
 fails at `npm test` rather than silently on every run.
 
+### Accounts and the personal area (`/dashboard`)
+
+Sign up with email and password, or with Google, at `/login` and `/signup`. Either way you land
+on the same account — a Google sign-in for an address that already has a password never
+overwrites that password, it just attaches a Google login to the same record.
+
+Once signed in, `/dashboard` is your personal watchlist: add a symbol (with an optional share
+count, average buy price and note), remove one, and jump straight into its full report at
+`/bot?symbol=X`. The same "⭐ הוסף לרשימה שלי" button appears on every report in `/bot`, so
+saving a stock you're already looking at is one click. **⬇️ הורדת הרשימה כקובץ CSV** on the
+dashboard downloads the whole list as a file to your computer.
+
+The list is private to the signed-in account — `/dashboard` redirects to `/login` for anyone not
+authenticated, and every portfolio API route checks the session server-side before touching that
+account's data. Nobody else, including another signed-in user, can read or write a list that
+isn't theirs.
+
+Accounts and portfolios are stored in Netlify Blobs (the same storage the `/blobs` demo uses),
+one record per normalised email address — no separate database to provision.
+
+**Setup:** `AUTH_SECRET` is required in production (`openssl rand -base64 33`); without it every
+deploy invalidates every signed-in session. `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` are
+optional — the Google button only appears once both are set. See `.env.example` for where to get
+them and `/setup` for a live check of whether the server can see them.
+
 ### Endpoints
 
 ```
@@ -137,6 +162,12 @@ GET /api/scan?symbols=AAPL,MSFT,…            # technical-only rows, max 12 per
 GET /api/diag                                # per-stage provider connectivity probe
 GET /api/setup-status                        # live per-provider configuration check
 POST /api/analyze-image                      # {mediaType, data} -> chart reading + report
+
+GET /api/portfolio                            # the signed-in user's watchlist
+POST /api/portfolio                           # {symbol, shares?, avgPrice?, note?} -> add a holding
+DELETE /api/portfolio?symbol=AAPL             # remove a holding
+GET /api/portfolio/export                     # the watchlist as a downloadable CSV file
+POST /api/auth/signup                         # {email, password, name?} -> create an account
 ```
 
 ### Configuration
@@ -151,6 +182,8 @@ POST /api/analyze-image                      # {mediaType, data} -> chart readin
 | `YAHOO_CHART_HOST` / `YAHOO_QUOTE_HOST` / `YAHOO_COOKIE_HOST` | No | Point the data layer at a fixture server for local development or CI. Defaults to the real Yahoo Finance hosts. |
 | `STOOQ_HOST` | No | Same, for the fallback price provider. |
 | `PRICE_PROVIDER` | No | Pin prices to one provider (`yahoo` or `stooq`) instead of trying them in order. |
+| `AUTH_SECRET` | In production | Signs the session cookie for `/login`, `/signup` and `/dashboard`. Generate with `openssl rand -base64 33`. |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | No | Enables "Sign in with Google". OAuth client from [console.cloud.google.com](https://console.cloud.google.com/apis/credentials); redirect URI is `<site-url>/api/auth/callback/google`. Without these, email/password login still works and the Google button is hidden. |
 
 ### Running it locally
 
@@ -162,6 +195,11 @@ npm run dev          # http://localhost:3000/market
 **No API keys are needed locally.** From a normal connection Yahoo answers fine and the app
 uses it automatically. Copy `.env.example` to `.env.local` only if you want fundamentals or
 the Claude-written summary.
+
+Accounts and the personal dashboard are the exception: they read and write Netlify Blobs, which
+needs `netlify link` and `netlify dev` (see step 3 above) to work locally, the same as the
+`/blobs` demo. Under plain `npm run dev`, `/login` and `/signup` render but sign-up fails with a
+"MissingBlobsEnvironmentError" — that's expected, not a bug.
 
 This matters because the deployed app is the harder case, not the easier one — see below.
 
