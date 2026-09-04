@@ -1,4 +1,8 @@
 // AYIN — brand catalogue.
+//
+// BEFORE LAUNCH: prices, measurements and the copy below are placeholders
+// written to shape the layout. Replace them with the real figures for each
+// frame. Nothing here should be published as fact until you have verified it.
 // Prices are stored in ILS (agorot-free, whole shekels). USD is derived for the
 // English storefront so a single source of truth stays in one place.
 
@@ -31,24 +35,22 @@ export const products = [
         price: 890,
         compareAt: 1090,
         badge: 'bestseller',
-        rating: 4.9,
-        reviews: 214,
         fits: ['oval', 'round', 'heart'],
         story: {
-            he: 'המסגרת הכי נועזת בקולקציה. אצטט איטלקי בעובי 8 מ״מ, מלוטש ביד במשך שלושה ימים, עם זרוע פליז חרוטה בדוגמת חץ. אראס לא מנסה להיעלם על הפנים — היא באה להיראות.',
-            en: 'The boldest frame in the collection. Eight millimetres of Italian acetate, hand-polished over three days, with an engraved brass arrow temple. Aras does not try to disappear on a face. It arrives.'
+            he: 'המסגרת הכי נועזת בקולקציה. אצטט עבה ומלוטש, עם זרוע מוזהבת חרוטה בדוגמת חץ. אראס לא מנסה להיעלם על הפנים — היא באה להיראות.',
+            en: 'The boldest frame in the collection. Thick polished acetate with an engraved gold-tone arrow temple. Aras does not try to disappear on a face. It arrives.'
         },
         details: {
             he: [
-                'אצטט מאזוצ׳י איטלקי, עובי 8 מ״מ',
-                'זרוע פליז מוזהב עם חריטת חץ ידנית',
-                'צירי טיטניום מוסתרים בשבעה ברגים',
+                'אצטט עבה עם פרופיל מלא',
+                'זרוע מוזהבת עם חריטת חץ',
+                'צירים מוסתרים',
                 'עדשות פולארויד עם הגנת UV400'
             ],
             en: [
-                'Italian Mazzucchelli acetate, 8mm profile',
-                'Gold brass temple with hand-cut arrow engraving',
-                'Concealed titanium hinges, seven-barrel',
+                'Thick acetate with a full profile',
+                'Gold-tone temple with an arrow engraving',
+                'Concealed hinges',
                 'Polarised lenses with UV400 protection'
             ]
         },
@@ -81,23 +83,21 @@ export const products = [
         price: 740,
         compareAt: 890,
         badge: 'new',
-        rating: 4.8,
-        reviews: 168,
         fits: ['round', 'oval', 'long'],
         story: {
-            he: 'הקסה נולדה מרישום גיאומטרי אחד שחזר על עצמו במחברת שלנו במשך חודשיים. שש צלעות שמחדדות את עצמות הלחיים, עם מסמרת יהלום בקצה החזית. חמישה גוונים, אותה גיאומטריה מדויקת.',
-            en: 'Hexa began as a single geometric sketch that kept repeating in our notebook for two months. Six sides that sharpen the cheekbones, finished with a diamond rivet at the browline. Five colourways, one exact geometry.'
+            he: 'שש צלעות שמחדדות את עצמות הלחיים, עם מסמרת יהלום בקצה החזית. חמישה גוונים, אותה גיאומטריה.',
+            en: 'Six sides that sharpen the cheekbones, finished with a diamond rivet at the browline. Five colourways, one geometry.'
         },
         details: {
             he: [
-                'חזית משושה מלוטשת בצילינדר במשך 48 שעות',
-                'מסמרת יהלום מוטבעת ביד',
+                'חזית משושה מלוטשת',
+                'מסמרת יהלום בכל פינה',
                 'עדשות מדורגות עם ציפוי אנטי־רפלקטיבי',
-                'משקל 26 גרם — כמעט לא מורגשת'
+                '26 גרם — כמעט לא מורגשת'
             ],
             en: [
-                'Hexagonal front tumbled for 48 hours',
-                'Hand-set diamond rivet at each corner',
+                'Polished hexagonal front',
+                'Diamond rivet at each corner',
                 'Graduated lenses with anti-reflective coating',
                 '26 grams — barely there'
             ]
@@ -155,8 +155,6 @@ export const products = [
         price: 620,
         compareAt: null,
         badge: null,
-        rating: 4.7,
-        reviews: 342,
         fits: ['square', 'heart', 'long'],
         story: {
             he: 'עיגול רך עם קצה שטוח קלות בתחתית — הפרט הקטן שהופך משקפיים עגולים ממשקפיים של פרופסור למשקפיים של מישהו שיודע מה הוא עושה. מעבר צבע מקרמל לשקוף שנוצר בליטוש ולא בצבע.',
@@ -164,13 +162,13 @@ export const products = [
         },
         details: {
             he: [
-                'מעבר צבע חתוך מתוך הבלוק, לא מודפס',
+                'מעבר צבע בגוף האצטט',
                 'קצות זרועות מחוספסים לאחיזה',
                 'עדשות חומות עם 100% חסימת UV',
                 'כולל נרתיק קשיח ומטלית מיקרופייבר'
             ],
             en: [
-                'Colour fade cut from the block, never printed',
+                'Colour fade through the acetate',
                 'Ridged temple tips for grip',
                 'Brown lenses with 100% UV block',
                 'Hard case and microfibre cloth included'
@@ -197,23 +195,21 @@ export const products = [
         price: 650,
         compareAt: 780,
         badge: 'bestseller',
-        rating: 4.9,
-        reviews: 401,
         fits: ['square', 'heart', 'oval'],
         story: {
-            he: 'המסגרת שאנחנו הכי הרבה שולחים חזרה ללקוחות ששכחו אותה במונית. שחור מלוטש עמוק, שלוש מסמרות כסף בכל צד, וקו גבה ישר שמייצב את כל הפנים.',
-            en: 'The frame we most often ship back to customers who left it in a taxi. Deep polished black, three silver rivets per side, and a straight browline that steadies the whole face.'
+            he: 'שחור מלוטש עמוק, שלוש מסמרות בכל צד, וקו גבה ישר שמייצב את כל הפנים.',
+            en: 'Deep polished black, three rivets per side, and a straight browline that steadies the whole face.'
         },
         details: {
             he: [
-                'שלוש מסמרות כסף סטרלינג בכל צד',
-                'ליטוש שחור עמוק בשמונה שלבים',
+                'שלוש מסמרות בכל צד',
+                'ליטוש שחור עמוק',
                 'עדשות אפורות מקוטבות',
                 'מתאים גם למספר אופטי'
             ],
             en: [
-                'Three sterling silver rivets per side',
-                'Eight-stage deep black polish',
+                'Three rivets per side',
+                'Deep black polish',
                 'Polarised grey lenses',
                 'Prescription-ready'
             ]
@@ -239,8 +235,6 @@ export const products = [
         price: 680,
         compareAt: null,
         badge: null,
-        rating: 4.8,
-        reviews: 96,
         fits: ['square', 'oval', 'heart'],
         story: {
             he: 'אצטט ירוק שקוף שמשנה גוון לפי שעת היום — צהוב־זית בבוקר, כמעט אפור בשקיעה. עדשות מדורגות חום שמשאירות את העיניים גלויות למי שמסתכל.',
@@ -248,16 +242,16 @@ export const products = [
         },
         details: {
             he: [
-                'אצטט שקוף בגוון זית עם ליבה זהובה',
+                'אצטט שקוף בגוון זית',
                 'זרועות עם ליבת מתכת מחוזקת',
                 'עדשות מדורגות חום־שקוף',
-                'ייצור מוגבל של 300 יחידות'
+                'סדרה מצומצמת'
             ],
             en: [
-                'Translucent olive acetate with a gold core',
+                'Translucent olive acetate',
                 'Wire-core reinforced temples',
                 'Brown-to-clear graduated lenses',
-                'Limited run of 300 pieces'
+                'Small run'
             ]
         },
         specs: { lens: 49, bridge: 21, temple: 146, weight: 29 },
@@ -281,8 +275,6 @@ export const products = [
         price: 560,
         compareAt: 690,
         badge: 'new',
-        rating: 4.6,
-        reviews: 78,
         fits: ['round', 'square', 'long'],
         story: {
             he: 'הפרופיל הצר ביותר שלנו. שריון צב חם עם עדשות דבש שמחממות כל תמונה שתצלמו איתן. נבנתה למי שאוהב שהמשקפיים ייגמרו בדיוק במקום שבו הפנים מתחילות.',
@@ -290,13 +282,13 @@ export const products = [
         },
         details: {
             he: [
-                'שריון צב איטלקי בדוגמה ייחודית לכל יחידה',
+                'שריון צב — הדוגמה משתנה בין יחידה ליחידה',
                 'מסמרות כפולות בפינות',
                 'עדשות דבש עם ציפוי אנטי־שריטות',
                 'משקל 24 גרם'
             ],
             en: [
-                'Italian tortoise — no two patterns identical',
+                'Tortoise — no two patterns identical',
                 'Double rivets at the corners',
                 'Honey lenses with scratch-resistant coating',
                 '24 grams'
@@ -323,8 +315,6 @@ export const products = [
         price: 590,
         compareAt: null,
         badge: null,
-        rating: 4.7,
-        reviews: 112,
         fits: ['round', 'oval', 'heart'],
         story: {
             he: 'מלבן נמוך ורחב עם עדשות כחולות מדורגות שמתבהרות לכיוון התחתית. הצירים חשופים בכוונה — שני ברגי כסף שמזכירים שמישהו הרכיב את זה ביד.',
@@ -365,23 +355,21 @@ export const products = [
         price: 540,
         compareAt: 650,
         badge: null,
-        rating: 4.8,
-        reviews: 187,
         fits: ['round', 'square', 'oval'],
         story: {
-            he: 'זווית חתולית מרומזת בלבד, כי לא כל אמירה צריכה להיצעק. הדפס מנומר בגוונים חמים ומסמרת פליז עגולה על הציר — הפרט היחיד שמבריק.',
-            en: 'A cat-eye angle that only hints at itself, because not every statement needs volume. Warm leopard print with a single round brass rivet at the hinge — the only thing that shines.'
+            he: 'זווית חתולית מרומזת בלבד, כי לא כל אמירה צריכה להיצעק. הדפס מנומר בגוונים חמים ומסמרת עגולה על הציר — הפרט היחיד שמבריק.',
+            en: 'A cat-eye angle that only hints at itself, because not every statement needs volume. Warm leopard print with a single round rivet at the hinge — the only thing that shines.'
         },
         details: {
             he: [
-                'הדפס מנומר חתוך מבלוק אצטט',
-                'מסמרת פליז עגולה',
+                'הדפס מנומר בגוף האצטט',
+                'מסמרת עגולה',
                 'עדשות חומות אחידות',
                 'הכי קלה בקולקציה — 22 גרם'
             ],
             en: [
-                'Leopard pattern cut from the acetate block',
-                'Round brass rivet',
+                'Leopard pattern through the acetate',
+                'Round rivet',
                 'Solid brown lenses',
                 'Lightest in the collection — 22 grams'
             ]
@@ -407,8 +395,6 @@ export const products = [
         price: 610,
         compareAt: null,
         badge: null,
-        rating: 4.7,
-        reviews: 143,
         fits: ['round', 'oval', 'heart'],
         story: {
             he: 'מלבן קלאסי עם פרט אחד שגורם לאנשים לשאול: מסמרת כוכב מתכתית בקצה החזית. שתי אפשרויות עדשה — חום קלאסי או ירוק בקבוק שנראה כמו משקפי נהיגה של שנות השבעים.',
@@ -457,22 +443,20 @@ export const products = [
         price: 640,
         compareAt: 760,
         badge: 'new',
-        rating: 4.8,
-        reviews: 89,
         fits: ['oval', 'round', 'long'],
         story: {
-            he: 'מסגרת שחורה עם עדשות כתומות שמשנות את הצבע של כל מה שאתם רואים — הכביש נהיה חם, השמיים נהיים ברונזה. שני פסי פליז דקים בצדדים הם החתימה.',
-            en: 'A black frame with orange lenses that re-grade everything you look at — the road warms, the sky turns bronze. Two thin brass bars on the sides are the signature.'
+            he: 'מסגרת שחורה עם עדשות כתומות שמשנות את הצבע של כל מה שאתם רואים — הכביש נהיה חם, השמיים נהיים ברונזה. שני פסים דקים בצדדים הם החתימה.',
+            en: 'A black frame with orange lenses that re-grade everything you look at — the road warms, the sky turns bronze. Two thin bars on the sides are the signature.'
         },
         details: {
             he: [
-                'שני פסי פליז משובצים בחזית',
+                'שני פסים משובצים בחזית',
                 'עדשות כתומות בקטגוריה 2',
                 'משפר ניגודיות לנהיגה ביום מעונן',
                 'מסגרת מרובעת עם פינות מעוגלות'
             ],
             en: [
-                'Two inlaid brass bars on the front',
+                'Two inlaid bars on the front',
                 'Category 2 orange lenses',
                 'Contrast-enhancing for overcast driving',
                 'Square frame, softened corners'

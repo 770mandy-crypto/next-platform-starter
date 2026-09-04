@@ -4,17 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useShop } from './providers';
-import { IconHeart, IconStar } from './icons';
-
-export function Stars({ rating, className = '' }) {
-    return (
-        <span className={`inline-flex items-center gap-0.5 ${className}`} aria-label={`${rating} / 5`}>
-            {[0, 1, 2, 3, 4].map((i) => (
-                <IconStar key={i} className={`w-3 h-3 ${i < Math.round(rating) ? 'text-brass' : 'text-line'}`} />
-            ))}
-        </span>
-    );
-}
+import { IconHeart } from './icons';
 
 export function ProductCard({ product, onQuickView, priority = false }) {
     const { lang, t, price, wishlist, toggleWish } = useShop();

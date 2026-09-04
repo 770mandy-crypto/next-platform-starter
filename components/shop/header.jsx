@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useShop } from './providers';
+import { useDialog } from '../../lib/shop/use-dialog';
 import { IconBag, IconClose, IconGlobe, IconMenu } from './icons';
 
 export function AnnouncementBar() {
@@ -42,6 +43,8 @@ export function SiteHeader() {
     const pathname = usePathname();
     const [scrolled, setScrolled] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
+    const closeMenu = useCallback(() => setMenuOpen(false), []);
+    const menuRef = useDialog(menuOpen, closeMenu);
 
     useEffect(() => {
         const onScroll = () => setScrolled(window.scrollY > 24);
@@ -116,7 +119,7 @@ export function SiteHeader() {
                             className="relative flex items-center gap-2 px-2 py-2 hover:text-brass transition-colors"
                             aria-label={t.cart.title}
                         >
-                            <IconBag className="w-6 h-6" />
+                            <IconBag className="w-6 h-6" aria-hidden="true" />
                             <span
                                 key={count}
                                 className={`absolute -top-0.5 ${
@@ -137,6 +140,7 @@ export function SiteHeader() {
                 className={`fixed inset-0 z-50 md:hidden transition-opacity duration-300 ${
                     menuOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
                 }`}
+                inert={!menuOpen}
             >
                 <button
                     type="button"
@@ -145,7 +149,12 @@ export function SiteHeader() {
                     className="absolute inset-0 w-full h-full bg-ink/40 backdrop-blur-sm"
                 />
                 <div
-                    className={`absolute inset-y-0 start-0 w-[82%] max-w-sm bg-paper p-8 flex flex-col transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                    ref={menuRef}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="AYIN"
+                    tabIndex={-1}
+                    className={`absolute inset-y-0 start-0 w-[82%] max-w-sm bg-paper p-8 flex flex-col outline-none transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
                         menuOpen ? 'translate-x-0' : 'ltr:-translate-x-full rtl:translate-x-full'
                     }`}
                 >

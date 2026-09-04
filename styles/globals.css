@@ -405,6 +405,18 @@
     }
 
     /* ---- misc ---- */
+    /* Every interactive element keeps a visible keyboard ring. Components that
+       set focus:outline-none for pointer polish still show this one. */
+    .shop :is(a, button, input, select, textarea, [tabindex]):focus-visible {
+        outline: 2px solid var(--color-ink);
+        outline-offset: 3px;
+        border-radius: 4px;
+    }
+
+    .shop .spin-stage:focus-visible {
+        outline-offset: -2px;
+    }
+
     .hairline {
         border-color: var(--color-line);
     }

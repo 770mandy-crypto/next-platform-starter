@@ -14,11 +14,13 @@ const GALLERY = [
     '/products/marlow-black-1.jpg'
 ];
 
+// Only figures the storefront itself can prove: they are counted from the
+// catalogue and from the shop's own policies.
 const NUMBERS = [
-    { value: '30', label: { he: 'ימי ייצור למסגרת', en: 'days per frame' } },
-    { value: '8', label: { he: 'מ״מ אצטט איטלקי', en: 'mm Italian acetate' } },
-    { value: '16', label: { he: 'גוונים בקולקציה', en: 'colourways' } },
-    { value: '2', label: { he: 'שנות אחריות', en: 'year warranty' } }
+    { value: '10', label: { he: 'דגמים', en: 'models' } },
+    { value: '16', label: { he: 'גוונים', en: 'colourways' } },
+    { value: '30', label: { he: 'יום להחזרה', en: 'day returns' } },
+    { value: '2–4', label: { he: 'ימי משלוח', en: 'day delivery' } }
 ];
 
 export function StoryView() {

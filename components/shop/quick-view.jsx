@@ -3,28 +3,26 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useShop } from './providers';
+import { useDialog } from '../../lib/shop/use-dialog';
 import { SpinViewer } from './spin-viewer';
-import { Stars } from './product-card';
 import { IconClose } from './icons';
 import { SHAPES } from '../../data/eyewear';
 
 export function QuickView({ product, onClose }) {
     const { lang, t, price, addItem } = useShop();
     const [index, setIndex] = useState(0);
+    const panelRef = useDialog(Boolean(product), onClose);
 
     useEffect(() => {
         setIndex(0);
     }, [product]);
 
     useEffect(() => {
-        const onKey = (event) => event.key === 'Escape' && onClose();
-        window.addEventListener('keydown', onKey);
         document.body.style.overflow = product ? 'hidden' : '';
         return () => {
-            window.removeEventListener('keydown', onKey);
             document.body.style.overflow = '';
         };
-    }, [onClose, product]);
+    }, [product]);
 
     if (!product) return null;
     const variant = product.variants[index];
@@ -37,7 +35,14 @@ export function QuickView({ product, onClose }) {
                 onClick={onClose}
                 className="absolute inset-0 w-full h-full bg-ink/45 backdrop-blur-sm animate-in-up"
             />
-            <div className="relative w-full max-w-4xl overflow-hidden shadow-2xl rounded-3xl bg-paper animate-in-up">
+            <div
+                ref={panelRef}
+                role="dialog"
+                aria-modal="true"
+                aria-label={product.name[lang]}
+                tabIndex={-1}
+                className="relative w-full max-w-4xl overflow-hidden shadow-2xl outline-none rounded-3xl bg-paper animate-in-up"
+            >
                 <button
                     type="button"
                     onClick={onClose}
@@ -56,13 +61,6 @@ export function QuickView({ product, onClose }) {
                         <p className="eyebrow mb-3">{SHAPES[product.shape][lang]}</p>
                         <h3 className="display text-3xl mb-2">{product.name[lang]}</h3>
                         <p className="mb-4 text-sm text-inksoft">{product.tagline[lang]}</p>
-
-                        <div className="flex items-center gap-2 mb-6">
-                            <Stars rating={product.rating} />
-                            <span className="text-xs text-inksoft">
-                                {product.rating} · {product.reviews} {t.product.reviews}
-                            </span>
-                        </div>
 
                         <p className="mb-6 text-sm leading-relaxed text-inksoft line-clamp-4">{product.story[lang]}</p>
 

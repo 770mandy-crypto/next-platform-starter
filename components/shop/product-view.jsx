@@ -7,8 +7,8 @@ import { products, SHAPES, FACE_SHAPES, LENS_UPGRADES } from '../../data/eyewear
 import { useShop } from './providers';
 import { SpinViewer } from './spin-viewer';
 import { ProductCard } from './product-card';
-import { Stars } from './product-card';
 import { Reveal } from './reveal';
+import { TryOn } from './try-on';
 import { IconHeart, IconArrow } from './icons';
 
 function ZoomPhoto({ src, alt }) {
@@ -117,6 +117,7 @@ export function ProductView({ slug }) {
     const [lensId, setLensId] = useState('standard');
     const [view, setView] = useState('photo');
     const [justAdded, setJustAdded] = useState(false);
+    const [tryOnOpen, setTryOnOpen] = useState(false);
 
     if (!product) return null;
 
@@ -212,13 +213,6 @@ export function ProductView({ slug }) {
                         <h1 className="text-[clamp(2.4rem,6vw,4rem)] mb-3">{product.name[lang]}</h1>
                         <p className="mb-5 text-inksoft">{product.tagline[lang]}</p>
 
-                        <div className="flex items-center gap-2 mb-8">
-                            <Stars rating={product.rating} />
-                            <span className="text-xs text-inksoft">
-                                {product.rating} · {product.reviews} {t.product.reviews}
-                            </span>
-                        </div>
-
                         <div className="flex items-baseline gap-3 mb-8">
                             <span className="display text-3xl ticker-digit">{price(totalPrice)}</span>
                             {product.compareAt && lensId === 'standard' && (
@@ -291,6 +285,14 @@ export function ProductView({ slug }) {
                             </button>
                         </div>
 
+                        <button
+                            type="button"
+                            onClick={() => setTryOnOpen(true)}
+                            className="w-full mb-4 btn-ayin btn-ghost btn-sm"
+                        >
+                            <span>{t.tryOn.cta}</span>
+                        </button>
+
                         <p className="flex items-center gap-2 mb-10 text-xs text-inksoft">
                             <span className="w-1.5 h-1.5 rounded-full bg-green-600" />
                             {t.product.inStock}
@@ -353,6 +355,8 @@ export function ProductView({ slug }) {
                     </Reveal>
                 </div>
             </section>
+
+            {tryOnOpen && <TryOn product={product} variant={variant} onClose={() => setTryOnOpen(false)} />}
         </>
     );
 }

@@ -9,13 +9,55 @@ import { IconArrow } from './icons';
 export function CheckoutView() {
     const { t, lang, price, items, subtotal, discount, shipping, total, promo, clearCart, hydrated } = useShop();
     const [done, setDone] = useState(false);
+    const [busy, setBusy] = useState(false);
+    const [payError, setPayError] = useState(null);
     const [form, setForm] = useState({ name: '', email: '', address: '' });
 
-    const submit = (event) => {
+    const submit = async (event) => {
         event.preventDefault();
-        setDone(true);
-        clearCart();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setBusy(true);
+        setPayError(null);
+
+        try {
+            // The server prices the bag from the catalogue; this only says what
+            // was chosen.
+            const response = await fetch('/api/checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    lang,
+                    promo,
+                    items: items.map((line) => ({
+                        variantId: line.variantId,
+                        lensId: line.lensId,
+                        qty: line.qty
+                    }))
+                })
+            });
+
+            if (response.ok) {
+                const { url } = await response.json();
+                if (url) {
+                    window.location.href = url;
+                    return;
+                }
+            }
+
+            const body = await response.json().catch(() => ({}));
+            if (response.status === 503 && body.error === 'stripe_not_configured') {
+                // No payment provider on this deploy: fall back to the demo
+                // confirmation rather than leaving the shopper stuck.
+                setDone(true);
+                clearCart();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                return;
+            }
+            setPayError(t.checkout.payError);
+        } catch {
+            setPayError(t.checkout.payError);
+        } finally {
+            setBusy(false);
+        }
     };
 
     if (done) {
@@ -69,10 +111,15 @@ export function CheckoutView() {
                                 />
                             </label>
                         ))}
-                        <button type="submit" className="w-full btn-ayin">
-                            <span>{t.checkout.place}</span>
+                        <button type="submit" disabled={busy} className="w-full btn-ayin disabled:opacity-60">
+                            <span>{busy ? t.checkout.working : t.checkout.place}</span>
                             <IconArrow className="w-4 h-4 rtl:rotate-180" />
                         </button>
+                        {payError && (
+                            <p role="alert" className="text-sm text-red-700">
+                                {payError}
+                            </p>
+                        )}
                     </form>
                 </div>
 

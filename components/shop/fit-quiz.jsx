@@ -25,7 +25,8 @@ function score(product, answers) {
         const [min, max] = PRESENCE_WEIGHT[answers.presence];
         if (product.specs.weight >= min && product.specs.weight < max) value += 2;
     }
-    value += product.rating / 10;
+    // stable, deterministic tiebreak so equal scores keep a fixed order
+    value += (100 - product.specs.weight) / 1000;
     return value;
 }
 

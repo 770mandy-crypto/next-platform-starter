@@ -53,7 +53,7 @@ export function CollectionView() {
         });
         if (sort === 'priceAsc') list = [...list].sort((a, b) => a.price - b.price);
         if (sort === 'priceDesc') list = [...list].sort((a, b) => b.price - a.price);
-        if (sort === 'rating') list = [...list].sort((a, b) => b.rating - a.rating);
+        if (sort === 'new') list = [...list].sort((a, b) => Number(b.badge === 'new') - Number(a.badge === 'new'));
         return list;
     }, [shape, band, colour, sort]);
 

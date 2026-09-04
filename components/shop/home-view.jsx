@@ -145,19 +145,19 @@ function StoryStrip() {
     );
 }
 
-function Reviews() {
+function Promises() {
     const { t } = useShop();
     return (
         <section className="px-5 py-24 sm:px-10 bg-bone sm:py-28">
             <div className="mx-auto max-w-[1600px]">
                 <Reveal>
-                    <p className="mb-10 eyebrow">{t.sections.reviews}</p>
+                    <p className="mb-10 eyebrow">{t.sections.promises}</p>
                 </Reveal>
                 <div className="grid gap-8 md:grid-cols-3">
-                    {t.reviews.map((review, index) => (
-                        <Reveal key={review.a} delay={index * 110} className="pt-6 border-t hairline">
-                            <p className="mb-5 display text-xl leading-snug">“{review.q}”</p>
-                            <p className="text-xs tracking-[0.16em] uppercase text-inksoft">{review.a}</p>
+                    {t.promises.map((promise, index) => (
+                        <Reveal key={promise.t} delay={index * 110} className="pt-6 border-t hairline">
+                            <h3 className="mb-3 display text-2xl">{promise.t}</h3>
+                            <p className="text-sm leading-relaxed text-inksoft">{promise.b}</p>
                         </Reveal>
                     ))}
                 </div>
@@ -242,7 +242,7 @@ export function HomeView() {
                 </div>
             </section>
 
-            <Reviews />
+            <Promises />
             <FitTeaser />
             <Newsletter />
             <QuickView product={quick} onClose={() => setQuick(null)} />

@@ -2,8 +2,9 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useShop } from './providers';
+import { useDialog } from '../../lib/shop/use-dialog';
 import { IconClose } from './icons';
 
 function QtyStepper({ value, onChange }) {
@@ -52,14 +53,8 @@ export function CartDrawer() {
     } = useShop();
     const [code, setCode] = useState('');
     const [codeState, setCodeState] = useState(null);
-
-    useEffect(() => {
-        const onKey = (event) => {
-            if (event.key === 'Escape') setCartOpen(false);
-        };
-        window.addEventListener('keydown', onKey);
-        return () => window.removeEventListener('keydown', onKey);
-    }, [setCartOpen]);
+    const close = useCallback(() => setCartOpen(false), [setCartOpen]);
+    const panelRef = useDialog(cartOpen, close);
 
     const submitCode = (event) => {
         event.preventDefault();
@@ -77,7 +72,9 @@ export function CartDrawer() {
             className={`fixed inset-0 z-[60] transition-opacity duration-400 ${
                 cartOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
             }`}
-            aria-hidden={!cartOpen}
+            // inert keeps the closed drawer out of the tab order and away from
+            // screen readers; opacity alone would leave it reachable.
+            inert={!cartOpen}
         >
             <button
                 type="button"
@@ -87,7 +84,12 @@ export function CartDrawer() {
             />
 
             <aside
-                className={`absolute inset-y-0 end-0 flex flex-col w-full max-w-[27rem] bg-paper shadow-2xl transition-transform duration-[550ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                ref={panelRef}
+                role="dialog"
+                aria-modal="true"
+                aria-label={t.cart.title}
+                tabIndex={-1}
+                className={`absolute inset-y-0 end-0 flex flex-col w-full max-w-[27rem] bg-paper shadow-2xl outline-none transition-transform duration-[550ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
                     cartOpen ? 'translate-x-0' : 'ltr:translate-x-full rtl:-translate-x-full'
                 }`}
             >

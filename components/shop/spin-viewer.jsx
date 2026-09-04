@@ -135,7 +135,7 @@ export function SpinViewer({ src, alt, label, className = '' }) {
                 onPointerUp={endDrag}
                 onPointerCancel={endDrag}
                 onPointerLeave={endDrag}
-                className={`spin-stage relative w-full aspect-square focus:outline-none ${dragging ? 'is-dragging' : ''}`}
+                className={`spin-stage relative w-full aspect-square ${dragging ? 'is-dragging' : ''}`}
             >
                 <div
                     className="spin-object absolute inset-[6%]"
