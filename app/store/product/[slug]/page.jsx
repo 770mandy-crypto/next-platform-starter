@@ -7,6 +7,7 @@ import { SetupNotice } from 'components/store/setup-notice';
 import { ProductPurchaseForm } from 'components/store/product-purchase-form';
 import { TrustBar } from 'components/store/trust-bar';
 import { Breadcrumbs } from 'components/store/breadcrumbs';
+import { ImageGallery } from 'components/store/image-gallery';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,7 +40,7 @@ export default async function ProductPage({ params }) {
       <Breadcrumbs category={product.category} title={product.title} />
       <div className="detail-grid">
         <div className="detail-shot">
-          <img src={product.image_path} alt={product.title} />
+          <ImageGallery images={product.image_paths && product.image_paths.length > 0 ? product.image_paths : [product.image_path]} title={product.title} />
         </div>
         <div className="detail-side">
           {product.badge && !outOfStock && (

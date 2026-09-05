@@ -20,6 +20,7 @@ create table if not exists public.products (
   description text not null,
   details jsonb not null default '[]'::jsonb,
   image_path text not null,
+  image_paths jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default now()
 );
 
