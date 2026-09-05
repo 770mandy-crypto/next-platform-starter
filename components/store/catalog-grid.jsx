@@ -19,7 +19,16 @@ export function CatalogGrid({ products }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const filter = searchParams.get('cat') || 'all';
-  const shown = filter === 'all' ? products : products.filter((p) => p.category === filter);
+  const sizeFilter = searchParams.get('size') || 'all';
+
+  let shown = filter === 'all' ? products : products.filter((p) => p.category === filter);
+
+  if (sizeFilter !== 'all') {
+    shown = shown.filter((p) => {
+      const hasSize = (p.product_variants || []).some((v) => v.size === sizeFilter && v.stock > 0);
+      return hasSize;
+    });
+  }
 
   function setFilter(cat) {
     const params = new URLSearchParams(searchParams);
@@ -29,16 +38,39 @@ export function CatalogGrid({ products }) {
     router.push(`/store${query ? `?${query}` : ''}#catalog`, { scroll: false });
   }
 
+  function setSizeFilter(size) {
+    const params = new URLSearchParams(searchParams);
+    if (size === 'all') params.delete('size');
+    else params.set('size', size);
+    const query = params.toString();
+    router.push(`/store${query ? `?${query}` : ''}#catalog`, { scroll: false });
+  }
+
   return (
     <section className="wrap" id="catalog">
       <div className="sec-head">
         <h2>הקולקציה</h2>
-        <div className="filters">
-          {CATEGORIES.map((c) => (
-            <button key={c.key} data-cat={c.key} aria-pressed={filter === c.key} onClick={() => setFilter(c.key)}>
-              {c.label}
-            </button>
-          ))}
+        <div className="filters-container">
+          <div className="filters">
+            {CATEGORIES.map((c) => (
+              <button key={c.key} data-cat={c.key} aria-pressed={filter === c.key} onClick={() => setFilter(c.key)}>
+                {c.label}
+              </button>
+            ))}
+          </div>
+          <div className="size-filter">
+            <label htmlFor="size-select" className="size-filter-label">
+              מידה:
+            </label>
+            <select id="size-select" value={sizeFilter} onChange={(e) => setSizeFilter(e.target.value)}>
+              <option value="all">הכל</option>
+              {SIZES.map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
       <div className="grid">

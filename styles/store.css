@@ -156,6 +156,7 @@ nav.links a:hover::after, nav.links a[aria-current="true"]::after { width: 100%;
   font-family: var(--display); font-weight: 400; margin: 0;
   font-size: clamp(1.9rem, 4.5vw, 2.9rem); line-height: 1.05;
 }
+.filters-container { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; flex: 1; }
 .filters { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .filters button {
   padding: 0.55rem 1.15rem; cursor: pointer; background: none;
@@ -167,6 +168,15 @@ nav.links a:hover::after, nav.links a[aria-current="true"]::after { width: 100%;
   border-color: var(--gold); background: var(--gold); color: var(--ink); font-weight: 700;
 }
 .filters button:not([aria-pressed="true"]):hover { border-color: var(--gold); color: var(--gold); }
+.size-filter { display: flex; align-items: center; gap: 0.5rem; }
+.size-filter-label { font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
+.size-filter select {
+  padding: 0.55rem 0.75rem; background: none; border: 1px solid var(--hairline);
+  color: var(--muted); font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase;
+  cursor: pointer; font-family: inherit; transition: all 0.3s;
+}
+.size-filter select:hover, .size-filter select:focus { border-color: var(--gold); color: var(--gold); outline: none; }
+.size-filter select option { background: var(--ink); color: var(--bone); }
 
 /* ---------- grid ---------- */
 .grid {
