@@ -5,6 +5,8 @@ import { getProduct, getVariantsOf, totalStock } from 'lib/store/catalog';
 import { nis } from 'lib/store/format';
 import { SetupNotice } from 'components/store/setup-notice';
 import { ProductPurchaseForm } from 'components/store/product-purchase-form';
+import { TrustBar } from 'components/store/trust-bar';
+import { Breadcrumbs } from 'components/store/breadcrumbs';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,9 +36,7 @@ export default async function ProductPage({ params }) {
 
   return (
     <section className="wrap detail-page">
-      <Link className="detail-back" href="/store">
-        → חזרה לקולקציה
-      </Link>
+      <Breadcrumbs category={product.category} title={product.title} />
       <div className="detail-grid">
         <div className="detail-shot">
           <img src={product.image_path} alt={product.title} />
@@ -84,6 +84,7 @@ export default async function ProductPage({ params }) {
           ) : (
             <ProductPurchaseForm product={product} />
           )}
+          <TrustBar />
           <div className="details">
             <span className="qa-label" style={{ display: 'block', marginBottom: '1rem' }}>
               פרטי הפריט

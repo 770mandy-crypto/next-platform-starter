@@ -390,6 +390,19 @@ nav.links a:hover::after, nav.links a[aria-current="true"]::after { width: 100%;
 .pdp-row { display: flex; flex-wrap: wrap; align-items: stretch; gap: 0.9rem; margin-top: 1.75rem; }
 .pdp-row .stepper button { padding: 0.85rem 1.15rem; font-size: 1.1rem; }
 .pdp-row .qa-add { min-width: 14rem; padding: 0.85rem 1.5rem; font-size: 0.64rem; }
+
+/* ---------- trust bar ---------- */
+.trust-bar { display: flex; flex-wrap: wrap; gap: 1.25rem 1.75rem; margin-top: 1.75rem; }
+.trust-item { display: flex; align-items: center; gap: 0.55rem; color: var(--muted); font-size: 0.78rem; }
+.trust-item svg { color: var(--gold); flex-shrink: 0; }
+
+/* ---------- breadcrumbs ---------- */
+.crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin-bottom: 1.5rem; font-size: 0.76rem; color: var(--muted); }
+.crumbs a { color: var(--muted); text-decoration: none; transition: color 0.3s; }
+.crumbs a:hover { color: var(--gold); }
+.crumbs span[aria-hidden] { color: var(--hairline); }
+.crumbs .current { color: var(--bone); }
+
 .details { margin-top: 2.5rem; padding-top: 1.75rem; border-top: 1px solid var(--hairline); }
 .details ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.7rem; }
 .details li {
@@ -702,8 +715,6 @@ footer { border-top: 1px solid var(--hairline); padding-block: clamp(3rem, 6vw, 
 /* Plain page (not the artifact's modal dialog), so it has its own class names —
    .pdp-* above stays scoped to the drawer/quick-add markup it was built for. */
 .detail-page { padding-block: clamp(2rem, 5vw, 3.5rem); }
-.detail-back { display: inline-block; margin-bottom: 1.5rem; background: none; border: 0; color: var(--muted); font-size: 0.8rem; text-decoration: none; }
-.detail-back:hover { color: var(--gold); }
 .detail-grid { display: grid; grid-template-columns: 1fr; gap: clamp(2rem, 5vw, 3.5rem); }
 @media (min-width: 900px) { .detail-grid { grid-template-columns: 1.05fr 1fr; align-items: start; } }
 .detail-shot { border: 1px solid var(--hairline); aspect-ratio: 3 / 4; overflow: hidden; background: var(--ink-2); }
