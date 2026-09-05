@@ -105,6 +105,12 @@ create table if not exists public.order_items (
   quantity integer not null check (quantity > 0)
 );
 
+-- ---------- newsletter ----------
+create table if not exists public.newsletter_subscribers (
+  email text primary key,
+  created_at timestamptz not null default now()
+);
+
 -- ---------- row level security ----------
 -- Reads: catalog is public. Orders/profiles are only readable by their owner.
 -- Writes: only the server (using the service-role key, which bypasses RLS) creates
@@ -114,6 +120,12 @@ alter table public.product_variants enable row level security;
 alter table public.profiles enable row level security;
 alter table public.orders enable row level security;
 alter table public.order_items enable row level security;
+alter table public.newsletter_subscribers enable row level security;
+
+drop policy if exists "anyone can subscribe" on public.newsletter_subscribers;
+create policy "anyone can subscribe" on public.newsletter_subscribers for insert with check (true);
+-- No select policy: the list itself is only readable via the service-role key
+-- (e.g. from /store/manage or an export script), never from the browser.
 
 drop policy if exists "products are publicly readable" on public.products;
 create policy "products are publicly readable" on public.products for select using (true);

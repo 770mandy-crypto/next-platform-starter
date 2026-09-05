@@ -1,7 +1,17 @@
+import { isSupabaseConfigured } from 'lib/supabase/config';
+import { NewsletterForm } from './newsletter-form';
+
 export function StoreFooter() {
   return (
     <footer>
       <div className="wrap">
+        {isSupabaseConfigured && (
+          <div className="newsletter">
+            <h3>הצטרפו למועדון AM</h3>
+            <p>עדכונים על קולקציות חדשות ומכירות מוקדמות, בלי ספאם.</p>
+            <NewsletterForm />
+          </div>
+        )}
         <div className="foot-grid">
           <div>
             <a className="mark" href="/store" style={{ alignItems: 'flex-start' }}>
@@ -21,7 +31,7 @@ export function StoreFooter() {
           <div>
             <h5>מידע</h5>
             <ul>
-              <li>המותג</li>
+              <li>עלינו</li>
               <li>משלוחים והחזרות</li>
               <li>החשבון שלי</li>
             </ul>
