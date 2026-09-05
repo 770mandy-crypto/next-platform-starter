@@ -8,6 +8,7 @@ import { ProductPurchaseForm } from 'components/store/product-purchase-form';
 import { TrustBar } from 'components/store/trust-bar';
 import { Breadcrumbs } from 'components/store/breadcrumbs';
 import { ImageGallery } from 'components/store/image-gallery';
+import { SizeGuide } from 'components/store/size-guide';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,6 +78,9 @@ export default async function ProductPage({ params }) {
               </div>
             </div>
           )}
+          <div style={{ marginBottom: '1.75rem' }}>
+            <SizeGuide category={product.category} />
+          </div>
           <p className="pdp-desc">{product.description}</p>
           {outOfStock ? (
             <button className="qa-add" disabled>
