@@ -274,6 +274,12 @@ nav.links a:hover::after, nav.links a[aria-current="true"]::after { width: 100%;
 }
 .stepper button:hover { color: var(--gold); }
 .stepper span { min-width: 1.75rem; text-align: center; font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+.low-stock-note {
+  margin: 0.75rem 0 0; padding: 0.5rem 0.75rem; background: color-mix(in oklab, var(--gold) 15%, var(--ink));
+  border: 1px solid var(--gold); color: var(--gold);
+  font-size: 0.68rem; font-weight: 600; letter-spacing: 0.08em;
+  text-align: center;
+}
 .qa-add {
   flex: 1; padding: 0.5rem; border: 1px solid var(--hairline); background: none;
   color: var(--muted); cursor: not-allowed;

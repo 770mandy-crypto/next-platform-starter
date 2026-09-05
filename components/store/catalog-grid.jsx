@@ -119,6 +119,7 @@ function ProductCard({ product }) {
   }, [product.product_variants]);
   const totalStock = Object.values(stockBySize).reduce((a, b) => a + b, 0);
   const maxQty = size ? Math.max(1, Math.min(10, stockBySize[size] || 0)) : 10;
+  const lowStockCount = Object.values(stockBySize).filter((s) => s > 0 && s <= 2).length;
 
   function handleAdd() {
     if (!size || !stockBySize[size]) return;
@@ -143,6 +144,10 @@ function ProductCard({ product }) {
         {totalStock === 0 ? (
           <span className="badge" style={{ background: 'var(--muted)' }}>
             אזל מהמלאי
+          </span>
+        ) : lowStockCount > 0 ? (
+          <span className="badge" style={{ background: 'var(--gold)', color: 'var(--ink)' }}>
+            מעט יחידות
           </span>
         ) : (
           product.badge && <span className="badge">{product.badge}</span>
@@ -192,6 +197,11 @@ function ProductCard({ product }) {
               </button>
             ))}
           </div>
+          {size && stockBySize[size] <= 2 && (
+            <p className="low-stock-note">
+              ⚠ נשארו רק {stockBySize[size]} {stockBySize[size] === 1 ? 'יחידה' : 'יחידות'}
+            </p>
+          )}
           <div className="qa-row">
             <div className="stepper">
               <button aria-label="הפחת כמות" onClick={() => setQty((q) => Math.max(1, q - 1))}>
