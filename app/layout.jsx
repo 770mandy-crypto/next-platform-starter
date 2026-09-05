@@ -1,3 +1,4 @@
+import { headers } from 'next/headers';
 import '../styles/globals.css';
 import { Footer } from '../components/footer';
 import { Header } from '../components/header';
@@ -9,7 +10,25 @@ export const metadata = {
     }
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+    // The AM Clothing store (/store/*) is a Hebrew/RTL app with its own header,
+    // footer and theme, so it opts out of this starter's English/LTR chrome
+    // instead of nesting inside it. The pathname arrives via a header set in
+    // middleware.js, since a root layout otherwise has no way to see the route.
+    const pathname = (await headers()).get('x-pathname') || '';
+    const isStore = pathname.startsWith('/store');
+
+    if (isStore) {
+        return (
+            <html lang="he" dir="rtl">
+                <head>
+                    <link rel="icon" href="/favicon.svg" sizes="any" />
+                </head>
+                <body>{children}</body>
+            </html>
+        );
+    }
+
     return (
         <html lang="en">
             <head>

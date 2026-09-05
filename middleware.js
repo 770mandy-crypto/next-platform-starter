@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 
 export function middleware(request) {
-  const response = NextResponse.next();
-  
+  // Forwarded so the root layout can pick lang/dir/theme per subtree (e.g. the
+  // AM Clothing store is Hebrew/RTL, everything else here is English/LTR) without
+  // every route needing its own root layout.
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-pathname', request.nextUrl.pathname);
+
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
+
   // Add security headers
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-Content-Type-Options', 'nosniff');
