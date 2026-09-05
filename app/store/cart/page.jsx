@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCart, lineKey } from 'components/store/cart-context';
 import { useCheckout } from 'lib/store/use-checkout';
 import { nis } from 'lib/store/format';
+import { CartLoginNudge } from 'components/store/cart-login-nudge';
 
 export default function CartPage() {
   const { lines, removeLine, setQuantity, subtotal, hydrated } = useCart();
@@ -68,6 +69,7 @@ export default function CartPage() {
           <span>סה״כ</span>
           <span>{nis(subtotal)}</span>
         </div>
+        <CartLoginNudge />
         {error && <p className="auth-error">{error}</p>}
         <button className="btn-gold" style={{ width: '100%' }} onClick={startCheckout} disabled={checkingOut || lines.length === 0}>
           {checkingOut ? 'מעביר לתשלום…' : 'מעבר לתשלום'}

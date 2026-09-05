@@ -32,7 +32,7 @@ export async function POST(request) {
     if (orderId) {
       const supabase = createAdminSupabaseClient();
 
-      const { data: order } = await supabase
+      let { data: order } = await supabase
         .from('orders')
         .update({
           status: 'paid',
@@ -47,6 +47,26 @@ export async function POST(request) {
         .single();
 
       if (order) {
+        // A guest checkout with the same email as an existing account still
+        // gets remembered: next time that person signs in with Google, this
+        // order shows up in /store/account instead of being orphaned.
+        if (!order.user_id && order.customer_email) {
+          const { data: matchedProfile } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('email', order.customer_email)
+            .maybeSingle();
+          if (matchedProfile) {
+            const { data: relinked } = await supabase
+              .from('orders')
+              .update({ user_id: matchedProfile.id })
+              .eq('id', order.id)
+              .select('*, order_items(*)')
+              .single();
+            if (relinked) order = relinked;
+          }
+        }
+
         for (const item of order.order_items) {
           await supabase.rpc('decrement_variant_stock', {
             p_product_slug: item.product_slug,
