@@ -20,6 +20,7 @@ export function CatalogGrid({ products }) {
   const router = useRouter();
   const filter = searchParams.get('cat') || 'all';
   const sizeFilter = searchParams.get('size') || 'all';
+  const searchQuery = (searchParams.get('q') || '').toLowerCase();
 
   let shown = filter === 'all' ? products : products.filter((p) => p.category === filter);
 
@@ -28,6 +29,10 @@ export function CatalogGrid({ products }) {
       const hasSize = (p.product_variants || []).some((v) => v.size === sizeFilter && v.stock > 0);
       return hasSize;
     });
+  }
+
+  if (searchQuery) {
+    shown = shown.filter((p) => p.title.toLowerCase().includes(searchQuery) || p.color.toLowerCase().includes(searchQuery));
   }
 
   function setFilter(cat) {
@@ -46,30 +51,49 @@ export function CatalogGrid({ products }) {
     router.push(`/store${query ? `?${query}` : ''}#catalog`, { scroll: false });
   }
 
+  function setSearch(q) {
+    const params = new URLSearchParams(searchParams);
+    if (!q) params.delete('q');
+    else params.set('q', q);
+    const query = params.toString();
+    router.push(`/store${query ? `?${query}` : ''}#catalog`, { scroll: false });
+  }
+
   return (
     <section className="wrap" id="catalog">
       <div className="sec-head">
         <h2>הקולקציה</h2>
-        <div className="filters-container">
-          <div className="filters">
-            {CATEGORIES.map((c) => (
-              <button key={c.key} data-cat={c.key} aria-pressed={filter === c.key} onClick={() => setFilter(c.key)}>
-                {c.label}
-              </button>
-            ))}
+        <div className="catalog-controls">
+          <div className="search-box">
+            <input
+              type="text"
+              placeholder="חיפוש..."
+              value={searchQuery}
+              onChange={(e) => setSearch(e.target.value)}
+              className="search-input"
+            />
           </div>
-          <div className="size-filter">
-            <label htmlFor="size-select" className="size-filter-label">
-              מידה:
-            </label>
-            <select id="size-select" value={sizeFilter} onChange={(e) => setSizeFilter(e.target.value)}>
-              <option value="all">הכל</option>
-              {SIZES.map((size) => (
-                <option key={size} value={size}>
-                  {size}
-                </option>
+          <div className="filters-container">
+            <div className="filters">
+              {CATEGORIES.map((c) => (
+                <button key={c.key} data-cat={c.key} aria-pressed={filter === c.key} onClick={() => setFilter(c.key)}>
+                  {c.label}
+                </button>
               ))}
-            </select>
+            </div>
+            <div className="size-filter">
+              <label htmlFor="size-select" className="size-filter-label">
+                מידה:
+              </label>
+              <select id="size-select" value={sizeFilter} onChange={(e) => setSizeFilter(e.target.value)}>
+                <option value="all">הכל</option>
+                {SIZES.map((size) => (
+                  <option key={size} value={size}>
+                    {size}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </div>
