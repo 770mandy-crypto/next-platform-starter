@@ -6,6 +6,7 @@ import { createServerSupabaseClient } from 'lib/supabase/server';
 import { nis } from 'lib/store/format';
 import { SetupNotice } from 'components/store/setup-notice';
 import { SignOutButton } from 'components/store/sign-out-button';
+import { ManagePaymentButton } from 'components/store/manage-payment-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +22,7 @@ export default async function AccountPage() {
     );
   }
 
-  const { user } = await getCurrentUser();
+  const { user, profile } = await getCurrentUser();
   if (!user) redirect('/store/login');
 
   const supabase = await createServerSupabaseClient();
@@ -37,7 +38,10 @@ export default async function AccountPage() {
           <p className="eyebrow">החשבון שלי</p>
           <h1>{user.email}</h1>
         </div>
-        <SignOutButton />
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {profile?.stripe_customer_id && <ManagePaymentButton />}
+          <SignOutButton />
+        </div>
       </div>
       {!orders || orders.length === 0 ? (
         <p className="empty-state">

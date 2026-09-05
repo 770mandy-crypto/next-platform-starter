@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useCart } from './cart-context';
+import { AccountIcon, BagIcon } from './icons';
 
 export function StoreHeader({ user }) {
   const { count, setDrawerOpen } = useCart();
@@ -19,15 +20,17 @@ export function StoreHeader({ user }) {
           <Link href="/store?cat=shorts">מכנסיים</Link>
           <Link href="/store?cat=sets">סטים</Link>
           <Link href="/store#brand" id="navBrand">
-            המותג
+            עלינו
           </Link>
         </nav>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <Link className="account-link" href={user ? '/store/account' : '/store/login'}>
-            {user ? 'החשבון שלי' : 'כניסה'}
+        <div className="icon-cluster">
+          <Link className="icon-link" href={user ? '/store/account' : '/store/login'} aria-label={user ? 'החשבון שלי' : 'כניסה'}>
+            <AccountIcon />
+            <span className="icon-link-label">{user ? 'החשבון' : 'כניסה'}</span>
           </Link>
-          <button className="cart-btn" id="cartBtn" onClick={() => setDrawerOpen(true)}>
-            <span>עגלה</span>
+          <button className="icon-link cart-btn" id="cartBtn" onClick={() => setDrawerOpen(true)} aria-label="עגלת קניות">
+            <BagIcon />
+            <span className="icon-link-label">עגלה</span>
             <span className="cart-count">{count}</span>
           </button>
         </div>

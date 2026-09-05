@@ -47,7 +47,21 @@ export async function POST(request) {
   }
 
   const subtotal = validatedLines.reduce((sum, l) => sum + l.product.price * l.quantity, 0);
-  const { user } = await getCurrentUser();
+  const { user, profile } = await getCurrentUser();
+  const stripe = getStripe();
+
+  // A signed-in shopper gets a real Stripe Customer, created once and reused —
+  // that's what lets the card they enter now be saved for next time, and what
+  // /store/account's "payment methods" link opens later.
+  let customerId = profile?.stripe_customer_id || null;
+  if (user && !customerId) {
+    const customer = await stripe.customers.create({
+      email: user.email,
+      metadata: { supabase_user_id: user.id }
+    });
+    customerId = customer.id;
+    await supabase.from('profiles').update({ stripe_customer_id: customerId }).eq('id', user.id);
+  }
 
   const { data: order, error: orderError } = await supabase
     .from('orders')
@@ -83,7 +97,6 @@ export async function POST(request) {
   }
 
   const origin = new URL(request.url).origin;
-  const stripe = getStripe();
 
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
@@ -98,7 +111,10 @@ export async function POST(request) {
         }
       }
     })),
-    customer_email: user?.email || undefined,
+    ...(customerId ? { customer: customerId } : { customer_email: user?.email || undefined }),
+    // Saves the card to the customer (not just this one payment) so a signed-in
+    // shopper doesn't have to retype it next time.
+    payment_intent_data: customerId ? { setup_future_usage: 'on_session' } : undefined,
     shipping_address_collection: { allowed_countries: ['IL'] },
     metadata: { order_id: order.id },
     success_url: `${origin}/store/success?session_id={CHECKOUT_SESSION_ID}`,

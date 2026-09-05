@@ -50,8 +50,14 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text,
   is_admin boolean not null default false,
+  -- Set on first checkout while signed in; lets /store/account send them to
+  -- Stripe's own Customer Portal to view/replace/remove a saved card. We never
+  -- store card numbers ourselves.
+  stripe_customer_id text,
   created_at timestamptz not null default now()
 );
+
+alter table public.profiles add column if not exists stripe_customer_id text;
 
 create or replace function public.handle_new_user()
 returns trigger

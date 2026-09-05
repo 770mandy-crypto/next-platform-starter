@@ -37,6 +37,7 @@ update public.profiles set is_admin = true where email = 'you@example.com';
    - כתובת: `https://<הדומיין-שלכם>/store/api/webhooks/stripe`
    - אירוע לבחור: `checkout.session.completed`
    - אחרי היצירה, העתיקו את ה-`Signing secret` → משתנה הסביבה `STRIPE_WEBHOOK_SECRET`
+4. **שמירת כרטיס אשראי ללקוחות חוזרים** — כל לקוח מחובר (עם Google) מקבל אוטומטית "לקוח" ב-Stripe בהזמנה הראשונה שלו, והכרטיס נשמר עליו. כדי שכפתור "ניהול אמצעי תשלום" ב-`/store/account` יעבוד, צריך להפעיל פעם אחת ב-Stripe: **Settings → Billing → Customer portal** → Activate. (יש הגדרה נפרדת למצב Test ולמצב Live.) אנחנו לא שומרים מספרי כרטיס בעצמנו בשום מקום — הכל דרך הדף המאובטח של Stripe.
 
 ## 4. שליחת אישורי הזמנה — Resend
 
@@ -71,6 +72,8 @@ update public.profiles set is_admin = true where email = 'you@example.com';
 - `/store/manage` — לוח ניהול (רק למי שמסומן `is_admin`): עריכת מלאי, רשימת הזמנות
 - תשלום דרך Stripe Checkout, עם אימות מלאי ומחיר מחדש בצד השרת (לא סומכים על מה שהדפדפן שולח)
 - Webhook שמסמן הזמנה כ"שולמה", מוריד מלאי, ושולח מייל אישור ללקוח + התראה אליכם
+- שמירת כרטיס אשראי ללקוח מחובר, וניהולו דרך Stripe Customer Portal מ-`/store/account`
+- הזמנת אורח (בלי התחברות) שמזוהה לפי מייל ומשויכת לחשבון אם ההתחברות מגיעה אחר כך
 
 ## בבדיקה לפני מעבר לכסף אמיתי
 
