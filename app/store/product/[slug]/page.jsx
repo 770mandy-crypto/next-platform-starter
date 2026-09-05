@@ -9,6 +9,8 @@ import { TrustBar } from 'components/store/trust-bar';
 import { Breadcrumbs } from 'components/store/breadcrumbs';
 import { ImageGallery } from 'components/store/image-gallery';
 import { SizeGuide } from 'components/store/size-guide';
+import { RecentlyViewed, trackProductView } from 'components/store/recently-viewed';
+import { ProductViewTracker } from 'components/store/product-view-tracker';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,6 +40,7 @@ export default async function ProductPage({ params }) {
 
   return (
     <section className="wrap detail-page">
+      <ProductViewTracker product={product} />
       <Breadcrumbs category={product.category} title={product.title} />
       <div className="detail-grid">
         <div className="detail-shot">
@@ -102,6 +105,7 @@ export default async function ProductPage({ params }) {
           </div>
         </div>
       </div>
+      <RecentlyViewed />
     </section>
   );
 }
