@@ -190,63 +190,63 @@ function homePage(r) {
   if (sort === 'low') list = [...list].sort((a, b) => a.price - b.price);
   if (sort === 'high') list = [...list].sort((a, b) => b.price - a.price);
 
-  const countIn = (key) => PRODUCTS.filter((p) => p.category === key).length;
   const dirty = cat !== 'all' || size !== 'all' || q || sort !== 'default';
 
   const hero =
-    '<section class="wrap"><div class="hero">' +
-      '<div class="hero-media"><img src="' + PRODUCTS[4].img + '" alt="סט AM שחור"></div>' +
+    '<section class="hero">' +
+      '<div class="hero-media"><img src="' + PRODUCTS[5].img + '" alt="סט AM לבן"></div>' +
       '<div class="hero-copy">' +
         '<p class="eyebrow">קולקציית הפתיחה · 2026</p>' +
-        '<h1>שישה פריטים, <em>בלי עודפים</em></h1>' +
-        '<p>כותנה מסורקת כבדה, גזרות שלא מתעוותות בכביסה, ולוגו רקום בזהב. משלוח חינם מעל ₪250.</p>' +
+        '<h1>לבוש שנשאר<br><em>נקי לאורך זמן</em></h1>' +
+        '<p>כותנה מסורקת כבדה, גזרות שלא מתעוותות בכביסה, ולוגו רקום בזהב. שישה פריטים בסדרה מוגבלת.</p>' +
         '<div class="hero-cta">' +
-          '<a class="btn-gold" href="#/">לקולקציה</a>' +
+          '<button class="btn-gold" data-scroll="catalog">לקולקציה</button>' +
           '<a class="btn-line" href="#/sizes">טבלת מידות</a>' +
         '</div>' +
       '</div>' +
-    '</div>' +
+    '</section>' +
     '<div class="ticker"><div class="ticker-track">' +
       '<span>משלוח <b>חינם</b> מעל ₪250</span>' +
       '<span>החזרה תוך <b>14</b> יום</span>' +
       '<span>כותנה מסורקת <b>240</b> גרם למ״ר</span>' +
       '<span>רקמת זהב, <b>לא</b> הדפס</span>' +
-    '</div></div></section>';
-
-  const rail =
-    '<aside class="rail">' +
-      '<h2 class="rail-title">הקולקציה</h2>' +
-      (q ? '<div class="rail-group"><h3>חיפוש</h3><p class="rail-note">תוצאות עבור <strong>' + esc(q) + '</strong></p>' +
-        '<button class="rail-clear" data-set="q" data-value="">ניקוי החיפוש</button></div>' : '') +
-      '<div class="rail-group"><h3>קטגוריה</h3><div class="filters">' +
-        '<button data-set="cat" data-value="all" aria-pressed="' + (cat === 'all') + '">הכל</button>' +
-        [['tees', 'חולצות'], ['shorts', 'מכנסיים'], ['sets', 'סטים']].map(([k, label]) =>
-          '<button data-set="cat" data-value="' + k + '" aria-pressed="' + (cat === k) + '">' + label + ' (' + countIn(k) + ')</button>'
-        ).join('') +
-      '</div></div>' +
-      '<div class="rail-group"><h3>מידה</h3><div class="filters">' +
-        '<button data-set="size" data-value="all" aria-pressed="' + (size === 'all') + '">הכל</button>' +
-        SIZES.map((s) => '<button data-set="size" data-value="' + s + '" aria-pressed="' + (size === s) + '">' + s + '</button>').join('') +
-      '</div></div>' +
-      '<div class="rail-group"><h3>משלוח</h3><p class="rail-note">משלוח חינם בהזמנה מעל ₪250. מתחת לזה — ₪29, 3–5 ימי עסקים.</p></div>' +
-      (dirty ? '<button class="rail-clear" data-reset>נקה סינון</button>' : '') +
-    '</aside>';
-
-  const results =
-    '<div><div class="results-bar">' +
-      '<span class="result-count">' + list.length + (list.length === 1 ? ' מוצר' : ' מוצרים') + '</span>' +
-      '<select data-sort aria-label="מיון">' +
-        [['default', 'מיון · מומלץ'], ['low', 'מחיר · מהנמוך'], ['high', 'מחיר · מהגבוה']].map(([k, label]) =>
-          '<option value="' + k + '"' + (sort === k ? ' selected' : '') + '>' + label + '</option>'
-        ).join('') +
-      '</select>' +
-    '</div>' +
-    '<div class="grid">' +
-      (list.length ? list.map(card).join('') :
-        '<p class="empty-state">לא נמצאו מוצרים שתואמים לסינון. <button class="rail-clear" data-reset>נקה סינון</button></p>') +
     '</div></div>';
 
-  return hero + '<section class="wrap catalog-layout" id="catalog">' + rail + results + '</section>';
+  const bar =
+    '<div class="filter-bar"><div class="wrap filter-bar-in">' +
+      '<div class="filters">' +
+        '<button data-set="cat" data-value="all" aria-pressed="' + (cat === 'all') + '">הכל</button>' +
+        [['tees', 'חולצות'], ['shorts', 'מכנסיים'], ['sets', 'סטים']].map(([k, label]) =>
+          '<button data-set="cat" data-value="' + k + '" aria-pressed="' + (cat === k) + '">' + label + '</button>'
+        ).join('') +
+      '</div>' +
+      '<span class="filter-sep" aria-hidden="true"></span>' +
+      '<div class="size-filter"><span class="size-filter-label">מידה</span>' +
+        '<select data-size-filter aria-label="סינון לפי מידה">' +
+          '<option value="all"' + (size === 'all' ? ' selected' : '') + '>הכל</option>' +
+          SIZES.map((s) => '<option value="' + s + '"' + (size === s ? ' selected' : '') + '>' + s + '</option>').join('') +
+        '</select></div>' +
+      '<div class="results-bar">' +
+        '<span class="result-count">' + list.length + (list.length === 1 ? ' פריט' : ' פריטים') + '</span>' +
+        '<select data-sort aria-label="מיון">' +
+          [['default', 'מומלץ'], ['low', 'מחיר · מהנמוך'], ['high', 'מחיר · מהגבוה']].map(([k, label]) =>
+            '<option value="' + k + '"' + (sort === k ? ' selected' : '') + '>' + label + '</option>'
+          ).join('') +
+        '</select>' +
+        (dirty ? '<button class="rail-clear" data-reset>ניקוי</button>' : '') +
+      '</div>' +
+    '</div></div>';
+
+  const body =
+    '<section class="wrap catalog-layout" id="catalog">' +
+      '<h2 class="rail-title">' + (q ? 'תוצאות עבור “' + esc(q) + '”' : 'הקולקציה') + '</h2>' +
+      '<div class="grid">' +
+        (list.length ? list.map(card).join('') :
+          '<p class="empty-state">לא נמצאו פריטים שתואמים לסינון. <button class="rail-clear" data-reset>ניקוי הסינון</button></p>') +
+      '</div>' +
+    '</section>';
+
+  return hero + bar + body;
 }
 
 function card(p) {
@@ -255,14 +255,13 @@ function card(p) {
   const chosen = pick[p.slug] || '';
   const low = chosen && stock[chosen] > 0 && stock[chosen] <= 2;
 
-  const flag = total === 0 ? '<span class="badge">אזל מהמלאי</span>'
-    : p.compareAtPrice ? '<span class="badge" style="background:var(--accent)">חיסכון ' + nis(p.compareAtPrice - p.price) + '</span>'
+  const flag = total === 0 ? '<span class="badge">אזל</span>'
+    : p.compareAtPrice ? '<span class="badge sale">חיסכון ' + nis(p.compareAtPrice - p.price) + '</span>'
     : p.badge ? '<span class="badge">' + p.badge + '</span>' : '';
 
   const buy = total === 0
-    ? '<button class="qa-open" disabled>אזל מהמלאי</button>'
+    ? '<div class="qa-panel"><button class="qa-open" disabled>אזל מהמלאי</button></div>'
     : '<div class="qa-panel">' +
-        '<span class="qa-label">מידה</span>' +
         '<div class="sizes">' + SIZES.map((s) =>
           '<button data-size="' + s + '" data-slug="' + p.slug + '" aria-pressed="' + (chosen === s) + '"' + (stock[s] ? '' : ' disabled') + '>' + s + '</button>'
         ).join('') + '</div>' +
@@ -279,8 +278,7 @@ function card(p) {
       '<p class="price">' + (p.compareAtPrice ? '<span class="was">' + nis(p.compareAtPrice) + '</span>' : '') +
         '<span class="now">' + nis(p.price) + '</span></p>' +
     '</div>' +
-    '<p class="card-color"><span class="dot" style="background:' + (p.color === 'שחור' ? '#14161a' : '#ffffff') + '"></span>' + p.title + ' · ' + p.color + '</p>' +
-    '<p class="short">' + p.short + '</p>' +
+    '<p class="card-color"><span class="dot" style="background:' + (p.color === 'שחור' ? '#111111' : '#ffffff') + '"></span>' + p.color + '</p>' +
     buy +
   '</article>';
 }
@@ -346,33 +344,34 @@ function cartPage() {
   }
   const ship = shipping();
   return '<section class="wrap cart-page"><h1>הסל שלי</h1>' +
-    '<div class="catalog-layout">' +
-      '<div class="cart-lines">' + cart.map((l) => {
-        const key = lineKey(l);
-        return '<div class="cart-line">' +
-          '<img src="' + l.img + '" alt="' + esc(l.titleHe) + '">' +
-          '<div><h3>' + l.titleHe + '</h3>' +
-            '<p class="cart-line-meta">' + l.color + ' · מידה ' + l.size + ' · ' + nis(l.price) + ' ליחידה</p>' +
-            '<div class="cart-line-actions">' +
-              '<span class="stepper">' +
-                '<button data-line="' + key + '" data-step="-1" aria-label="פחות">−</button>' +
-                '<span>' + l.quantity + '</span>' +
-                '<button data-line="' + key + '" data-step="1" aria-label="עוד">+</button>' +
-              '</span>' +
-              '<button class="cart-line-remove" data-drop="' + key + '">הסרה</button>' +
-              '<span class="line-price">' + nis(l.price * l.quantity) + '</span>' +
-            '</div>' +
-          '</div></div>';
-      }).join('') + '</div>' +
-      '<aside class="cart-summary">' +
-        '<h2>סיכום הזמנה</h2>' +
-        '<div class="cart-summary-row"><span>סכום ביניים</span><span>' + nis(subtotal()) + '</span></div>' +
-        '<div class="cart-summary-row"><span>משלוח</span><span>' + (ship ? nis(ship) : 'חינם') + '</span></div>' +
-        '<div class="grand"><span>לתשלום</span><strong>' + nis(subtotal() + ship) + '</strong></div>' +
-        '<button class="btn-gold" data-pay>מעבר לתשלום</button>' +
-        '<p class="rail-note">' + (ship ? 'הוסיפו ' + nis(250 - subtotal()) + ' למשלוח חינם.' : 'המשלוח עליכם חינם.') + '</p>' +
-      '</aside>' +
-    '</div>' +
+    '<div class="cart-lines">' + cart.map((l) => {
+      const key = lineKey(l);
+      return '<div class="cart-line">' +
+        '<img src="' + l.img + '" alt="' + esc(l.titleHe) + '">' +
+        '<div class="cart-line-meta">' +
+          '<h3>' + l.titleHe + '</h3>' +
+          '<span>' + l.color + ' · מידה ' + l.size + '</span>' +
+          '<span>' + nis(l.price) + ' ליחידה</span>' +
+        '</div>' +
+        '<div class="cart-line-actions">' +
+          '<span class="stepper">' +
+            '<button data-line="' + key + '" data-step="-1" aria-label="פחות">−</button>' +
+            '<span>' + l.quantity + '</span>' +
+            '<button data-line="' + key + '" data-step="1" aria-label="עוד">+</button>' +
+          '</span>' +
+          '<button class="cart-line-remove" data-drop="' + key + '">הסרה</button>' +
+          '<span class="line-price">' + nis(l.price * l.quantity) + '</span>' +
+        '</div>' +
+      '</div>';
+    }).join('') + '</div>' +
+    '<aside class="cart-summary">' +
+      '<h2>סיכום הזמנה</h2>' +
+      '<div class="cart-summary-row"><span>סכום ביניים</span><span>' + nis(subtotal()) + '</span></div>' +
+      '<div class="cart-summary-row"><span>משלוח</span><span>' + (ship ? nis(ship) : 'חינם') + '</span></div>' +
+      '<div class="cart-summary-row total"><span>לתשלום</span><span>' + nis(subtotal() + ship) + '</span></div>' +
+      '<button class="btn-gold" data-pay style="width:100%">מעבר לתשלום</button>' +
+      '<p class="rail-note">' + (ship ? 'הוסיפו ' + nis(250 - subtotal()) + ' למשלוח חינם.' : 'המשלוח עליכם חינם.') + '</p>' +
+    '</aside>' +
   '</section>';
 }
 
@@ -495,7 +494,7 @@ function renderDrawer() {
 
 /* ---------------- events ---------------- */
 document.addEventListener('click', (e) => {
-  const el = e.target.closest('[data-set],[data-reset],[data-size],[data-add],[data-q],[data-line],[data-drop],[data-go],[data-pay],[data-close-drawer],[data-open-drawer]');
+  const el = e.target.closest('[data-set],[data-reset],[data-size],[data-add],[data-q],[data-line],[data-drop],[data-go],[data-pay],[data-scroll],[data-close-drawer],[data-open-drawer]');
   if (!el) return;
 
   if (el.dataset.go !== undefined) { e.preventDefault(); closeDrawer(); go(el.dataset.go.replace(/^#/, '')); return; }
@@ -504,6 +503,7 @@ document.addEventListener('click', (e) => {
   if (el.dataset.set !== undefined) { setQuery({ [el.dataset.set]: el.dataset.value }); return; }
   if (el.hasAttribute('data-reset')) { go('/'); return; }
   if (el.hasAttribute('data-pay')) { alert('זו תצוגה מקדימה. התשלום דרך Stripe פעיל באתר החי.'); return; }
+  if (el.dataset.scroll) { document.getElementById(el.dataset.scroll).scrollIntoView({ behavior: 'smooth' }); return; }
 
   if (el.dataset.size) { pick[el.dataset.slug] = el.dataset.size; detailQty = 1; render(); return; }
   if (el.dataset.q) { detailQty = Math.max(1, detailQty + Number(el.dataset.q)); render(); return; }
@@ -523,6 +523,7 @@ document.addEventListener('click', (e) => {
 
 document.addEventListener('change', (e) => {
   if (e.target.matches('[data-sort]')) setQuery({ sort: e.target.value });
+  if (e.target.matches('[data-size-filter]')) setQuery({ size: e.target.value });
 });
 
 document.querySelector('.head-search input').addEventListener('keydown', (e) => {
@@ -541,7 +542,7 @@ render();
 
 const html = [
   '<title>AM Clothing</title>',
-  '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&display=swap">',
+  '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700&family=Heebo:wght@400;500&display=swap">',
   '<style>' + css + '</style>',
 
   '<div class="store-app">',

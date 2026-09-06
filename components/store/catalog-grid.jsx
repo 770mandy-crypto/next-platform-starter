@@ -7,6 +7,7 @@ import { useCart } from './cart-context';
 import { nis } from 'lib/store/format';
 
 const CATEGORIES = [
+  { key: 'all', label: 'הכל' },
   { key: 'tees', label: 'חולצות' },
   { key: 'shorts', label: 'מכנסיים' },
   { key: 'sets', label: 'סטים' }
@@ -15,7 +16,7 @@ const CATEGORIES = [
 const SIZES = ['S', 'M', 'L', 'XL', 'XXL'];
 
 const SORTS = [
-  { key: 'default', label: 'מיון · מומלץ' },
+  { key: 'default', label: 'מומלץ' },
   { key: 'low', label: 'מחיר · מהנמוך' },
   { key: 'high', label: 'מחיר · מהגבוה' }
 ];
@@ -56,94 +57,75 @@ export function CatalogGrid({ products }) {
     return list;
   }, [products, cat, sizeFilter, searchQuery, sort]);
 
-  const countIn = (key) => products.filter((p) => p.category === key).length;
   const filtered = cat !== 'all' || sizeFilter !== 'all' || Boolean(searchQuery) || sort !== 'default';
 
   return (
-    <section className="wrap catalog-layout" id="catalog">
-      <aside className="rail">
-        <h2 className="rail-title">הקולקציה</h2>
-
-        {searchQuery && (
-          <div className="rail-group">
-            <h3>חיפוש</h3>
-            <p className="rail-note">
-              תוצאות עבור <strong>{searchQuery}</strong>
-            </p>
-            <button className="rail-clear" onClick={() => update({ q: '' })}>
-              ניקוי החיפוש
-            </button>
-          </div>
-        )}
-
-        <div className="rail-group">
-          <h3>קטגוריה</h3>
+    <>
+      <div className="filter-bar">
+        <div className="wrap filter-bar-in">
           <div className="filters">
-            <button data-cat="all" aria-pressed={cat === 'all'} onClick={() => update({ cat: 'all' })}>
-              הכל
-            </button>
             {CATEGORIES.map((c) => (
-              <button key={c.key} data-cat={c.key} aria-pressed={cat === c.key} onClick={() => update({ cat: c.key })}>
-                {c.label} ({countIn(c.key)})
+              <button key={c.key} aria-pressed={cat === c.key} onClick={() => update({ cat: c.key })}>
+                {c.label}
               </button>
             ))}
           </div>
-        </div>
 
-        <div className="rail-group">
-          <h3>מידה</h3>
-          <div className="filters">
-            <button aria-pressed={sizeFilter === 'all'} onClick={() => update({ size: 'all' })}>
-              הכל
-            </button>
-            {SIZES.map((s) => (
-              <button key={s} aria-pressed={sizeFilter === s} onClick={() => update({ size: s })}>
-                {s}
+          <span className="filter-sep" aria-hidden="true" />
+
+          <div className="size-filter">
+            <label className="size-filter-label" htmlFor="size-select">
+              מידה
+            </label>
+            <select id="size-select" value={sizeFilter} onChange={(e) => update({ size: e.target.value })}>
+              <option value="all">הכל</option>
+              {SIZES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="results-bar">
+            <span className="result-count">
+              {shown.length} {shown.length === 1 ? 'פריט' : 'פריטים'}
+            </span>
+            <select value={sort} onChange={(e) => update({ sort: e.target.value })} aria-label="מיון">
+              {SORTS.map((s) => (
+                <option key={s.key} value={s.key}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+            {filtered && (
+              <button className="rail-clear" onClick={() => update({ cat: 'all', size: 'all', q: '', sort: 'default' })}>
+                ניקוי
               </button>
-            ))}
+            )}
           </div>
         </div>
+      </div>
 
-        <div className="rail-group">
-          <h3>משלוח</h3>
-          <p className="rail-note">משלוח חינם בהזמנה מעל ₪250. מתחת לזה — ₪29, 3–5 ימי עסקים.</p>
-        </div>
-
-        {filtered && (
-          <button className="rail-clear" onClick={() => update({ cat: 'all', size: 'all', q: '', sort: 'default' })}>
-            נקה סינון
-          </button>
-        )}
-      </aside>
-
-      <div>
-        <div className="results-bar">
-          <span className="result-count">
-            {shown.length} {shown.length === 1 ? 'מוצר' : 'מוצרים'}
-          </span>
-          <select value={sort} onChange={(e) => update({ sort: e.target.value })} aria-label="מיון">
-            {SORTS.map((s) => (
-              <option key={s.key} value={s.key}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-        </div>
+      <section className="wrap catalog-layout" id="catalog">
+        <h2 className="rail-title">
+          {searchQuery ? `תוצאות עבור “${searchQuery}”` : 'הקולקציה'}
+        </h2>
 
         <div className="grid">
           {shown.length === 0 ? (
             <p className="empty-state">
-              לא נמצאו מוצרים שתואמים לסינון.{' '}
+              לא נמצאו פריטים שתואמים לסינון.{' '}
               <button className="rail-clear" onClick={() => update({ cat: 'all', size: 'all', q: '', sort: 'default' })}>
-                נקה סינון
+                ניקוי הסינון
               </button>
             </p>
           ) : (
             shown.map((p) => <ProductCard key={p.slug} product={p} />)
           )}
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }
 
@@ -178,11 +160,9 @@ function ProductCard({ product }) {
     <article className="card">
       <Link className="shot" href={`/store/product/${product.slug}`} aria-label={`צפייה ב${product.title}`}>
         {totalStock === 0 ? (
-          <span className="badge">אזל מהמלאי</span>
+          <span className="badge">אזל</span>
         ) : product.compare_at_price ? (
-          <span className="badge" style={{ background: 'var(--accent)' }}>
-            חיסכון {nis(product.compare_at_price - product.price)}
-          </span>
+          <span className="badge sale">חיסכון {nis(product.compare_at_price - product.price)}</span>
         ) : (
           product.badge && <span className="badge">{product.badge}</span>
         )}
@@ -200,18 +180,18 @@ function ProductCard({ product }) {
       </div>
 
       <p className="card-color">
-        <span className="dot" style={{ background: product.color === 'שחור' ? '#14161a' : '#ffffff' }} />
-        {product.title} · {product.color}
+        <span className="dot" style={{ background: product.color === 'שחור' ? '#111111' : '#ffffff' }} />
+        {product.color}
       </p>
-      <p className="short">{product.short}</p>
 
       {totalStock === 0 ? (
-        <button className="qa-open" disabled>
-          אזל מהמלאי
-        </button>
+        <div className="qa-panel">
+          <button className="qa-open" disabled>
+            אזל מהמלאי
+          </button>
+        </div>
       ) : (
         <div className="qa-panel">
-          <span className="qa-label">מידה</span>
           <div className="sizes">
             {SIZES.map((s) => (
               <button key={s} aria-pressed={size === s} disabled={!stockBySize[s]} onClick={() => setSize(s)}>

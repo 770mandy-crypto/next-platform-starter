@@ -23,7 +23,7 @@ export default async function StoreLayout({ children }) {
     <div className="store-app">
       <link
         rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700&family=Heebo:wght@400;500&display=swap"
       />
       <CartProvider>
         <StoreHeader user={user} />
