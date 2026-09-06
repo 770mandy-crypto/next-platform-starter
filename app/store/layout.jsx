@@ -3,6 +3,7 @@ import { CartProvider } from 'components/store/cart-context';
 import { StoreHeader } from 'components/store/header';
 import { CartDrawer } from 'components/store/cart-drawer';
 import { StoreFooter } from 'components/store/footer';
+import { BasketBar } from 'components/store/basket-bar';
 import { getCurrentUser } from 'lib/store/current-user';
 
 export const metadata = {
@@ -22,13 +23,14 @@ export default async function StoreLayout({ children }) {
     <div className="store-app">
       <link
         rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Assistant:wght@200..800&family=Cormorant+Garamond:wght@300..700&family=Frank+Ruhl+Libre:wght@300..900&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&display=swap"
       />
       <CartProvider>
         <StoreHeader user={user} />
         <main id="top">{children}</main>
         <StoreFooter />
         <CartDrawer />
+        <BasketBar />
       </CartProvider>
     </div>
   );

@@ -1,5 +1,35 @@
+import Link from 'next/link';
 import { isSupabaseConfigured } from 'lib/supabase/config';
 import { NewsletterForm } from './newsletter-form';
+
+const COLUMNS = [
+  {
+    title: 'הקולקציה',
+    links: [
+      { href: '/store?cat=tees', label: 'חולצות' },
+      { href: '/store?cat=shorts', label: 'מכנסיים' },
+      { href: '/store?cat=sets', label: 'סטים' },
+      { href: '/store', label: 'כל המוצרים' }
+    ]
+  },
+  {
+    title: 'מידע',
+    links: [
+      { href: '/store/about', label: 'עלינו' },
+      { href: '/store/sizes', label: 'טבלת מידות' },
+      { href: '/store/shipping', label: 'משלוח והחזרות' },
+      { href: '/store/contact', label: 'צור קשר' }
+    ]
+  },
+  {
+    title: 'החשבון',
+    links: [
+      { href: '/store/account', label: 'ההזמנות שלי' },
+      { href: '/store/cart', label: 'הסל שלי' },
+      { href: '/store/login', label: 'כניסה' }
+    ]
+  }
+];
 
 export function StoreFooter() {
   return (
@@ -12,43 +42,47 @@ export function StoreFooter() {
             <NewsletterForm />
           </div>
         )}
+
         <div className="foot-grid">
           <div>
-            <a className="mark" href="/store" style={{ alignItems: 'flex-start' }}>
+            <Link className="mark" href="/store">
               <span className="vs">AM</span>
               <span className="name">CLOTHING</span>
-            </a>
-            <p style={{ marginTop: '1rem' }}>קולקציית פתיחה בסדרה מוגבלת. שחור, לבן וזהב.</p>
+            </Link>
+            <p style={{ marginTop: '0.9rem' }}>
+              כותנה כבדה, גזרות ישרות ורקמת זהב במקום הדפס. קולקציית פתיחה בסדרה מוגבלת, נתפרת בישראל.
+            </p>
           </div>
-          <div>
-            <h5>הקולקציה</h5>
-            <ul>
-              <li>חולצות</li>
-              <li>מכנסיים</li>
-              <li>סטים</li>
-            </ul>
-          </div>
-          <div>
-            <h5>מידע</h5>
-            <ul>
-              <li>עלינו</li>
-              <li>משלוחים והחזרות</li>
-              <li>החשבון שלי</li>
-            </ul>
-          </div>
+
+          {COLUMNS.map((col) => (
+            <div key={col.title}>
+              <h5>{col.title}</h5>
+              <ul>
+                {col.links.map((link) => (
+                  <li key={link.href + link.label}>
+                    <Link href={link.href}>{link.label}</Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+
           <div>
             <h5>יצירת קשר</h5>
             <ul>
               <li>
-                <span dir="ltr">hello@amclothing.co.il</span>
+                <a href="mailto:hello@amclothing.co.il" dir="ltr">
+                  hello@amclothing.co.il
+                </a>
               </li>
               <li>
                 <span dir="ltr">@am.clothing</span>
               </li>
-              <li>משלוחים לכל הארץ, 3–5 ימי עסקים</li>
+              <li>משלוח חינם מעל ₪250</li>
             </ul>
           </div>
         </div>
+
         <div className="foot-rule">
           <span>© AM CLOTHING 2026</span>
           <span>ALL RIGHTS RESERVED</span>
