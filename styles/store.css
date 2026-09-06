@@ -1,10 +1,10 @@
 :root {
-  --ink: #0a0a0b;
-  --ink-2: #101012;
-  --ink-3: #17171a;
-  --hairline: #26262b;
-  --bone: #f4f1ea;
-  --muted: #9d968b;
+  --ink: #ffffff;
+  --ink-2: #f9f9f9;
+  --ink-3: #f5f5f5;
+  --hairline: #e0e0e0;
+  --bone: #1a1a1a;
+  --muted: #666666;
   --gold: #c2a15e;
   --gold-lo: #8f7439;
   --gold-hi: #e7d3a1;
