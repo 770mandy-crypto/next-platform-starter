@@ -28,15 +28,13 @@ function Chip({ active, children, ...rest }) {
     );
 }
 
-export function CollectionView({ initialCategory = null }) {
+export function CollectionView() {
     const { t, lang } = useShop();
-    const [category, setCategory] = useState(initialCategory);
+    const [category, setCategory] = useState(null);
     const [band, setBand] = useState(null);
     const [colour, setColour] = useState(null);
     const [sort, setSort] = useState('featured');
     const [quick, setQuick] = useState(null);
-    // A category page pins one category; the copy follows the language toggle.
-    const landing = initialCategory ? CATEGORIES[initialCategory] : null;
 
     const filtered = useMemo(() => {
         let list = products.filter((product) => {
@@ -58,8 +56,8 @@ export function CollectionView({ initialCategory = null }) {
             <section className="px-5 pt-14 pb-8 sm:px-10 sm:pt-20">
                 <div className="mx-auto max-w-[1600px]">
                     <p className="mb-4 eyebrow animate-in-up">AYIN 2026</p>
-                    <h1 className="mb-4 max-w-3xl">{landing ? landing.name[lang] : t.sections.all}</h1>
-                    <p className="max-w-md text-inksoft">{landing ? landing.lead[lang] : t.sections.allSub}</p>
+                    <h1 className="mb-4 max-w-3xl">{t.sections.all}</h1>
+                    <p className="max-w-md text-inksoft">{t.sections.allSub}</p>
                 </div>
             </section>
 
@@ -105,7 +103,7 @@ export function CollectionView({ initialCategory = null }) {
                             <button
                                 type="button"
                                 onClick={() => {
-                                    setCategory(initialCategory);
+                                    setCategory(null);
                                     setBand(null);
                                     setColour(null);
                                 }}

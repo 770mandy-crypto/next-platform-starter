@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { CATEGORIES, productsIn } from '../../../../data/catalogue';
-import { CollectionView } from '../../../../components/shop/collection-view';
+import { CategoryView } from '../../../../components/shop/category-view';
 import { JsonLd, breadcrumbJsonLd, siteOrigin } from '../../../../lib/shop/seo';
 
 export function generateStaticParams() {
@@ -55,7 +55,7 @@ export default async function Page({ params }) {
                     }
                 }}
             />
-            <CollectionView initialCategory={slug} />
+            <CategoryView slug={slug} />
         </>
     );
 }
