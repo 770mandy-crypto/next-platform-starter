@@ -1,12 +1,7 @@
 import { Suspense } from 'react';
-import { SearchView } from '../../../components/shop/search-view';
+import { SearchView } from '../../../components/store/views';
 
-export const metadata = {
-    title: 'חיפוש',
-    description: 'חיפוש בקטלוג AYIN לפי שם, קטגוריה, צבע או תיאור.',
-    alternates: { canonical: '/search' },
-    robots: { index: false }
-};
+export const metadata = { title: 'חיפוש', robots: { index: false }, alternates: { canonical: '/search' } };
 
 export default function Page() {
     return (

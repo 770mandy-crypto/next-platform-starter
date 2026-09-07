@@ -1,38 +1,33 @@
-import { ShopProvider } from '../../components/shop/providers';
-import { SiteHeader } from '../../components/shop/header';
-import { SiteFooter } from '../../components/shop/footer';
-import { CartDrawer } from '../../components/shop/cart-drawer';
-import { JsonLd, organisationJsonLd } from '../../lib/shop/seo';
+import { StoreProvider } from '../../lib/store/context';
+import { SiteHeader, SiteFooter, BagDrawer, Toast } from '../../components/store/chrome';
+import { JsonLd, organisationJsonLd } from '../../lib/store/seo';
 
 export const metadata = {
     metadataBase: new URL(process.env.URL ?? 'http://localhost:3000'),
-    title: {
-        template: '%s | AYIN',
-        default: 'AYIN — משקפיים שנעשו כדי להיראות'
-    },
+    title: { template: '%s | MAOR', default: 'MAOR — אביזרים שנעשו כדי להיראות' },
     description:
-        'AYIN — מותג משקפיים עצמאי. אצטט איטלקי, ליטוש בעבודת יד, עשרה דגמים ושישה עשר גוונים. משלוח חינם מעל 500 ₪.'
+        'MAOR — חנות אביזרים עצמאית: משקפי שמש, שעונים, תכשיטים, תיקים וארנקים. משלוח חינם מעל 400 ₪, 30 יום להחזרה.'
 };
 
-export default function ShopLayout({ children }) {
+export default function StoreLayout({ children }) {
     return (
-        <ShopProvider>
+        <StoreProvider>
             <JsonLd data={organisationJsonLd()} />
-            <div className="min-h-screen shop">
+            <div className="flex flex-col min-h-screen store">
                 <a
                     href="#main"
-                    className="sr-only focus:not-sr-only focus:fixed focus:z-[100] focus:top-3 focus:start-3 focus:px-5 focus:py-3 focus:bg-ink focus:text-bone"
+                    className="sr-only focus:not-sr-only focus:fixed focus:z-[100] focus:top-3 focus:start-3 focus:px-5 focus:py-3 focus:bg-ink focus:text-canvas"
                 >
                     דלגו לתוכן
                 </a>
                 <SiteHeader />
-                {/* The rail is fixed, so the page is inset by its width from lg up. */}
-                <div className="flex flex-col min-h-screen lg:ps-64">
-                    <main id="main" className="grow">{children}</main>
-                    <SiteFooter />
-                </div>
-                <CartDrawer />
+                <main id="main" className="grow">
+                    {children}
+                </main>
+                <SiteFooter />
+                <BagDrawer />
+                <Toast />
             </div>
-        </ShopProvider>
+        </StoreProvider>
     );
 }

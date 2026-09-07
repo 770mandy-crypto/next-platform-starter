@@ -1,17 +1,14 @@
 import { NextResponse } from 'next/server';
-import { findVariant, LENS_UPGRADES } from '../../../data/catalogue';
+import { getProduct, ILS_TO_USD } from '../../../data/catalogue';
+import { FREE_SHIPPING, PROMOS, SHIPPING } from '../../../lib/store/copy';
 
-const SHIPPING_ILS = 29;
-const FREE_SHIPPING_ILS = 500;
-const PROMO_CODES = { AYIN10: 0.1, HELLO10: 0.1 };
 const MAX_QTY = 9;
 
 /**
  * Creates a Stripe Checkout session.
  *
- * Prices are recomputed here from the catalogue: the request only says which
- * variant, which lens option and how many. Anything the browser claims about
- * money is ignored.
+ * Every figure is recomputed here from the catalogue: the request only says
+ * which product and how many. Nothing the browser claims about money is used.
  */
 export async function POST(request) {
     const secret = process.env.STRIPE_SECRET_KEY;
@@ -30,56 +27,48 @@ export async function POST(request) {
     }
 
     const items = Array.isArray(payload?.items) ? payload.items : [];
-    if (items.length === 0) {
-        return NextResponse.json({ error: 'empty_cart' }, { status: 400 });
-    }
+    if (items.length === 0) return NextResponse.json({ error: 'empty_bag' }, { status: 400 });
 
     const lang = payload?.lang === 'en' ? 'en' : 'he';
     const currency = lang === 'en' ? 'usd' : 'ils';
-    const toMinor = (ils) => Math.round((lang === 'en' ? ils / 3.6 : ils) * 100);
+    const minor = (ils) => Math.round((lang === 'en' ? ils * ILS_TO_USD : ils) * 100);
 
     const lineItems = [];
-    let subtotalIls = 0;
+    let subtotal = 0;
 
     for (const item of items) {
-        const found = findVariant(String(item?.variantId ?? ''));
-        if (!found) {
-            return NextResponse.json({ error: 'unknown_variant' }, { status: 400 });
-        }
-        const lens = LENS_UPGRADES.find((option) => option.id === item?.lensId) ?? LENS_UPGRADES[0];
+        const product = getProduct(String(item?.slug ?? ''));
+        if (!product) return NextResponse.json({ error: 'unknown_product' }, { status: 400 });
         const qty = Math.min(Math.max(Number.parseInt(item?.qty, 10) || 1, 1), MAX_QTY);
-        const unitIls = found.product.price + lens.price;
-        subtotalIls += unitIls * qty;
-
+        subtotal += product.price * qty;
         lineItems.push({
             quantity: qty,
             price_data: {
                 currency,
-                unit_amount: toMinor(unitIls),
+                unit_amount: minor(product.price),
                 product_data: {
-                    name: `${found.product.name[lang]} — ${found.variant.color[lang]}`,
-                    description: lens.price > 0 ? lens.label[lang] : found.variant.accent[lang],
-                    metadata: { slug: found.product.slug, variant: found.variant.id, lens: lens.id }
+                    name: product.name[lang],
+                    description: product.subtitle[lang],
+                    metadata: { slug: product.slug }
                 }
             }
         });
     }
 
     const promo = String(payload?.promo ?? '').trim().toUpperCase();
-    const discountRate = PROMO_CODES[promo] ?? 0;
-    const discountIls = Math.round(subtotalIls * discountRate);
-    const shippingIls = subtotalIls - discountIls >= FREE_SHIPPING_ILS ? 0 : SHIPPING_ILS;
-
-    const origin = request.headers.get('origin') ?? process.env.URL ?? 'http://localhost:3000';
+    const rate = PROMOS[promo] ?? 0;
+    const discount = Math.round(subtotal * rate);
+    const shipping = subtotal - discount >= FREE_SHIPPING ? 0 : SHIPPING;
+    const base = request.headers.get('origin') ?? process.env.URL ?? 'http://localhost:3000';
 
     try {
         const { default: Stripe } = await import('stripe');
         const stripe = new Stripe(secret);
 
         const discounts = [];
-        if (discountIls > 0) {
+        if (discount > 0) {
             const coupon = await stripe.coupons.create({
-                amount_off: toMinor(discountIls),
+                amount_off: minor(discount),
                 currency,
                 duration: 'once',
                 name: promo
@@ -90,18 +79,16 @@ export async function POST(request) {
         const session = await stripe.checkout.sessions.create({
             mode: 'payment',
             line_items: lineItems,
-            success_url: `${origin}/checkout/done?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${origin}/checkout`,
+            success_url: `${base}/checkout?done=1`,
+            cancel_url: `${base}/checkout`,
             locale: lang === 'he' ? 'he' : 'en',
-            shipping_address_collection: {
-                allowed_countries: ['IL', 'US', 'GB', 'DE', 'FR', 'NL', 'CA', 'AU']
-            },
-            ...(shippingIls > 0 && {
+            shipping_address_collection: { allowed_countries: ['IL', 'US', 'GB', 'DE', 'FR', 'NL', 'CA', 'AU'] },
+            ...(shipping > 0 && {
                 shipping_options: [
                     {
                         shipping_rate_data: {
                             type: 'fixed_amount',
-                            fixed_amount: { amount: toMinor(shippingIls), currency },
+                            fixed_amount: { amount: minor(shipping), currency },
                             display_name: lang === 'he' ? 'משלוח עד הבית' : 'Courier delivery'
                         }
                     }

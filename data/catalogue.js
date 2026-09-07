@@ -1,15 +1,14 @@
-// AYIN — brand catalogue.
+// MAOR — the catalogue.
 //
-// BEFORE LAUNCH: prices, measurements and the copy below are placeholders
-// written to shape the layout. Replace them with the real figures for each
-// product. Nothing here should be published as fact until you have verified it.
+// BEFORE LAUNCH: every price, measurement and line of copy below is a
+// placeholder written to shape the layout. Replace it with the real figures
+// before anything is published. The photographs are the shop's own.
 
 export const ILS_TO_USD = 1 / 3.6;
 
-/** Every category gets its own landing page at /category/<key>. */
 export const CATEGORIES = {
     eyewear: {
-        name: { he: 'משקפיים', en: 'Eyewear' },
+        name: { he: 'משקפי שמש', en: 'Sunglasses' },
         lead: {
             he: 'מסגרות אצטט עם קו נקי וגיאומטריה שלא מתנצלת.',
             en: 'Acetate frames with a clean line and geometry that does not apologise.'
@@ -26,15 +25,12 @@ export const CATEGORIES = {
         name: { he: 'תכשיטים', en: 'Jewellery' },
         lead: {
             he: 'שרשראות וצמידים שמונחים על העור בלי לבקש תשומת לב.',
-            en: 'Chains and bracelets that sit on skin without demanding attention.'
+            en: 'Chains and bracelets that sit on skin without asking for attention.'
         }
     },
     bags: {
         name: { he: 'תיקים', en: 'Bags' },
-        lead: {
-            he: 'גודל שמכיל את מה שצריך ותו לא.',
-            en: 'Sized for what you actually carry, and nothing else.'
-        }
+        lead: { he: 'גודל שמכיל את מה שצריך ותו לא.', en: 'Sized for what you actually carry, and nothing more.' }
     },
     wallets: {
         name: { he: 'ארנקים', en: 'Wallets' },
@@ -45,103 +41,70 @@ export const CATEGORIES = {
     },
     caps: {
         name: { he: 'כובעים', en: 'Caps' },
-        lead: {
-            he: 'מבנה טוב, בלי לוגו שצועק.',
-            en: 'Good structure, no shouting logo.'
-        }
+        lead: { he: 'מבנה טוב, בלי לוגו שצועק.', en: 'Good structure, no shouting logo.' }
     }
 };
 
-/** Face shapes, used by the eyewear fit finder. */
-export const FACE_SHAPES = {
-    oval: { he: 'אליפטי', en: 'Oval' },
-    round: { he: 'עגול', en: 'Round' },
-    square: { he: 'מרובע', en: 'Square' },
-    heart: { he: 'לב', en: 'Heart' },
-    long: { he: 'מוארך', en: 'Oblong' }
+export const COLOURS = {
+    black: { he: 'שחור', en: 'Black', hex: '#17171a' },
+    tortoise: { he: 'שריון צב', en: 'Tortoise', hex: '#7c451c' },
+    steel: { he: 'פלדה', en: 'Steel', hex: '#9aa0a6' },
+    silver: { he: 'כסף', en: 'Silver', hex: '#c6cad0' },
+    gold: { he: 'זהב', en: 'Gold', hex: '#c9a24a' },
+    rose: { he: 'רוז־גולד', en: 'Rose gold', hex: '#b76e53' },
+    taupe: { he: 'טאופ', en: 'Taupe', hex: '#6b5a51' },
+    ivory: { he: 'שנהב', en: 'Ivory', hex: '#e8e4dc' }
 };
 
-export const SHAPES = {
-    square: { he: 'מרובע', en: 'Square' },
-    round: { he: 'עגול', en: 'Round' },
-    hexagon: { he: 'משושה', en: 'Hexagon' },
-    rectangle: { he: 'מלבני', en: 'Rectangle' },
-    oval: { he: 'אליפטי', en: 'Oval' },
-    cat: { he: 'חתולי', en: 'Cat-eye' }
-};
-
+/**
+ * One photograph, one product. Anything a shopper has to decide before buying
+ * is a field here — nothing is hidden behind a swatch.
+ */
 export const products = [
-    // ---------------------------------------------------------------- wallets
     {
-        slug: 'vault',
+        slug: 'vault-wallet',
         category: 'wallets',
-        name: { he: 'וולט', en: 'Vault' },
-        tagline: { he: 'לחיצה אחת, הכרטיסים בחוץ', en: 'One press, cards out' },
+        name: { he: 'ארנק וולט', en: 'Vault Wallet' },
+        subtitle: { he: 'לחיצה אחת, הכרטיסים בחוץ', en: 'One press, cards out' },
         price: 249,
         compareAt: 329,
         badge: 'bestseller',
+        colour: 'black',
+        image: '/shop/wallet.jpg',
         story: {
-            he: 'ארנק בגודל כיס קדמי עם מנגנון דחיפה: מזיזים את הלשונית בצד והכרטיסים נפרשים כמו מניפה, מוכנים לשליפה. תא שטרות, חלון לתעודה, וכיס רוכסן למטבעות בגב.',
-            en: 'A front-pocket wallet with a push mechanism: slide the tab and the cards fan out ready to pull. Note compartment, ID window, and a zip coin pocket on the back.'
+            he: 'ארנק בגודל כיס קדמי עם מנגנון דחיפה: מזיזים את הלשונית בצד והכרטיסים נפרשים כמו מניפה. תא שטרות, חלון לתעודה וכיס רוכסן למטבעות בגב.',
+            en: 'A front-pocket wallet with a push mechanism: slide the tab and the cards fan out. Note compartment, ID window and a zip coin pocket on the back.'
         },
         details: {
-            he: [
-                'מנגנון דחיפה לשליפת עד 6 כרטיסים',
-                'בידוד RFID לשכבת הכרטיסים',
-                'חלון שקוף לתעודה מזהה',
-                'כיס רוכסן למטבעות ותא לשטרות'
-            ],
-            en: [
-                'Push mechanism releases up to 6 cards',
-                'RFID-blocking card housing',
-                'Clear ID window',
-                'Zip coin pocket and note compartment'
-            ]
+            he: ['מנגנון דחיפה לעד 6 כרטיסים', 'בידוד RFID לשכבת הכרטיסים', 'חלון שקוף לתעודה', 'כיס רוכסן למטבעות'],
+            en: ['Push mechanism for up to 6 cards', 'RFID-blocking card housing', 'Clear ID window', 'Zip coin pocket']
         },
         specs: [
-            { label: { he: 'כרטיסים', en: 'Cards' }, value: { he: 'עד 6 במנגנון', en: 'Up to 6 in the slider' } },
             { label: { he: 'מידות', en: 'Size' }, value: { he: '10.5 × 8 × 2 ס״מ', en: '10.5 × 8 × 2 cm' } },
-            { label: { he: 'חומר', en: 'Material' }, value: { he: 'עור סינתטי + אלומיניום', en: 'Synthetic leather + aluminium' } },
-            { label: { he: 'משקל', en: 'Weight' }, value: { he: '95 גרם', en: '95 g' } }
+            { label: { he: 'חומר', en: 'Material' }, value: { he: 'עור סינתטי ואלומיניום', en: 'Synthetic leather and aluminium' } },
+            { label: { he: 'משקל', en: 'Weight' }, value: { he: '95 גרם', en: '95 g' } },
+            { label: { he: 'כרטיסים', en: 'Cards' }, value: { he: 'עד 6 במנגנון', en: 'Up to 6 in the slider' } }
         ],
-        variants: [
-            {
-                id: 'vault-carbon',
-                color: { he: 'קרבון שחור', en: 'Carbon Black' },
-                hex: '#141416',
-                accent: { he: 'כתום', en: 'Orange' },
-                accentHex: '#c9631c',
-                image: '/products/vault-carbon-1.jpg'
-            }
-        ]
+        care: { he: 'ניגוב במטלית לחה, בלי ממיסים', en: 'Wipe with a damp cloth, no solvents' },
+        stock: 12
     },
-
-    // ------------------------------------------------------------------- bags
     {
-        slug: 'vesper',
+        slug: 'vesper-bag',
         category: 'bags',
-        name: { he: 'וספר', en: 'Vesper' },
-        tagline: { he: 'תיק כתף שיושב מתחת לזרוע', en: 'A shoulder bag that tucks under the arm' },
+        name: { he: 'תיק וספר', en: 'Vesper Bag' },
+        subtitle: { he: 'תיק כתף שיושב מתחת לזרוע', en: 'A shoulder bag that tucks under the arm' },
         price: 389,
         compareAt: null,
         badge: 'new',
+        colour: 'taupe',
+        image: '/shop/bag.jpg',
         story: {
             he: 'צורת סהר רכה עם רצועת שרשרת מוזהבת וכתפייה מרופדת. נכנס טלפון, ארנק, מפתחות ומשקפיים — ונעצר שם, וזה בדיוק העניין.',
-            en: 'A soft crescent with a gold chain strap and a padded shoulder pad. Fits a phone, a wallet, keys and sunglasses, and stops there, which is the point.'
+            en: 'A soft crescent with a gold chain strap and a padded shoulder pad. Fits a phone, a wallet, keys and sunglasses, and stops there — which is the point.'
         },
         details: {
-            he: [
-                'רצועת שרשרת מוזהבת עם כתפייה מרופדת',
-                'סגירת רוכסן לאורך הפתח',
-                'תא פנימי אחד לחפצים קטנים',
-                'מרקם גרגירי שלא מראה שריטות'
-            ],
-            en: [
-                'Gold chain strap with a padded shoulder pad',
-                'Full-length zip closure',
-                'One interior slip pocket',
-                'Pebbled texture that hides scuffs'
-            ]
+            he: ['רצועת שרשרת עם כתפייה מרופדת', 'סגירת רוכסן לאורך הפתח', 'תא פנימי אחד', 'מרקם גרגירי שלא מראה שריטות'],
+            en: ['Chain strap with a padded pad', 'Full-length zip', 'One interior pocket', 'Pebbled texture that hides scuffs']
         },
         specs: [
             { label: { he: 'מידות', en: 'Size' }, value: { he: '28 × 15 × 7 ס״מ', en: '28 × 15 × 7 cm' } },
@@ -149,310 +112,188 @@ export const products = [
             { label: { he: 'סגירה', en: 'Closure' }, value: { he: 'רוכסן', en: 'Zip' } },
             { label: { he: 'חומר', en: 'Material' }, value: { he: 'עור סינתטי גרגירי', en: 'Pebbled synthetic leather' } }
         ],
-        variants: [
-            {
-                id: 'vesper-taupe',
-                color: { he: 'טאופ', en: 'Taupe' },
-                hex: '#6b5a51',
-                accent: { he: 'זהב', en: 'Gold' },
-                accentHex: '#c9a24a',
-                image: '/products/vesper-taupe-1.jpg'
-            }
-        ]
+        care: { he: 'לאחסן בשקית בד, להרחיק מלחות', en: 'Store in a dust bag, keep away from damp' },
+        stock: 6
     },
-
-    // ---------------------------------------------------------------- watches
     {
-        slug: 'sovereign',
+        slug: 'chrono-watch',
         category: 'watches',
-        name: { he: 'סוברן', en: 'Sovereign' },
-        tagline: { he: 'שעון שלא מתבייש', en: 'A watch with no shy setting' },
+        name: { he: 'שעון סוברן', en: 'Sovereign Chronograph' },
+        subtitle: { he: 'כרונוגרף רוז־גולד', en: 'Rose-gold chronograph' },
         price: 690,
         compareAt: 890,
         badge: 'bestseller',
+        colour: 'rose',
+        image: '/shop/chrono.jpg',
         story: {
-            he: 'תיבה בגוון רוז־גולד עם לוח שחור, שלושה תת־חוגים וחלון פאזות ירח. צמיד משולב זהב וכסף, ובזל מחורץ שנותן אחיזה. שעון שנראה גדול על היד ומתכוון לכך.',
-            en: 'A rose-gold case over a black dial with three sub-dials and a moon-phase window. Two-tone bracelet, knurled bezel for grip. It reads large on the wrist and means to.'
+            he: 'לוח שחור עם שלושה תת־חוגים, ספרות רומיות ולוח סיבובי אדום־שחור. צמיד פלדה דו־גוני עם אבזם פרפר.',
+            en: 'A black dial with three sub-dials, Roman numerals and a red-and-black rotating bezel. Two-tone steel bracelet with a butterfly clasp.'
         },
         details: {
-            he: [
-                'לוח שחור עם שלושה תת־חוגים וחלון פאזות ירח',
-                'בזל מחורץ בגוון רוז־גולד',
-                'צמיד מתכת משולב, חוליות ניתנות להסרה',
-                'מנגנון קוורץ'
-            ],
-            en: [
-                'Black dial with three sub-dials and a moon-phase window',
-                'Knurled rose-gold bezel',
-                'Two-tone metal bracelet with removable links',
-                'Quartz movement'
-            ]
+            he: ['מנגנון קוורץ', 'שלושה תת־חוגים', 'לוח סיבובי', 'צמיד פלדה עם אבזם פרפר'],
+            en: ['Quartz movement', 'Three sub-dials', 'Rotating bezel', 'Steel bracelet with butterfly clasp']
         },
         specs: [
-            { label: { he: 'קוטר תיבה', en: 'Case' }, value: { he: '42 מ״מ', en: '42 mm' } },
-            { label: { he: 'מנגנון', en: 'Movement' }, value: { he: 'קוורץ', en: 'Quartz' } },
-            { label: { he: 'עמידות למים', en: 'Water resistance' }, value: { he: '3 ATM — התזות', en: '3 ATM — splashes' } },
+            { label: { he: 'קוטר', en: 'Case' }, value: { he: '42 מ״מ', en: '42 mm' } },
+            { label: { he: 'עובי', en: 'Thickness' }, value: { he: '12 מ״מ', en: '12 mm' } },
+            { label: { he: 'עמידות למים', en: 'Water resistance' }, value: { he: '3 ATM', en: '3 ATM' } },
             { label: { he: 'צמיד', en: 'Bracelet' }, value: { he: 'פלדת אל־חלד', en: 'Stainless steel' } }
         ],
-        variants: [
-            {
-                id: 'sovereign-rose',
-                color: { he: 'רוז־גולד', en: 'Rose Gold' },
-                hex: '#b76e53',
-                accent: { he: 'לוח שחור', en: 'Black dial' },
-                accentHex: '#151515',
-                image: '/products/sovereign-rose-1.jpg'
-            }
-        ]
+        care: { he: 'לא להיכנס איתו למקלחת או לים', en: 'Not for showering or swimming' },
+        stock: 4
     },
     {
-        slug: 'lumen',
+        slug: 'quartz-watch',
         category: 'watches',
-        name: { he: 'לומן', en: 'Lumen' },
-        tagline: { he: 'הכי פחות שצריך, בזהב', en: 'The least you need, in gold' },
+        name: { he: 'שעון לומן', en: 'Lumen Quartz' },
+        subtitle: { he: 'לוח לבן, מארז זהב', en: 'White dial, gold case' },
         price: 320,
         compareAt: null,
         badge: null,
+        colour: 'gold',
+        image: '/shop/quartz.jpg',
         story: {
-            he: 'תיבה עגולה קטנה, לוח לבן, מחוונים דקים ובלי שום דבר מיותר. שעון שנועד להשלים צמיד, לא להתחרות בו.',
-            en: 'A small round case, a white dial, thin markers, and nothing else. Built to finish a stack of bracelets rather than compete with them.'
+            he: 'שעון קטן ונקי: לוח לבן עם מחוגים דקים, מארז זהוב וצמיד חוליות צר. נועד להיות מונח על היד ולא להעיק עליה.',
+            en: 'Small and clean: a white dial with slim hands, a gold case and a narrow link bracelet. Made to sit on the wrist without weighing on it.'
         },
         details: {
-            he: [
-                'לוח לבן עם מחוונים דקים',
-                'תיבה וצמיד בגוון זהב אחיד',
-                'אבזם פרפר מוסתר',
-                'מנגנון קוורץ'
-            ],
-            en: [
-                'White dial with slim markers',
-                'Matching gold-tone case and bracelet',
-                'Hidden butterfly clasp',
-                'Quartz movement'
-            ]
+            he: ['מנגנון קוורץ', 'לוח לבן עם מחוגים דקים', 'צמיד חוליות צר', 'מארז בגימור זהוב'],
+            en: ['Quartz movement', 'White dial with slim hands', 'Narrow link bracelet', 'Gold-finish case']
         },
         specs: [
-            { label: { he: 'קוטר תיבה', en: 'Case' }, value: { he: '32 מ״מ', en: '32 mm' } },
-            { label: { he: 'מנגנון', en: 'Movement' }, value: { he: 'קוורץ', en: 'Quartz' } },
-            { label: { he: 'עמידות למים', en: 'Water resistance' }, value: { he: '3 ATM — התזות', en: '3 ATM — splashes' } },
-            { label: { he: 'צמיד', en: 'Bracelet' }, value: { he: 'פלדה בציפוי זהב', en: 'Gold-plated steel' } }
+            { label: { he: 'קוטר', en: 'Case' }, value: { he: '32 מ״מ', en: '32 mm' } },
+            { label: { he: 'עובי', en: 'Thickness' }, value: { he: '8 מ״מ', en: '8 mm' } },
+            { label: { he: 'עמידות למים', en: 'Water resistance' }, value: { he: 'התזות בלבד', en: 'Splashes only' } },
+            { label: { he: 'צמיד', en: 'Bracelet' }, value: { he: 'פלדה בגימור זהוב', en: 'Gold-finish steel' } }
         ],
-        variants: [
-            {
-                id: 'lumen-gold',
-                color: { he: 'זהב', en: 'Gold' },
-                hex: '#c9a24a',
-                accent: { he: 'לוח לבן', en: 'White dial' },
-                accentHex: '#f2efe9',
-                image: '/products/lumen-gold-1.jpg'
-            }
-        ]
-    },
-
-    // ------------------------------------------------------------- jewellery
-    {
-        slug: 'cuban',
-        category: 'jewellery',
-        name: { he: 'קובן', en: 'Cuban' },
-        tagline: { he: 'חוליות שטוחות, ברק כפול', en: 'Flat links, double shine' },
-        price: 220,
-        compareAt: 280,
-        badge: null,
-        story: {
-            he: 'צמיד חוליות קובני בפלדת אל־חלד, מלוטש לשני מישורים כך שכל חוליה תופסת אור אחרת. רוחב 8 מ״מ — מורגש על היד בלי להיות כבד.',
-            en: 'A Cuban-link bracelet in stainless steel, polished on two planes so each link catches the light differently. Eight millimetres wide: present on the wrist without being heavy.'
-        },
-        details: {
-            he: [
-                'פלדת אל־חלד 316L — לא מחליד ולא משחיר',
-                'ליטוש דו־מישורי לכל חוליה',
-                'אבזם קופסה עם נעילה כפולה',
-                'עמיד במים ובזיעה'
-            ],
-            en: [
-                '316L stainless steel — will not rust or tarnish',
-                'Two-plane polish on every link',
-                'Box clasp with a double lock',
-                'Water and sweat resistant'
-            ]
-        },
-        specs: [
-            { label: { he: 'רוחב', en: 'Width' }, value: { he: '8 מ״מ', en: '8 mm' } },
-            { label: { he: 'אורך', en: 'Length' }, value: { he: '21 ס״מ', en: '21 cm' } },
-            { label: { he: 'חומר', en: 'Material' }, value: { he: 'פלדת אל־חלד 316L', en: '316L stainless steel' } },
-            { label: { he: 'אבזם', en: 'Clasp' }, value: { he: 'קופסה עם נעילה כפולה', en: 'Double-lock box clasp' } }
-        ],
-        variants: [
-            {
-                id: 'cuban-steel',
-                color: { he: 'פלדה', en: 'Steel' },
-                hex: '#9aa0a6',
-                accent: { he: 'מלוטש', en: 'Polished' },
-                accentHex: '#d8dce0',
-                image: '/products/cuban-steel-1.jpg'
-            }
-        ]
+        care: { he: 'לנגב אחרי מגע עם בושם או קרם', en: 'Wipe after contact with perfume or cream' },
+        stock: 9
     },
     {
-        slug: 'tennis',
+        slug: 'lariat-necklace',
         category: 'jewellery',
-        name: { he: 'טניס', en: 'Tennis' },
-        tagline: { he: 'קו אחד של אור', en: 'A single line of light' },
-        price: 280,
-        compareAt: 360,
-        badge: 'new',
-        story: {
-            he: 'שורה רציפה של אבני זירקוניה בשיבוץ ארבע שיניים, כל אחת בתושבת נפרדת כך שהצמיד נשאר גמיש ונופל סביב פרק היד. אבזם מתקפל עם נעילת ביטחון.',
-            en: 'A continuous row of cubic zirconia in four-prong settings, each stone in its own housing so the bracelet stays fluid and follows the wrist. Folding clasp with a safety catch.'
-        },
-        details: {
-            he: [
-                'אבני זירקוניה בשיבוץ ארבע שיניים',
-                'כל אבן בתושבת נפרדת — הצמיד נשאר גמיש',
-                'אבזם מתקפל עם נעילת ביטחון',
-                'ציפוי רודיום על פליז'
-            ],
-            en: [
-                'Cubic zirconia in four-prong settings',
-                'Each stone housed separately, so the bracelet stays fluid',
-                'Folding clasp with a safety catch',
-                'Rhodium plating over brass'
-            ]
-        },
-        specs: [
-            { label: { he: 'רוחב', en: 'Width' }, value: { he: '3 מ״מ', en: '3 mm' } },
-            { label: { he: 'אורך', en: 'Length' }, value: { he: '18 ס״מ', en: '18 cm' } },
-            { label: { he: 'אבנים', en: 'Stones' }, value: { he: 'זירקוניה מעוקבת', en: 'Cubic zirconia' } },
-            { label: { he: 'ציפוי', en: 'Plating' }, value: { he: 'רודיום', en: 'Rhodium' } }
-        ],
-        variants: [
-            {
-                id: 'tennis-silver',
-                color: { he: 'כסף', en: 'Silver' },
-                hex: '#b9bec4',
-                accent: { he: 'אבנים שקופות', en: 'Clear stones' },
-                accentHex: '#eef1f4',
-                image: '/products/tennis-silver-1.jpg'
-            }
-        ]
-    },
-    {
-        slug: 'lyra',
-        category: 'jewellery',
-        name: { he: 'לירה', en: 'Lyra' },
-        tagline: { he: 'שתי שכבות, נפילה אחת', en: 'Two layers, one drop' },
+        name: { he: 'שרשרת לירה', en: 'Lyra Lariat' },
+        subtitle: { he: 'שתי שכבות, טפטוף קדמי', en: 'Two layers, a front drop' },
         price: 190,
         compareAt: null,
         badge: null,
+        colour: 'silver',
+        image: '/shop/necklace.jpg',
         story: {
-            he: 'שרשרת דו־שכבתית: צ׳וקר קצר על הצוואר ומעליו שרשרת ארוכה שנפתחת לנפילת Y. חרוזים קטנים לאורך השרשרת שוברים את האור בכל תנועה.',
-            en: 'A two-layer necklace: a short choker at the throat with a longer chain over it that opens into a Y drop. Small beads along the chain break the light as you move.'
+            he: 'שתי שרשראות בגובה שונה: צ׳וקר קצר עם חרוזים, ומעליו שרשרת ארוכה שנופלת לטפטוף אחד באמצע. נעילה אחת לשתיהן.',
+            en: 'Two chains at different heights: a short beaded choker with a longer chain over it that falls to a single drop. One clasp for both.'
         },
         details: {
-            he: [
-                'שתי שכבות במחבר אחד — לא מסתבכות',
-                'חרוזים קטנים לאורך השרשרת',
-                'סוגר טבעת קפיץ עם שרשרת הארכה',
-                'ציפוי כסף על פליז'
-            ],
-            en: [
-                'Two layers on one connector, so they cannot tangle',
-                'Small beads set along the chain',
-                'Spring-ring clasp with an extender',
-                'Silver plating over brass'
-            ]
+            he: ['שתי שכבות בנעילה אחת', 'חרוזי כדור לאורך השרשרת', 'טפטוף קדמי', 'נעילת קפיץ'],
+            en: ['Two layers on one clasp', 'Ball beads along the chain', 'Front drop', 'Spring clasp']
         },
         specs: [
-            { label: { he: 'שכבה עליונה', en: 'Upper layer' }, value: { he: '36 ס״מ', en: '36 cm' } },
-            { label: { he: 'שכבה תחתונה', en: 'Lower layer' }, value: { he: '55 ס״מ + נפילה', en: '55 cm plus drop' } },
-            { label: { he: 'הארכה', en: 'Extender' }, value: { he: '6 ס״מ', en: '6 cm' } },
-            { label: { he: 'ציפוי', en: 'Plating' }, value: { he: 'כסף', en: 'Silver' } }
+            { label: { he: 'אורך עליון', en: 'Upper length' }, value: { he: '38 ס״מ', en: '38 cm' } },
+            { label: { he: 'אורך תחתון', en: 'Lower length' }, value: { he: '52 ס״מ', en: '52 cm' } },
+            { label: { he: 'טפטוף', en: 'Drop' }, value: { he: '9 ס״מ', en: '9 cm' } },
+            { label: { he: 'גימור', en: 'Finish' }, value: { he: 'ציפוי כסף', en: 'Silver plate' } }
         ],
-        variants: [
-            {
-                id: 'lyra-silver',
-                color: { he: 'כסף', en: 'Silver' },
-                hex: '#c2c7cc',
-                accent: { he: 'חרוזים', en: 'Beaded' },
-                accentHex: '#e8ebee',
-                image: '/products/lyra-silver-1.jpg'
-            }
-        ]
+        care: { he: 'להסיר לפני מקלחת, לאחסן יבש', en: 'Remove before showering, store dry' },
+        stock: 14
     },
-
-    // ------------------------------------------------------------------ caps
     {
-        slug: 'cord',
+        slug: 'cuban-bracelet',
+        category: 'jewellery',
+        name: { he: 'צמיד קובני', en: 'Cuban Bracelet' },
+        subtitle: { he: 'חוליות רחבות, פלדה', en: 'Wide links, steel' },
+        price: 220,
+        compareAt: 280,
+        badge: null,
+        colour: 'steel',
+        image: '/shop/cuban.jpg',
+        story: {
+            he: 'חוליות קובניות רחבות בפלדת אל־חלד מלוטשת. כבד מספיק כדי להרגיש, לא כבד מספיק כדי להפריע.',
+            en: 'Wide Cuban links in polished stainless steel. Heavy enough to feel, not heavy enough to get in the way.'
+        },
+        details: {
+            he: ['פלדת אל־חלד 316L', 'חוליות ברוחב 8 מ״מ', 'נעילת קופסה', 'לא מחליד במים'],
+            en: ['316L stainless steel', '8 mm links', 'Box clasp', 'Will not rust in water']
+        },
+        specs: [
+            { label: { he: 'אורך', en: 'Length' }, value: { he: '21 ס״מ', en: '21 cm' } },
+            { label: { he: 'רוחב', en: 'Width' }, value: { he: '8 מ״מ', en: '8 mm' } },
+            { label: { he: 'חומר', en: 'Material' }, value: { he: 'פלדת אל־חלד', en: 'Stainless steel' } },
+            { label: { he: 'נעילה', en: 'Clasp' }, value: { he: 'קופסה', en: 'Box' } }
+        ],
+        care: { he: 'אפשר לרחוץ במים, לייבש אחרי ים', en: 'Rinseable, dry after the sea' },
+        stock: 11
+    },
+    {
+        slug: 'tennis-bracelet',
+        category: 'jewellery',
+        name: { he: 'צמיד טניס', en: 'Tennis Bracelet' },
+        subtitle: { he: 'שורת אבנים אחת', en: 'A single row of stones' },
+        price: 280,
+        compareAt: 360,
+        badge: 'new',
+        colour: 'silver',
+        image: '/shop/tennis.jpg',
+        story: {
+            he: 'שורה אחת של אבני זירקוניה בשיבוץ ארבע שיניים, על שרשרת שמתעגלת סביב פרק היד. נעילת בטחון כפולה.',
+            en: 'A single row of zirconia in four-prong settings on a chain that curves around the wrist. Double safety clasp.'
+        },
+        details: {
+            he: ['אבני זירקוניה בשיבוץ ארבע שיניים', 'נעילת בטחון כפולה', 'ציפוי רודיום', 'מתעגל סביב פרק היד'],
+            en: ['Four-prong zirconia settings', 'Double safety clasp', 'Rhodium plate', 'Curves with the wrist']
+        },
+        specs: [
+            { label: { he: 'אורך', en: 'Length' }, value: { he: '18 ס״מ', en: '18 cm' } },
+            { label: { he: 'רוחב', en: 'Width' }, value: { he: '3 מ״מ', en: '3 mm' } },
+            { label: { he: 'אבנים', en: 'Stones' }, value: { he: 'זירקוניה', en: 'Cubic zirconia' } },
+            { label: { he: 'גימור', en: 'Finish' }, value: { he: 'ציפוי רודיום', en: 'Rhodium plate' } }
+        ],
+        care: { he: 'לנקות במטלית רכה, בלי חומרי ניקוי', en: 'Clean with a soft cloth, no detergents' },
+        stock: 7
+    },
+    {
+        slug: 'corduroy-cap',
         category: 'caps',
-        name: { he: 'קורד', en: 'Cord' },
-        tagline: { he: 'קורדרוי, בלי לוגו', en: 'Corduroy, no logo' },
+        name: { he: 'כובע קורדרוי', en: 'Corduroy Cap' },
+        subtitle: { he: 'מבנה חצי־קשיח, בלי לוגו', en: 'Half-structured, no logo' },
         price: 129,
         compareAt: null,
         badge: null,
+        colour: 'ivory',
+        image: '/shop/cap.jpg',
         story: {
-            he: 'כובע מצחייה מקורדרוי בגוון שנהב, עם רקמת חתימה קטנה בחזית ותו לא. מבנה חצי־קשיח שמחזיק צורה בלי להיראות חדש מדי.',
-            en: 'An ivory corduroy cap with one small script embroidery on the front and nothing else. A half-structured crown that holds shape without looking box-fresh.'
+            he: 'קורדרוי בגוון שנהב עם רקמת חתימה קטנה בחזית. מבנה חצי־קשיח שמחזיק צורה בלי להיראות חדש מדי.',
+            en: 'Ivory corduroy with a small signature embroidery at the front. Half-structured, so it holds its shape without looking box-fresh.'
         },
         details: {
-            he: [
-                'קורדרוי כותנה עם צלעות רחבות',
-                'רקמת חתימה קטנה בחזית',
-                'מבנה חצי־קשיח',
-                'רצועה אחורית מתכווננת'
-            ],
-            en: [
-                'Wide-wale cotton corduroy',
-                'Small script embroidery on the front',
-                'Half-structured crown',
-                'Adjustable back strap'
-            ]
+            he: ['קורדרוי כותנה', 'רקמת חתימה בחזית', 'רצועה אחורית מתכווננת', 'מבנה חצי־קשיח'],
+            en: ['Cotton corduroy', 'Signature embroidery', 'Adjustable back strap', 'Half-structured crown']
         },
         specs: [
             { label: { he: 'היקף', en: 'Circumference' }, value: { he: '56–60 ס״מ', en: '56–60 cm' } },
-            { label: { he: 'חומר', en: 'Material' }, value: { he: 'כותנה קורדרוי', en: 'Cotton corduroy' } },
+            { label: { he: 'חומר', en: 'Material' }, value: { he: 'כותנה קורדרוי', en: 'Corduroy cotton' } },
             { label: { he: 'סגירה', en: 'Closure' }, value: { he: 'רצועה מתכווננת', en: 'Adjustable strap' } },
             { label: { he: 'מצחייה', en: 'Brim' }, value: { he: 'מעוקלת', en: 'Curved' } }
         ],
-        variants: [
-            {
-                id: 'cord-ivory',
-                color: { he: 'שנהב', en: 'Ivory' },
-                hex: '#e8e4dc',
-                accent: { he: 'רקמה שחורה', en: 'Black embroidery' },
-                accentHex: '#1a1a1a',
-                image: '/products/cord-ivory-1.jpg'
-            }
-        ]
+        care: { he: 'כביסת יד קרה, ייבוש על צורה', en: 'Cold hand wash, dry on a form' },
+        stock: 15
     },
-
-    // --------------------------------------------------------------- eyewear
-    // One photograph, one product. The two hexagon colourways are listed
-    // separately so each has its own page rather than hiding behind a swatch.
     {
-        slug: 'hexa-noir',
+        slug: 'hexa-black',
         category: 'eyewear',
-        name: { he: 'הקסה שחור', en: 'Hexa Noir' },
-        tagline: { he: 'משושה בשחור מלוטש', en: 'The hexagon in polished black' },
+        name: { he: 'הקסה שחור', en: 'Hexa Black' },
+        subtitle: { he: 'משושה, עדשה כחולה מדורגת', en: 'Hexagonal, graduated blue lens' },
         price: 560,
         compareAt: 690,
         badge: 'new',
+        colour: 'black',
+        image: '/shop/sunglasses-black.jpg',
         story: {
             he: 'שש צלעות שמחדדות את עצמות הלחיים, עם מסמרת יהלום בקצה החזית. חזית שחורה מלוטשת ועדשה כחולה מדורגת.',
-            en: 'Six sides that sharpen the cheekbones, finished with a diamond rivet at the browline. Polished black front, graduated azure lens.'
+            en: 'Six sides that sharpen the cheekbones, finished with a diamond rivet at the browline. Polished black front, graduated blue lens.'
         },
         details: {
-            he: [
-                'חזית משושה מלוטשת בשחור',
-                'מסמרת יהלום בכל פינה',
-                'עדשות עם הגנת UV400',
-                'זרועות דקות עם קצה מחוספס'
-            ],
-            en: [
-                'Polished hexagonal front in black',
-                'Diamond rivet at each corner',
-                'UV400 protection',
-                'Slim temples with ridged tips'
-            ]
+            he: ['חזית משושה מלוטשת', 'מסמרת יהלום בכל פינה', 'עדשות עם הגנת UV400', 'זרועות דקות'],
+            en: ['Polished hexagonal front', 'Diamond rivet at each corner', 'UV400 protection', 'Slim temples']
         },
         specs: [
             { label: { he: 'רוחב עדשה', en: 'Lens width' }, value: { he: '48 מ״מ', en: '48 mm' } },
@@ -460,45 +301,26 @@ export const products = [
             { label: { he: 'זרוע', en: 'Temple' }, value: { he: '142 מ״מ', en: '142 mm' } },
             { label: { he: 'משקל', en: 'Weight' }, value: { he: '26 גרם', en: '26 g' } }
         ],
-        // Eyewear-only geometry, used by the fit finder and the camera try-on.
-        frame: { shape: 'hexagon', lens: 48, bridge: 20, temple: 142, weight: 26, fits: ['round', 'oval', 'long'] },
-        variants: [
-            {
-                id: 'hexa-noir',
-                color: { he: 'שחור', en: 'Noir' },
-                hex: '#101114',
-                accent: { he: 'כחול מדורג', en: 'Graduated Azure' },
-                accentHex: '#2f6fb5',
-                lensHex: '#2f6fb5',
-                image: '/products/hexa-noir-1.jpg'
-            }
-        ]
+        care: { he: 'לנקות במטלית מיקרופייבר, לאחסן בנרתיק', en: 'Clean with microfibre, store in the case' },
+        stock: 8
     },
     {
         slug: 'hexa-tortoise',
         category: 'eyewear',
         name: { he: 'הקסה צב', en: 'Hexa Tortoise' },
-        tagline: { he: 'אותה גיאומטריה, שריון צב', en: 'Same geometry, tortoiseshell' },
+        subtitle: { he: 'אותה גיאומטריה, שריון צב', en: 'Same geometry, tortoiseshell' },
         price: 560,
         compareAt: 690,
         badge: null,
+        colour: 'tortoise',
+        image: '/shop/sunglasses-tortoise.jpg',
         story: {
             he: 'אותן שש צלעות, הפעם בשריון צב עם עדשת ענבר. הדפוס משתנה מזוג לזוג, אז אין שתי מסגרות זהות.',
             en: 'The same six sides, this time in tortoiseshell with an amber lens. The pattern shifts from pair to pair, so no two frames are identical.'
         },
         details: {
-            he: [
-                'חזית משושה בשריון צב',
-                'מסמרת יהלום בכל פינה',
-                'עדשות ענבר עם הגנת UV400',
-                'זרועות דקות עם קצה מחוספס'
-            ],
-            en: [
-                'Hexagonal front in tortoiseshell',
-                'Diamond rivet at each corner',
-                'Amber lenses with UV400 protection',
-                'Slim temples with ridged tips'
-            ]
+            he: ['חזית משושה בשריון צב', 'מסמרת יהלום בכל פינה', 'עדשות ענבר UV400', 'זרועות דקות'],
+            en: ['Hexagonal front in tortoiseshell', 'Diamond rivet at each corner', 'Amber UV400 lenses', 'Slim temples']
         },
         specs: [
             { label: { he: 'רוחב עדשה', en: 'Lens width' }, value: { he: '48 מ״מ', en: '48 mm' } },
@@ -506,51 +328,11 @@ export const products = [
             { label: { he: 'זרוע', en: 'Temple' }, value: { he: '142 מ״מ', en: '142 mm' } },
             { label: { he: 'משקל', en: 'Weight' }, value: { he: '26 גרם', en: '26 g' } }
         ],
-        frame: { shape: 'hexagon', lens: 48, bridge: 20, temple: 142, weight: 26, fits: ['round', 'oval', 'long'] },
-        variants: [
-            {
-                id: 'hexa-tortoise',
-                color: { he: 'שריון צב', en: 'Tortoise' },
-                hex: '#7a3f14',
-                accent: { he: 'ענבר', en: 'Amber' },
-                accentHex: '#d9a86c',
-                lensHex: '#d9a86c',
-                image: '/products/hexa-tortoise-1.jpg'
-            }
-        ]
+        care: { he: 'לנקות במטלית מיקרופייבר, לאחסן בנרתיק', en: 'Clean with microfibre, store in the case' },
+        stock: 5
     }
 ];
 
-export const LENS_UPGRADES = [
-    { id: 'standard', price: 0, label: { he: 'עדשות מקוריות', en: 'Original lenses' } },
-    { id: 'polarised', price: 180, label: { he: 'שדרוג לפולארויד', en: 'Polarised upgrade' } },
-    { id: 'prescription', price: 340, label: { he: 'עדשות במספר אופטי', en: 'Prescription lenses' } },
-    { id: 'blue', price: 140, label: { he: 'סינון אור כחול', en: 'Blue-light filter' } }
-];
-
-export function getProduct(slug) {
-    return products.find((p) => p.slug === slug);
-}
-
-export function productsIn(category) {
-    return products.filter((p) => p.category === category);
-}
-
-export function findVariant(variantId) {
-    for (const product of products) {
-        const variant = product.variants.find((v) => v.id === variantId);
-        if (variant) return { product, variant };
-    }
-    return null;
-}
-
-export const allVariants = products.flatMap((p) => p.variants.map((v) => ({ product: p, variant: v })));
-
-/** Every colourway used across the catalogue, for the collection filters. */
-export const COLOUR_FAMILIES = {
-    black: { he: 'שחור', en: 'Black', hex: '#141416', match: (v) => ['#141416', '#101114', '#1a1a1a'].includes(v.hex) },
-    silver: { he: 'כסף', en: 'Silver', hex: '#b9bec4', match: (v) => ['#9aa0a6', '#b9bec4', '#c2c7cc'].includes(v.hex) },
-    gold: { he: 'זהב', en: 'Gold', hex: '#c9a24a', match: (v) => ['#c9a24a', '#b76e53'].includes(v.hex) },
-    brown: { he: 'חום', en: 'Brown', hex: '#6b5a51', match: (v) => ['#6b5a51', '#7a3f14'].includes(v.hex) },
-    ivory: { he: 'שנהב', en: 'Ivory', hex: '#e8e4dc', match: (v) => ['#e8e4dc'].includes(v.hex) }
-};
+export const getProduct = (slug) => products.find((p) => p.slug === slug);
+export const productsIn = (category) => products.filter((p) => p.category === category);
+export const inStock = (product) => (product?.stock ?? 0) > 0;

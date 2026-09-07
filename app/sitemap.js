@@ -1,35 +1,15 @@
-import { products, CATEGORIES } from '../data/catalogue';
-
-const SHOP_ROUTES = ['', '/collection', '/story', '/fit', '/service'];
-
-function baseUrl() {
-    // Netlify sets URL to the production domain and DEPLOY_PRIME_URL to the
-    // branch or preview domain; the preview is the honest self-reference there.
-    return process.env.DEPLOY_PRIME_URL ?? process.env.URL ?? 'http://localhost:3000';
-}
+import { CATEGORIES, products } from '../data/catalogue';
+import { origin } from '../lib/store/seo';
 
 export default function sitemap() {
-    const origin = baseUrl().replace(/\/$/, '');
+    const base = origin();
     const now = new Date();
-
     return [
-        ...SHOP_ROUTES.map((route) => ({
-            url: `${origin}${route || '/'}`,
-            lastModified: now,
-            changeFrequency: route === '' ? 'weekly' : 'monthly',
-            priority: route === '' ? 1 : 0.7
-        })),
-        ...Object.keys(CATEGORIES).map((key) => ({
-            url: `${origin}/category/${key}`,
-            lastModified: now,
-            changeFrequency: 'weekly',
-            priority: 0.8
-        })),
-        ...products.map((product) => ({
-            url: `${origin}/product/${product.slug}`,
-            lastModified: now,
-            changeFrequency: 'weekly',
-            priority: 0.8
-        }))
+        { url: `${base}/`, lastModified: now, priority: 1 },
+        { url: `${base}/shop`, lastModified: now, priority: 0.9 },
+        { url: `${base}/about`, lastModified: now, priority: 0.5 },
+        { url: `${base}/help`, lastModified: now, priority: 0.5 },
+        ...Object.keys(CATEGORIES).map((slug) => ({ url: `${base}/c/${slug}`, lastModified: now, priority: 0.8 })),
+        ...products.map((product) => ({ url: `${base}/p/${product.slug}`, lastModified: now, priority: 0.8 }))
     ];
 }

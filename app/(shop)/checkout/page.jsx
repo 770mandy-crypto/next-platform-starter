@@ -1,9 +1,6 @@
-import { CheckoutView } from '../../../components/shop/checkout-view';
+import { CheckoutView } from '../../../components/store/views';
 
-export const metadata = {
-    title: 'תשלום',
-    robots: { index: false, follow: false }
-};
+export const metadata = { title: 'תשלום', robots: { index: false }, alternates: { canonical: '/checkout' } };
 
 export default function Page() {
     return <CheckoutView />;
