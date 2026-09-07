@@ -4,7 +4,7 @@ import netlifyLogo from 'public/netlify-logo.svg';
 import githubLogo from 'public/images/github-mark-white.svg';
 
 const navItems = [
-    { linkText: 'Home', href: '/' },
+    { linkText: 'Home', href: '/starter' },
     { linkText: '🤖 Stock Bot', href: '/bot' },
     { linkText: '📸 Upload', href: '/upload' },
     { linkText: '🗺️ Market', href: '/market' },
@@ -22,7 +22,7 @@ const navItems = [
 export function Header() {
     return (
         <nav className="flex flex-wrap items-center gap-4 pt-6 pb-12 sm:pt-12 md:pb-24">
-            <Link href="/">
+            <Link href="/starter">
                 <Image src={netlifyLogo} alt="Netlify logo" />
             </Link>
             {!!navItems?.length && (

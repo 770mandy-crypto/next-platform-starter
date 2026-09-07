@@ -24,6 +24,13 @@ const nextConfig = {
         destination: '/',
         permanent: true,
       },
+      {
+        // The hexagon frame used to be one product with two colourways.
+        // Each colourway is its own product now; keep the old link alive.
+        source: '/product/hexa',
+        destination: '/product/hexa-noir',
+        permanent: true,
+      },
     ];
   },
   
