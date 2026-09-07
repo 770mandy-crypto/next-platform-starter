@@ -80,7 +80,7 @@ export function CartDrawer() {
                 type="button"
                 aria-label="Close bag"
                 onClick={() => setCartOpen(false)}
-                className="absolute inset-0 w-full h-full bg-ink/35 backdrop-blur-[3px]"
+                className="absolute inset-0 w-full h-full bg-black/55 backdrop-blur-[3px]"
             />
 
             <aside
@@ -135,7 +135,7 @@ export function CartDrawer() {
                                     <Link
                                         href={`/product/${line.product.slug}`}
                                         onClick={() => setCartOpen(false)}
-                                        className="relative w-24 h-24 overflow-hidden rounded-lg shrink-0 bg-bone"
+                                        className="relative w-24 h-24 overflow-hidden rounded-lg shrink-0 bg-plate"
                                     >
                                         <Image
                                             src={line.variant.image}

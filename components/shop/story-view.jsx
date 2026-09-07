@@ -66,7 +66,7 @@ export function StoryView() {
                                 <h2 className="mb-5">{step.t}</h2>
                                 <p className="max-w-md leading-relaxed text-inksoft">{step.b}</p>
                             </div>
-                            <div className="relative overflow-hidden aspect-[4/3] rounded-none bg-bone">
+                            <div className="relative overflow-hidden aspect-[4/3] rounded-none bg-plate">
                                 <Image
                                     src={GALLERY[index % GALLERY.length]}
                                     alt=""
@@ -80,14 +80,14 @@ export function StoryView() {
                 </div>
             </section>
 
-            <section className="px-5 py-20 sm:px-10 bg-ink text-bone">
+            <section className="px-5 py-20 border-y sm:px-10 bg-bone text-ink hairline">
                 <div className="grid gap-10 mx-auto max-w-[1600px] sm:grid-cols-2 lg:grid-cols-4">
                     {NUMBERS.map((item, index) => (
                         <Reveal key={item.label.en} delay={index * 100} className="text-center">
                             <p className="display text-[clamp(3rem,7vw,5rem)] leading-none mb-3 ticker-digit">
                                 {item.value}
                             </p>
-                            <p className="text-xs tracking-[0.2em] uppercase text-bone/60">{item.label[lang]}</p>
+                            <p className="text-xs tracking-[0.2em] uppercase text-inksoft">{item.label[lang]}</p>
                         </Reveal>
                     ))}
                 </div>

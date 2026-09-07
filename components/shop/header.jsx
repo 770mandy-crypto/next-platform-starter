@@ -18,7 +18,7 @@ export function AnnouncementBar() {
     }, [t.announce.length]);
 
     return (
-        <div className="relative overflow-hidden text-bone bg-ink">
+        <div className="relative overflow-hidden border-b text-ink bg-bone hairline">
             <div className="relative flex items-center justify-center h-9 text-[0.68rem] tracking-[0.2em] uppercase">
                 {t.announce.map((line, i) => (
                     <span
@@ -182,7 +182,7 @@ export function SiteHeader() {
                     type="button"
                     aria-label="Close menu"
                     onClick={() => setMenuOpen(false)}
-                    className="absolute inset-0 w-full h-full bg-ink/40 backdrop-blur-sm"
+                    className="absolute inset-0 w-full h-full bg-black/55 backdrop-blur-sm"
                 />
                 <div
                     ref={menuRef}

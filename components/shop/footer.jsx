@@ -13,16 +13,16 @@ export function Newsletter() {
     const [email, setEmail] = useState('');
 
     return (
-        <section className="relative px-5 py-24 overflow-hidden text-bone bg-ink sm:px-10 sm:py-32">
+        <section className="relative px-5 py-24 overflow-hidden border-y text-ink bg-bone hairline sm:px-10 sm:py-32">
             <div
                 aria-hidden
                 className="absolute -top-40 start-1/2 w-[46rem] h-[46rem] -translate-x-1/2 rounded-full opacity-[0.13] blur-3xl"
                 style={{ background: 'radial-gradient(circle, #a9793e 0%, transparent 65%)' }}
             />
             <Reveal className="relative max-w-2xl mx-auto text-center">
-                <p className="mb-5 eyebrow text-bone/60">AYIN</p>
+                <p className="mb-5 eyebrow">AYIN</p>
                 <h2 className="mb-5">{t.sections.newsletter}</h2>
-                <p className="mb-10 text-bone/70 leading-relaxed">{t.newsletter.body}</p>
+                <p className="mb-10 leading-relaxed text-inksoft">{t.newsletter.body}</p>
 
                 {sent ? (
                     <p className="text-brass display text-xl">{t.newsletter.thanks}</p>
@@ -40,9 +40,9 @@ export function Newsletter() {
                             value={email}
                             onChange={(event) => setEmail(event.target.value)}
                             placeholder={t.newsletter.placeholder}
-                            className="flex-1 px-6 py-4 text-sm bg-transparent border rounded-none border-bone/25 focus:outline-none focus:border-brass placeholder:text-bone/40"
+                            className="flex-1 px-6 py-4 text-sm bg-transparent border rounded-none hairline focus:outline-none focus:border-brass placeholder:text-inksoft/70"
                         />
-                        <button type="submit" className="btn-ayin bg-bone text-ink border-bone">
+                        <button type="submit" className="btn-ayin">
                             <span>{t.newsletter.submit}</span>
                             <IconArrow className="w-4 h-4 rtl:rotate-180" />
                         </button>

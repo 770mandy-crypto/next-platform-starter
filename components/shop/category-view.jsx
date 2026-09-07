@@ -24,7 +24,7 @@ function Spotlight({ product, onQuickView }) {
 
     return (
         <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
-            <div className="relative overflow-hidden border rounded-none bg-bone aspect-[4/5] hairline">
+            <div className="relative overflow-hidden border rounded-none bg-plate aspect-[4/5] hairline">
                 <Image
                     key={variant.id}
                     src={variant.image}

@@ -33,7 +33,7 @@ export function QuickView({ product, onClose }) {
                 type="button"
                 aria-label="Close"
                 onClick={onClose}
-                className="absolute inset-0 w-full h-full bg-ink/45 backdrop-blur-sm animate-in-up"
+                className="absolute inset-0 w-full h-full bg-black/60 backdrop-blur-sm animate-in-up"
             />
             <div
                 ref={panelRef}
@@ -53,7 +53,7 @@ export function QuickView({ product, onClose }) {
                 </button>
 
                 <div className="grid md:grid-cols-2">
-                    <div className="p-6 bg-bone/60">
+                    <div className="p-6 bg-plate">
                         <SpinViewer src={variant.image} alt={product.name[lang]} label={t.product.spin} />
                     </div>
 

@@ -148,7 +148,7 @@ export function TryOn({ product, variant, onClose }) {
                     </button>
                 </div>
 
-                <div className="relative bg-ink aspect-[4/3]">
+                <div className="relative bg-black aspect-[4/3]">
                     <video
                         ref={videoRef}
                         playsInline
@@ -172,7 +172,7 @@ export function TryOn({ product, variant, onClose }) {
                     )}
 
                     {status !== 'ready' && (
-                        <div className="absolute inset-0 grid p-8 text-center place-items-center text-bone">
+                        <div className="absolute inset-0 grid p-8 text-center place-items-center text-plate">
                             <p className="max-w-sm text-sm leading-relaxed">
                                 {status === 'loading' && copy.loading}
                                 {status === 'denied' && copy.denied}
@@ -182,7 +182,7 @@ export function TryOn({ product, variant, onClose }) {
                     )}
 
                     {status === 'ready' && !placement && (
-                        <p className="absolute inset-x-0 text-xs text-center bottom-4 text-bone/80">{copy.searching}</p>
+                        <p className="absolute inset-x-0 text-xs text-center bottom-4 text-plate/80">{copy.searching}</p>
                     )}
                 </div>
 

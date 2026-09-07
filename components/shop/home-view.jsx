@@ -50,7 +50,7 @@ function SpinShowcase() {
                 </Reveal>
 
                 <div className="grid gap-10 lg:grid-cols-[1fr_360px] lg:items-center">
-                    <Reveal className="relative p-4 overflow-hidden bg-paper rounded-none sm:p-10">
+                    <Reveal className="relative p-4 overflow-hidden border bg-plate rounded-none hairline sm:p-10">
                         <SpinViewer
                             key={variant.id}
                             src={variant.image}
@@ -70,7 +70,7 @@ function SpinShowcase() {
                                     i === index ? 'bg-paper border-ink/20 shadow-sm' : 'border-transparent hover:bg-paper/60'
                                 }`}
                             >
-                                <span className="relative w-16 h-16 overflow-hidden rounded-none bg-bone shrink-0">
+                                <span className="relative w-16 h-16 overflow-hidden rounded-none bg-plate shrink-0">
                                     <Image
                                         src={itemVariant.image}
                                         alt=""
@@ -175,7 +175,7 @@ function CategoryGrid() {
                             <Reveal key={key} delay={(index % 3) * 90}>
                                 <Link
                                     href={`/category/${key}`}
-                                    className="relative block overflow-hidden group rounded-none bg-bone aspect-[5/4]"
+                                    className="relative block overflow-hidden group rounded-none bg-plate aspect-[5/4]"
                                 >
                                     {cover && (
                                         <Image
@@ -187,8 +187,8 @@ function CategoryGrid() {
                                         />
                                     )}
                                     <span className="absolute inset-x-0 bottom-0 p-5 bg-gradient-to-t from-ink/70 to-transparent">
-                                        <span className="block display text-2xl text-bone">{entry.name[lang]}</span>
-                                        <span className="block mt-1 text-xs text-bone/70">
+                                        <span className="block display text-2xl text-plate">{entry.name[lang]}</span>
+                                        <span className="block mt-1 text-xs text-plate/75">
                                             {t.filters.results(productsIn(key).length)}
                                         </span>
                                     </span>
@@ -206,22 +206,22 @@ function FitTeaser() {
     const { t, lang } = useShop();
     return (
         <section className="px-5 py-24 sm:px-10">
-            <Reveal className="relative overflow-hidden mx-auto max-w-[1600px] rounded-none bg-ink text-bone px-8 py-16 sm:px-16 sm:py-24 text-center">
+            <Reveal className="relative overflow-hidden mx-auto max-w-[1600px] rounded-none border bg-bone text-ink hairline px-8 py-16 sm:px-16 sm:py-24 text-center">
                 <div
                     aria-hidden
                     className="absolute inset-x-0 -bottom-40 h-80 blur-3xl opacity-25"
                     style={{ background: 'radial-gradient(ellipse at center, #a9793e 0%, transparent 70%)' }}
                 />
-                <p className="relative mb-4 eyebrow text-bone/60">AYIN Fit · {CATEGORIES.eyewear.name[lang]}</p>
+                <p className="relative mb-4 eyebrow">AYIN Fit · {CATEGORIES.eyewear.name[lang]}</p>
                 <h2 className="relative max-w-2xl mx-auto mb-5">{t.sections.fit}</h2>
-                <p className="relative max-w-md mx-auto mb-10 text-bone/70">{t.sections.fitSub}</p>
+                <p className="relative max-w-md mx-auto mb-10 text-inksoft">{t.sections.fitSub}</p>
                 <div className="relative flex flex-wrap items-center justify-center gap-3">
-                    <Link href="/fit" className="btn-ayin bg-bone text-ink border-bone">
+                    <Link href="/fit" className="btn-ayin">
                         <span>{t.hero.ctaAlt}</span>
                     </Link>
                     <Link
                         href="/category/eyewear"
-                        className="text-xs tracking-[0.1em] uppercase underline text-bone/70 underline-offset-4 hover:text-bone"
+                        className="text-xs tracking-[0.1em] uppercase underline text-inksoft underline-offset-4 hover:text-ink"
                     >
                         {CATEGORIES.eyewear.name[lang]}
                     </Link>

@@ -15,7 +15,7 @@ export function ProductCard({ product, onQuickView, priority = false }) {
 
     return (
         <article className="group card-ayin">
-            <div className="relative overflow-hidden border-b bg-bone aspect-[4/5] hairline">
+            <div className="relative overflow-hidden border-b bg-plate aspect-[4/5] hairline">
                 <Link href={`/product/${product.slug}`} className="block w-full h-full">
                     <Image
                         key={variant.id}

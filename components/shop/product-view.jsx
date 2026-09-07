@@ -18,7 +18,7 @@ function ZoomPhoto({ src, alt }) {
 
     return (
         <div
-            className="relative w-full overflow-hidden border aspect-square rounded-none bg-bone hairline"
+            className="relative w-full overflow-hidden border aspect-square rounded-none bg-plate hairline"
             onMouseMove={(event) => {
                 const rect = event.currentTarget.getBoundingClientRect();
                 setOrigin(
@@ -174,7 +174,7 @@ export function ProductView({ slug }) {
                         {view === 'photo' ? (
                             <ZoomPhoto src={variant.image} alt={`${product.name[lang]} ${variant.color[lang]}`} />
                         ) : (
-                            <div className="p-4 border rounded-none bg-bone hairline sm:p-8">
+                            <div className="p-4 border rounded-none bg-plate hairline sm:p-8">
                                 <SpinViewer
                                     key={variant.id}
                                     src={variant.image}

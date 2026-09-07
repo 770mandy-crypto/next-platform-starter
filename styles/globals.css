@@ -163,14 +163,16 @@
  * ------------------------------------------------------------------ */
 
 @theme {
-    /* Gallery palette: white walls, a cool plate behind every product, one
-       clay accent. Warm studio photography carries the colour on its own. */
-    --color-bone: #eceae4;
-    --color-paper: #ffffff;
-    --color-ink: #0b0b0c;
-    --color-inksoft: #6f6f6b;
-    --color-brass: #b8442a;
-    --color-line: #e3e2de;
+    /* Night palette: the shop is black, the product photography sits on its
+       own light plate so a studio shot never becomes a glowing rectangle,
+       and gold carries the small type. */
+    --color-paper: #0a0a0b;
+    --color-bone: #141416;
+    --color-plate: #f1efe9;
+    --color-ink: #f4f1eb;
+    --color-inksoft: #9c988e;
+    --color-brass: #c9a24a;
+    --color-line: #2b2b2f;
     --font-display: 'Heebo', ui-sans-serif, system-ui, sans-serif;
     --font-body: 'Heebo', ui-sans-serif, system-ui, sans-serif;
 }
@@ -235,7 +237,7 @@
         letter-spacing: 0.2em;
         text-transform: uppercase;
         font-weight: 500;
-        color: var(--color-inksoft);
+        color: var(--color-brass);
     }
 
     .display {
@@ -390,12 +392,12 @@
        Each product sits in its own framed cell, like a plate in a catalogue. */
     .card-ayin {
         border: 1px solid var(--color-line);
-        background: var(--color-paper);
-        transition: border-color 0.35s ease;
+        background: var(--color-bone);
+        transition: border-color 0.35s ease, background 0.35s ease;
     }
 
     .card-ayin:hover {
-        border-color: color-mix(in oklab, var(--color-ink) 45%, transparent);
+        border-color: color-mix(in oklab, var(--color-brass) 55%, transparent);
     }
 
     .frame-shot {
