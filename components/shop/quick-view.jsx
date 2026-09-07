@@ -47,7 +47,7 @@ export function QuickView({ product, onClose }) {
                     type="button"
                     onClick={onClose}
                     aria-label="Close"
-                    className="absolute z-10 grid w-10 h-10 rounded-full top-4 end-4 place-items-center bg-paper/80 backdrop-blur hover:rotate-90 transition-transform duration-300"
+                    className="absolute z-10 grid w-10 h-10 top-4 end-4 place-items-center bg-bone/90 backdrop-blur hover:rotate-90 transition-transform duration-300"
                 >
                     <IconClose className="w-5 h-5" />
                 </button>

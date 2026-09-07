@@ -7,6 +7,7 @@ import { products, CATEGORIES, productsIn } from '../../data/catalogue';
 import { useShop } from './providers';
 import { Hero, Marquee } from './hero';
 import { ProductCard } from './product-card';
+import { ProductIndex } from './product-index';
 import { QuickView } from './quick-view';
 import { SpinViewer } from './spin-viewer';
 import { Reveal } from './reveal';
@@ -241,24 +242,14 @@ export function HomeView() {
             <Hero />
             <Marquee />
 
-            <section className="px-5 py-24 sm:px-10 sm:py-28">
+            {/* The whole catalogue, read as a list. Hovering a line shows the
+                piece; there is no card wall on the way in. */}
+            <section id="index" className="px-5 py-20 sm:px-10 sm:py-28 scroll-mt-4">
                 <div className="mx-auto max-w-[1600px]">
                     <Reveal>
-                        <SectionHead
-                            eyebrow="01"
-                            title={t.sections.featured}
-                            sub={t.sections.featuredSub}
-                            href="/collection"
-                            cta={t.sections.all}
-                        />
+                        <SectionHead eyebrow="01" title={t.sections.all} sub={t.sections.allSub} />
                     </Reveal>
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 sm:gap-8">
-                        {featured.map((product, index) => (
-                            <Reveal key={product.slug} delay={index * 110}>
-                                <ProductCard product={product} onQuickView={setQuick} priority={index === 0} />
-                            </Reveal>
-                        ))}
-                    </div>
+                    <ProductIndex items={products} />
                 </div>
             </section>
 
@@ -269,11 +260,11 @@ export function HomeView() {
             <section className="px-5 pb-24 sm:px-10">
                 <div className="mx-auto max-w-[1600px]">
                     <Reveal>
-                        <SectionHead eyebrow="03" title={t.sections.all} sub={t.sections.allSub} />
+                        <SectionHead eyebrow="03" title={t.sections.featured} sub={t.sections.featuredSub} />
                     </Reveal>
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 sm:gap-8">
-                        {products.slice(0, 8).map((product, index) => (
-                            <Reveal key={product.slug} delay={(index % 4) * 90}>
+                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 sm:gap-8">
+                        {featured.map((product, index) => (
+                            <Reveal key={product.slug} delay={index * 110}>
                                 <ProductCard product={product} onQuickView={setQuick} />
                             </Reveal>
                         ))}

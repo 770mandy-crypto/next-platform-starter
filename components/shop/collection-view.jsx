@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { products, CATEGORIES, COLOUR_FAMILIES } from '../../data/catalogue';
 import { useShop } from './providers';
 import { ProductCard } from './product-card';
+import { ProductIndex } from './product-index';
 import { QuickView } from './quick-view';
 import { Reveal } from './reveal';
 import { Newsletter } from './footer';
@@ -33,6 +34,7 @@ export function CollectionView() {
     const [colour, setColour] = useState(null);
     const [sort, setSort] = useState('featured');
     const [quick, setQuick] = useState(null);
+    const [view, setView] = useState('grid');
 
     const filtered = useMemo(() => {
         let list = products.filter((product) => {
@@ -59,7 +61,7 @@ export function CollectionView() {
                 </div>
             </section>
 
-            <section className="sticky z-30 px-5 py-4 border-y top-[57px] sm:px-10 hairline bg-paper/90 backdrop-blur-xl">
+            <section className="sticky z-30 px-5 py-4 border-y top-14 lg:top-0 sm:px-10 hairline bg-paper/90 backdrop-blur-xl">
                 <div className="flex flex-wrap items-center gap-2 mx-auto max-w-[1600px]">
                     <span className="eyebrow me-2 hidden sm:inline">{t.filters.category}</span>
                     {Object.entries(CATEGORIES).map(([key, entry]) => (
@@ -111,6 +113,23 @@ export function CollectionView() {
                             </button>
                         )}
                         <span className="text-xs text-inksoft ticker-digit">{t.filters.results(filtered.length)}</span>
+
+                        <div className="flex border hairline" role="group" aria-label={t.filters.view}>
+                            {['grid', 'list'].map((mode) => (
+                                <button
+                                    key={mode}
+                                    type="button"
+                                    onClick={() => setView(mode)}
+                                    aria-pressed={view === mode}
+                                    className={`px-3 py-2 text-[0.66rem] tracking-[0.14em] uppercase transition-colors ${
+                                        view === mode ? 'bg-ink text-paper' : 'hover:text-brass'
+                                    }`}
+                                >
+                                    {t.filters[mode]}
+                                </button>
+                            ))}
+                        </div>
+
                         <select
                             value={sort}
                             onChange={(event) => setSort(event.target.value)}
@@ -130,6 +149,8 @@ export function CollectionView() {
                 <div className="mx-auto max-w-[1600px]">
                     {filtered.length === 0 ? (
                         <p className="py-24 text-center text-inksoft">{t.filters.none}</p>
+                    ) : view === 'list' ? (
+                        <ProductIndex items={filtered} />
                     ) : (
                         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 sm:gap-8">
                             {filtered.map((product, index) => (

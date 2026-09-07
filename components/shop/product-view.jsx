@@ -270,7 +270,7 @@ export function ProductView({ slug }) {
                                 type="button"
                                 onClick={() => toggleWish(product.slug)}
                                 aria-label="wishlist"
-                                className="grid border rounded-full w-14 h-14 place-items-center hairline hover:border-ink transition-colors"
+                                className="grid border w-14 h-14 place-items-center hairline bg-bone hover:border-ink transition-colors"
                             >
                                 <IconHeart filled={wished} className={`w-5 h-5 ${wished ? 'text-brass' : ''}`} />
                             </button>

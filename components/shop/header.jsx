@@ -8,7 +8,8 @@ import { CATEGORIES } from '../../data/catalogue';
 import { useDialog } from '../../lib/shop/use-dialog';
 import { IconBag, IconClose, IconGlobe, IconHeart, IconMenu, IconSearch } from './icons';
 
-export function AnnouncementBar() {
+/** Rotating service line. It sits in the rail on desktop, above the bar on mobile. */
+export function AnnouncementBar({ className = '' }) {
     const { t } = useShop();
     const [index, setIndex] = useState(0);
 
@@ -18,41 +19,86 @@ export function AnnouncementBar() {
     }, [t.announce.length]);
 
     return (
-        <div className="relative overflow-hidden border-b text-ink bg-bone hairline">
-            <div className="relative flex items-center justify-center h-9 text-[0.68rem] tracking-[0.2em] uppercase">
-                {t.announce.map((line, i) => (
-                    <span
-                        key={line}
-                        aria-hidden={i !== index}
-                        className="absolute px-4 text-center transition-[opacity,transform] duration-500 ease-out"
-                        style={{
-                            opacity: i === index ? 1 : 0,
-                            transitionDuration: i === index ? '600ms' : '260ms',
-                            transform: `translateY(${i === index ? 0 : i < index ? -22 : 22}px)`
-                        }}
-                    >
-                        {line}
-                    </span>
-                ))}
-            </div>
+        <p className={`relative h-8 overflow-hidden text-[0.62rem] tracking-[0.18em] uppercase text-inksoft ${className}`}>
+            {t.announce.map((line, i) => (
+                <span
+                    key={line}
+                    aria-hidden={i !== index}
+                    className="absolute inset-x-0 transition-[opacity,transform] duration-500 ease-out"
+                    style={{
+                        opacity: i === index ? 1 : 0,
+                        transitionDuration: i === index ? '600ms' : '260ms',
+                        transform: `translateY(${i === index ? 0 : i < index ? -18 : 18}px)`
+                    }}
+                >
+                    {line}
+                </span>
+            ))}
+        </p>
+    );
+}
+
+function Wordmark({ className = '' }) {
+    return (
+        <Link href="/" className={`block ${className}`}>
+            <span className="display text-[1.7rem] tracking-[0.36em] leading-none">AYIN</span>
+        </Link>
+    );
+}
+
+function UtilityRow({ compact = false }) {
+    const { t, lang, setLang, count, setCartOpen, wishlist } = useShop();
+    const size = compact ? 'w-[22px] h-[22px]' : 'w-5 h-5';
+
+    return (
+        <div className={`flex items-center ${compact ? 'gap-1' : 'gap-4'}`}>
+            <Link href="/search" aria-label={t.nav.search} className="p-2 transition-colors hover:text-brass">
+                <IconSearch className={size} />
+            </Link>
+
+            <Link href="/wishlist" aria-label={t.nav.wishlist} className="relative p-2 transition-colors hover:text-brass">
+                <IconHeart filled={wishlist.length > 0} className={size} />
+                {wishlist.length > 0 && <span className="absolute top-1 end-1 w-1.5 h-1.5 rounded-full bg-brass" />}
+            </Link>
+
+            <button
+                type="button"
+                onClick={() => setCartOpen(true)}
+                aria-label={t.cart.title}
+                className="relative p-2 transition-colors hover:text-brass"
+            >
+                <IconBag className={size} />
+                <span
+                    key={count}
+                    className={`absolute -top-0.5 ${
+                        lang === 'he' ? 'start-0' : 'end-0'
+                    } grid w-[17px] h-[17px] text-[0.6rem] place-items-center bg-brass text-white ticker-digit transition-transform duration-300 ${
+                        count > 0 ? 'scale-100' : 'scale-0'
+                    }`}
+                >
+                    {count}
+                </span>
+            </button>
+
+            <button
+                type="button"
+                onClick={() => setLang(lang === 'he' ? 'en' : 'he')}
+                aria-label="Switch language"
+                className="flex items-center gap-1.5 p-2 text-[0.7rem] tracking-[0.16em] uppercase transition-colors hover:text-brass"
+            >
+                <IconGlobe className="w-4 h-4" />
+                {lang === 'he' ? 'EN' : 'עב'}
+            </button>
         </div>
     );
 }
 
 export function SiteHeader() {
-    const { t, lang, setLang, count, setCartOpen, wishlist } = useShop();
+    const { t, lang } = useShop();
     const pathname = usePathname();
-    const [scrolled, setScrolled] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
     const closeMenu = useCallback(() => setMenuOpen(false), []);
     const menuRef = useDialog(menuOpen, closeMenu);
-
-    useEffect(() => {
-        const onScroll = () => setScrolled(window.scrollY > 24);
-        onScroll();
-        window.addEventListener('scroll', onScroll, { passive: true });
-        return () => window.removeEventListener('scroll', onScroll);
-    }, []);
 
     useEffect(() => {
         setMenuOpen(false);
@@ -65,113 +111,55 @@ export function SiteHeader() {
 
     const links = [
         { href: '/collection', label: t.nav.collection },
-        ...categoryLinks.slice(0, 4),
-        { href: '/story', label: t.nav.story },
-        { href: '/service', label: t.nav.care }
-    ];
-
-    // The mobile drawer shows every category rather than the trimmed desktop row.
-    const mobileLinks = [
-        { href: '/collection', label: t.nav.collection },
         ...categoryLinks,
         { href: '/fit', label: t.nav.fit },
-        { href: '/search', label: t.nav.search },
-        { href: '/wishlist', label: t.nav.wishlist },
         { href: '/story', label: t.nav.story },
         { href: '/service', label: t.nav.care }
     ];
 
     return (
         <>
-            <AnnouncementBar />
-            <header
-                className={`sticky top-0 z-40 transition-all duration-500 ${
-                    scrolled ? 'bg-paper/85 backdrop-blur-xl border-b hairline' : 'bg-transparent border-b border-transparent'
-                }`}
-            >
-                <div className="flex items-center gap-6 px-5 mx-auto max-w-[1600px] sm:px-10">
-                    <button
-                        type="button"
-                        onClick={() => setMenuOpen(true)}
-                        aria-label="Menu"
-                        className="py-5 lg:hidden -mx-1 px-1"
-                    >
-                        <IconMenu className="w-6 h-6" />
-                    </button>
+            {/* Desktop: a rail that never scrolls away, so the whole shop is one
+                click deep and the page beside it is free to run full bleed. */}
+            <aside className="fixed inset-y-0 z-40 flex-col hidden w-64 px-8 py-8 border-e start-0 lg:flex hairline bg-bone">
+                <Wordmark className="mb-12" />
 
-                    <Link href="/" className="py-5 shrink-0">
-                        <span className="display text-[1.6rem] sm:text-[1.9rem] tracking-[0.34em] leading-none">
-                            AYIN
-                        </span>
-                    </Link>
-
-                    <nav className="hidden gap-5 lg:flex ms-4">
-                        {links.map((link) => (
+                <nav className="flex flex-col gap-1 overflow-y-auto scrollbar-hidden">
+                    {links.map((link) => {
+                        const active = pathname === link.href;
+                        return (
                             <Link
                                 key={link.href}
                                 href={link.href}
-                                className={`link-line py-5 text-[0.78rem] tracking-[0.16em] uppercase ${
-                                    pathname === link.href ? 'link-line-active' : ''
+                                className={`py-1.5 text-[0.95rem] transition-colors ${
+                                    active ? 'text-ink' : 'text-inksoft hover:text-ink'
                                 }`}
                             >
-                                {link.label}
+                                <span className={active ? 'border-b border-brass pb-0.5' : ''}>{link.label}</span>
                             </Link>
-                        ))}
-                    </nav>
+                        );
+                    })}
+                </nav>
 
-                    <div className="flex items-center gap-1 ms-auto sm:gap-3">
-                        <Link
-                            href="/search"
-                            aria-label={t.nav.search}
-                            className="px-2 py-2 transition-colors hover:text-brass"
-                        >
-                            <IconSearch className="w-[22px] h-[22px]" />
-                        </Link>
+                <div className="pt-6 mt-auto border-t hairline">
+                    <UtilityRow />
+                    <AnnouncementBar className="mt-4" />
+                </div>
+            </aside>
 
-                        <Link
-                            href="/wishlist"
-                            aria-label={t.nav.wishlist}
-                            className="relative hidden px-2 py-2 transition-colors sm:block hover:text-brass"
-                        >
-                            <IconHeart filled={wishlist.length > 0} className="w-[22px] h-[22px]" />
-                            {wishlist.length > 0 && (
-                                <span className="absolute top-0.5 end-0.5 w-2 h-2 rounded-full bg-brass" />
-                            )}
-                        </Link>
-
-                        <button
-                            type="button"
-                            onClick={() => setLang(lang === 'he' ? 'en' : 'he')}
-                            className="flex items-center gap-1.5 px-2 py-2 text-[0.72rem] tracking-[0.16em] uppercase hover:text-brass transition-colors"
-                            aria-label="Switch language"
-                        >
-                            <IconGlobe className="w-4 h-4" />
-                            {lang === 'he' ? 'EN' : 'עב'}
-                        </button>
-
-                        <button
-                            type="button"
-                            onClick={() => setCartOpen(true)}
-                            className="relative flex items-center gap-2 px-2 py-2 hover:text-brass transition-colors"
-                            aria-label={t.cart.title}
-                        >
-                            <IconBag className="w-6 h-6" aria-hidden="true" />
-                            <span
-                                key={count}
-                                className={`absolute -top-0.5 ${
-                                    lang === 'he' ? 'start-0' : 'end-0'
-                                } grid w-[18px] h-[18px] text-[0.62rem] rounded-full place-items-center bg-ink text-bone ticker-digit transition-transform duration-300 ${
-                                    count > 0 ? 'scale-100' : 'scale-0'
-                                }`}
-                            >
-                                {count}
-                            </span>
-                        </button>
+            {/* Mobile: a slim bar with the drawer behind it. */}
+            <header className="sticky top-0 z-40 border-b lg:hidden hairline bg-bone">
+                <div className="flex items-center gap-3 px-4">
+                    <button type="button" onClick={() => setMenuOpen(true)} aria-label="Menu" className="p-2 -ms-2">
+                        <IconMenu className="w-6 h-6" />
+                    </button>
+                    <Wordmark className="py-4" />
+                    <div className="ms-auto">
+                        <UtilityRow compact />
                     </div>
                 </div>
             </header>
 
-            {/* mobile drawer */}
             <div
                 className={`fixed inset-0 z-50 lg:hidden transition-opacity duration-300 ${
                     menuOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
@@ -181,8 +169,8 @@ export function SiteHeader() {
                 <button
                     type="button"
                     aria-label="Close menu"
-                    onClick={() => setMenuOpen(false)}
-                    className="absolute inset-0 w-full h-full bg-black/55 backdrop-blur-sm"
+                    onClick={closeMenu}
+                    className="absolute inset-0 w-full h-full bg-black/45 backdrop-blur-sm"
                 />
                 <div
                     ref={menuRef}
@@ -190,29 +178,26 @@ export function SiteHeader() {
                     aria-modal="true"
                     aria-label="AYIN"
                     tabIndex={-1}
-                    className={`absolute inset-y-0 start-0 w-[82%] max-w-sm bg-paper p-8 flex flex-col outline-none transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                    className={`absolute inset-y-0 start-0 w-[84%] max-w-sm bg-bone p-8 flex flex-col outline-none transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
                         menuOpen ? 'translate-x-0' : 'ltr:-translate-x-full rtl:translate-x-full'
                     }`}
                 >
-                    <div className="flex items-center justify-between mb-14">
-                        <span className="display text-2xl tracking-[0.3em]">AYIN</span>
-                        <button type="button" onClick={() => setMenuOpen(false)} aria-label="Close">
+                    <div className="flex items-center justify-between mb-12">
+                        <Wordmark />
+                        <button type="button" onClick={closeMenu} aria-label="Close">
                             <IconClose className="w-6 h-6" />
                         </button>
                     </div>
-                    <nav className="flex flex-col gap-5 overflow-y-auto scrollbar-hidden">
-                        {mobileLinks.map((link, i) => (
-                            <Link
-                                key={link.href}
-                                href={link.href}
-                                className="display text-2xl"
-                                style={{ animationDelay: `${i * 60}ms` }}
-                            >
+                    <nav className="flex flex-col gap-4 overflow-y-auto scrollbar-hidden">
+                        {links.map((link) => (
+                            <Link key={link.href} href={link.href} className="display text-2xl">
                                 {link.label}
                             </Link>
                         ))}
                     </nav>
-                    <p className="pt-6 mt-auto text-sm text-inksoft">{t.brandTagline}</p>
+                    <div className="pt-6 mt-auto border-t hairline">
+                        <AnnouncementBar />
+                    </div>
                 </div>
             </div>
         </>

@@ -47,7 +47,7 @@ export function ProductCard({ product, onQuickView, priority = false }) {
                     type="button"
                     onClick={() => toggleWish(product.slug)}
                     aria-label="wishlist"
-                    className="absolute grid w-9 h-9 transition-transform rounded-full top-3 end-3 place-items-center bg-paper/85 backdrop-blur hover:scale-110 active:scale-95"
+                    className="absolute grid w-9 h-9 transition-transform top-3 end-3 place-items-center bg-bone/90 backdrop-blur hover:scale-110 active:scale-95"
                 >
                     <IconHeart filled={wished} className={`w-[18px] h-[18px] ${wished ? 'text-brass' : 'text-ink'}`} />
                 </button>

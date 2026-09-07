@@ -18,13 +18,19 @@ export default function ShopLayout({ children }) {
     return (
         <ShopProvider>
             <JsonLd data={organisationJsonLd()} />
-            <div className="flex flex-col min-h-screen shop">
-                <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:z-[100] focus:top-3 focus:start-3 focus:px-5 focus:py-3 focus:rounded-full focus:bg-ink focus:text-bone">
+            <div className="min-h-screen shop">
+                <a
+                    href="#main"
+                    className="sr-only focus:not-sr-only focus:fixed focus:z-[100] focus:top-3 focus:start-3 focus:px-5 focus:py-3 focus:bg-ink focus:text-bone"
+                >
                     דלגו לתוכן
                 </a>
                 <SiteHeader />
-                <main id="main" className="grow">{children}</main>
-                <SiteFooter />
+                {/* The rail is fixed, so the page is inset by its width from lg up. */}
+                <div className="flex flex-col min-h-screen lg:ps-64">
+                    <main id="main" className="grow">{children}</main>
+                    <SiteFooter />
+                </div>
                 <CartDrawer />
             </div>
         </ShopProvider>

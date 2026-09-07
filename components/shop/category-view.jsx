@@ -43,7 +43,7 @@ function Spotlight({ product, onQuickView }) {
                     type="button"
                     onClick={() => toggleWish(product.slug)}
                     aria-label={t.nav.wishlist}
-                    className="absolute grid w-10 h-10 transition-transform rounded-full top-4 end-4 place-items-center bg-paper/85 backdrop-blur hover:scale-110 active:scale-95"
+                    className="absolute grid w-10 h-10 transition-transform top-4 end-4 place-items-center bg-bone/90 backdrop-blur hover:scale-110 active:scale-95"
                 >
                     <IconHeart filled={wished} className={`w-5 h-5 ${wished ? 'text-brass' : 'text-ink'}`} />
                 </button>
