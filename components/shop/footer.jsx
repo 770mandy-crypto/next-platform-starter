@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { CATEGORIES } from '../../data/catalogue';
 import { useShop } from './providers';
 import { IconArrow } from './icons';
 import { Reveal } from './reveal';
@@ -53,16 +54,25 @@ export function Newsletter() {
 }
 
 export function SiteFooter() {
-    const { t } = useShop();
+    const { t, lang } = useShop();
 
     const columns = [
         {
             title: t.footer.shop,
             links: [
                 { label: t.nav.collection, href: '/collection' },
+                { label: t.nav.search, href: '/search' },
+                { label: t.nav.wishlist, href: '/wishlist' },
                 { label: t.nav.fit, href: '/fit' },
                 { label: t.cart.title, href: '/checkout' }
             ]
+        },
+        {
+            title: t.sections.categories,
+            links: Object.entries(CATEGORIES).map(([key, entry]) => ({
+                label: entry.name[lang],
+                href: `/category/${key}`
+            }))
         },
         {
             title: t.footer.about,
@@ -83,7 +93,7 @@ export function SiteFooter() {
 
     return (
         <footer className="px-5 pt-20 pb-10 border-t bg-bone hairline sm:px-10">
-            <div className="grid gap-12 mx-auto max-w-[1600px] md:grid-cols-[1.4fr_repeat(3,1fr)]">
+            <div className="grid gap-12 mx-auto max-w-[1600px] md:grid-cols-2 lg:grid-cols-[1.4fr_repeat(4,1fr)]">
                 <div>
                     <p className="display text-[2rem] tracking-[0.32em] mb-4">AYIN</p>
                     <p className="max-w-xs text-sm leading-relaxed text-inksoft">{t.brandTagline}</p>

@@ -1,4 +1,4 @@
-import { products } from '../../data/eyewear';
+import { products } from '../../data/catalogue';
 
 export function siteOrigin() {
     const raw = process.env.DEPLOY_PRIME_URL ?? process.env.URL ?? 'http://localhost:3000';

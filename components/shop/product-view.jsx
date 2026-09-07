@@ -3,12 +3,13 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
-import { products, SHAPES, FACE_SHAPES, LENS_UPGRADES } from '../../data/eyewear';
+import { products, CATEGORIES, FACE_SHAPES, LENS_UPGRADES } from '../../data/catalogue';
 import { useShop } from './providers';
 import { SpinViewer } from './spin-viewer';
 import { ProductCard } from './product-card';
 import { Reveal } from './reveal';
 import { TryOn } from './try-on';
+import { RecentlyViewed } from './recently-viewed';
 import { IconHeart, IconArrow } from './icons';
 
 function ZoomPhoto({ src, alt }) {
@@ -67,42 +68,44 @@ function Accordion({ title, children, defaultOpen = false }) {
     );
 }
 
-function SpecDiagram({ specs, t }) {
+function FrameDiagram({ frame }) {
+    return (
+        <svg viewBox="0 0 300 110" className="w-full max-w-sm mb-5" role="presentation">
+            <g fill="none" stroke="currentColor" strokeWidth="1.6" className="text-ink">
+                <rect x="34" y="34" width="86" height="52" rx="16" />
+                <rect x="150" y="34" width="86" height="52" rx="16" />
+                <path d="M120 52c10-6 20-6 30 0" />
+                <path d="M34 46 12 38M236 46l22-8" />
+            </g>
+            <g stroke="currentColor" strokeWidth="1" className="text-brass">
+                <path d="M34 98h86M120 98h30M150 98h86" />
+                <path d="M34 94v8M120 94v8M150 94v8M236 94v8" />
+            </g>
+            <g className="fill-current text-inksoft" fontSize="9">
+                <text x="70" y="110" textAnchor="middle">
+                    {frame.lens}
+                </text>
+                <text x="135" y="110" textAnchor="middle">
+                    {frame.bridge}
+                </text>
+                <text x="193" y="110" textAnchor="middle">
+                    {frame.lens}
+                </text>
+            </g>
+        </svg>
+    );
+}
+
+/** Specs are a plain label/value list, so every category can describe itself. */
+function SpecList({ product, lang }) {
     return (
         <div>
-            <svg viewBox="0 0 300 110" className="w-full max-w-sm mb-4" role="img" aria-label={t.product.specs}>
-                <g fill="none" stroke="currentColor" strokeWidth="1.6" className="text-ink">
-                    <rect x="34" y="34" width="86" height="52" rx="16" />
-                    <rect x="150" y="34" width="86" height="52" rx="16" />
-                    <path d="M120 52c10-6 20-6 30 0" />
-                    <path d="M34 46 12 38M236 46l22-8" />
-                </g>
-                <g stroke="currentColor" strokeWidth="1" className="text-brass">
-                    <path d="M34 98h86M120 98h30M150 98h86" />
-                    <path d="M34 94v8M120 94v8M150 94v8M236 94v8" />
-                </g>
-                <g className="fill-current text-inksoft" fontSize="9">
-                    <text x="70" y="110" textAnchor="middle">
-                        {specs.lens}
-                    </text>
-                    <text x="135" y="110" textAnchor="middle">
-                        {specs.bridge}
-                    </text>
-                    <text x="193" y="110" textAnchor="middle">
-                        {specs.lens}
-                    </text>
-                </g>
-            </svg>
-            <dl className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm sm:grid-cols-4">
-                {[
-                    [t.product.lensWidth, `${specs.lens} mm`],
-                    [t.product.bridge, `${specs.bridge} mm`],
-                    [t.product.temple, `${specs.temple} mm`],
-                    [t.product.weight, `${specs.weight} g`]
-                ].map(([label, value]) => (
-                    <div key={label}>
-                        <dt className="text-xs text-inksoft">{label}</dt>
-                        <dd className="ticker-digit">{value}</dd>
+            {product.frame && <FrameDiagram frame={product.frame} />}
+            <dl className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
+                {product.specs.map((spec) => (
+                    <div key={spec.label.en}>
+                        <dt className="text-xs text-inksoft">{spec.label[lang]}</dt>
+                        <dd className="ticker-digit">{spec.value[lang]}</dd>
                     </div>
                 ))}
             </dl>
@@ -118,19 +121,20 @@ export function ProductView({ slug }) {
     const [view, setView] = useState('photo');
     const [justAdded, setJustAdded] = useState(false);
     const [tryOnOpen, setTryOnOpen] = useState(false);
+    const isEyewear = Boolean(product?.frame);
 
     if (!product) return null;
 
     const variant = product.variants[index];
     const lens = LENS_UPGRADES.find((l) => l.id === lensId);
-    const totalPrice = product.price + lens.price;
+    const totalPrice = product.price + (isEyewear ? lens.price : 0);
     const wished = wishlist.includes(product.slug);
-    const related = products.filter((p) => p.slug !== product.slug && p.shape === product.shape).slice(0, 4);
+    const related = products.filter((p) => p.slug !== product.slug && p.category === product.category).slice(0, 4);
     const fallback = products.filter((p) => p.slug !== product.slug).slice(0, 4);
     const suggestions = (related.length >= 3 ? related : fallback).slice(0, 4);
 
     const handleAdd = () => {
-        addItem(variant.id, lensId);
+        addItem(variant.id, isEyewear ? lensId : 'standard');
         setJustAdded(true);
         setTimeout(() => setJustAdded(false), 2200);
     };
@@ -143,8 +147,8 @@ export function ProductView({ slug }) {
                         AYIN
                     </Link>
                     <span>/</span>
-                    <Link href="/collection" className="hover:text-ink">
-                        {t.nav.collection}
+                    <Link href={`/category/${product.category}`} className="hover:text-ink">
+                        {CATEGORIES[product.category].name[lang]}
                     </Link>
                     <span>/</span>
                     <span className="text-ink">{product.name[lang]}</span>
@@ -202,7 +206,7 @@ export function ProductView({ slug }) {
 
                     <div>
                         <div className="flex items-center gap-3 mb-4">
-                            <p className="eyebrow">{SHAPES[product.shape][lang]}</p>
+                            <p className="eyebrow">{CATEGORIES[product.category].name[lang]}</p>
                             {product.badge && (
                                 <span className="px-3 py-1 text-[0.6rem] tracking-[0.18em] uppercase rounded-full bg-bone">
                                     {t.badges[product.badge]}
@@ -242,14 +246,15 @@ export function ProductView({ slug }) {
                                 ))}
                             </div>
                             <p className="mt-3 text-xs text-inksoft">
-                                {t.product.lens}: {variant.lens[lang]}
+                                {variant.accent[lang]}
                                 <span
                                     className="inline-block w-3 h-3 ms-2 align-middle rounded-full"
-                                    style={{ background: variant.lensHex }}
+                                    style={{ background: variant.accentHex }}
                                 />
                             </p>
                         </div>
 
+                        {isEyewear && (
                         <div className="mb-8">
                             <p className="mb-3 eyebrow">{t.product.lensOption}</p>
                             <div className="grid gap-2 sm:grid-cols-2">
@@ -270,6 +275,7 @@ export function ProductView({ slug }) {
                                 ))}
                             </div>
                         </div>
+                        )}
 
                         <div className="flex gap-3 mb-4">
                             <button type="button" onClick={handleAdd} className="flex-1 btn-ayin">
@@ -285,13 +291,15 @@ export function ProductView({ slug }) {
                             </button>
                         </div>
 
-                        <button
-                            type="button"
-                            onClick={() => setTryOnOpen(true)}
-                            className="w-full mb-4 btn-ayin btn-ghost btn-sm"
-                        >
-                            <span>{t.tryOn.cta}</span>
-                        </button>
+                        {isEyewear && (
+                            <button
+                                type="button"
+                                onClick={() => setTryOnOpen(true)}
+                                className="w-full mb-4 btn-ayin btn-ghost btn-sm"
+                            >
+                                <span>{t.tryOn.cta}</span>
+                            </button>
+                        )}
 
                         <p className="flex items-center gap-2 mb-10 text-xs text-inksoft">
                             <span className="w-1.5 h-1.5 rounded-full bg-green-600" />
@@ -313,15 +321,16 @@ export function ProductView({ slug }) {
                                 </ul>
                             </Accordion>
                             <Accordion title={t.product.specs}>
-                                <SpecDiagram specs={product.specs} t={t} />
+                                <SpecList product={product} lang={lang} />
                             </Accordion>
                             <Accordion title={t.product.shipping}>{t.product.shippingBody}</Accordion>
                         </div>
 
+                        {isEyewear && (
                         <div className="mt-8">
                             <p className="mb-3 eyebrow">{t.product.fitsFaces}</p>
                             <div className="flex flex-wrap gap-2">
-                                {product.fits.map((face) => (
+                                {product.frame.fits.map((face) => (
                                     <span key={face} className="px-4 py-2 text-xs rounded-full bg-bone">
                                         {FACE_SHAPES[face][lang]}
                                     </span>
@@ -331,6 +340,7 @@ export function ProductView({ slug }) {
                                 </Link>
                             </div>
                         </div>
+                        )}
                     </div>
                 </div>
             </section>
@@ -355,6 +365,8 @@ export function ProductView({ slug }) {
                     </Reveal>
                 </div>
             </section>
+
+            <RecentlyViewed currentSlug={product.slug} />
 
             {tryOnOpen && <TryOn product={product} variant={variant} onClose={() => setTryOnOpen(false)} />}
         </>

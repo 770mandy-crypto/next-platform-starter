@@ -2,7 +2,10 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { products, FACE_SHAPES } from '../../data/eyewear';
+import { products, FACE_SHAPES, CATEGORIES } from '../../data/catalogue';
+
+// The fit finder is about frames, so it only ever scores eyewear.
+const frames = products.filter((p) => p.frame);
 import { useShop } from './providers';
 import { ProductCard } from './product-card';
 import { QuickView } from './quick-view';
@@ -19,14 +22,14 @@ const PRESENCE_WEIGHT = { low: [0, 25], mid: [25, 29], high: [29, 99] };
 
 function score(product, answers) {
     let value = 0;
-    if (answers.face && product.fits.includes(answers.face)) value += 4;
-    if (answers.look && LOOK_SHAPES[answers.look].includes(product.shape)) value += 3;
+    if (answers.face && product.frame.fits.includes(answers.face)) value += 4;
+    if (answers.look && LOOK_SHAPES[answers.look].includes(product.frame.shape)) value += 3;
     if (answers.presence) {
         const [min, max] = PRESENCE_WEIGHT[answers.presence];
-        if (product.specs.weight >= min && product.specs.weight < max) value += 2;
+        if (product.frame.weight >= min && product.frame.weight < max) value += 2;
     }
     // stable, deterministic tiebreak so equal scores keep a fixed order
-    value += (100 - product.specs.weight) / 1000;
+    value += (100 - product.frame.weight) / 1000;
     return value;
 }
 
@@ -51,7 +54,7 @@ export function FitQuiz() {
     const [quick, setQuick] = useState(null);
 
     const results = useMemo(
-        () => [...products].sort((a, b) => score(b, answers) - score(a, answers)).slice(0, 3),
+        () => [...frames].sort((a, b) => score(b, answers) - score(a, answers)).slice(0, 3),
         [answers]
     );
 
@@ -139,7 +142,13 @@ export function FitQuiz() {
                                 {FACE_SHAPES[answers.face]?.[lang]} · {t.fit.looks[answers.look]} ·{' '}
                                 {t.fit.presence[answers.presence]}
                             </p>
-                            <div className="grid gap-6 sm:grid-cols-3">
+                            <div
+                                className={
+                                    // one frame in the catalogue should not sit in a
+                                    // three-column grid with two empty columns
+                                    results.length > 1 ? 'grid gap-6 sm:grid-cols-3' : 'grid gap-6 mx-auto max-w-sm'
+                                }
+                            >
                                 {results.map((product, index) => (
                                     <Reveal key={product.slug} delay={index * 120}>
                                         <ProductCard product={product} onQuickView={setQuick} />
@@ -147,8 +156,8 @@ export function FitQuiz() {
                                 ))}
                             </div>
                             <div className="flex flex-wrap justify-center gap-3 mt-12">
-                                <Link href="/collection" className="btn-ayin">
-                                    <span>{t.sections.all}</span>
+                                <Link href="/category/eyewear" className="btn-ayin">
+                                    <span>{CATEGORIES.eyewear.name[lang]}</span>
                                     <IconArrow className="w-4 h-4 rtl:rotate-180" />
                                 </Link>
                                 <button

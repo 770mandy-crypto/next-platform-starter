@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { findVariant, LENS_UPGRADES } from '../../data/eyewear';
+import { findVariant, LENS_UPGRADES } from '../../data/catalogue';
 import { dict, formatPrice, FREE_SHIPPING_THRESHOLD } from '../../lib/shop/i18n';
 
 const SHIPPING_COST = 29;

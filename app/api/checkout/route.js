@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { findVariant, LENS_UPGRADES } from '../../../data/eyewear';
+import { findVariant, LENS_UPGRADES } from '../../../data/catalogue';
 
 const SHIPPING_ILS = 29;
 const FREE_SHIPPING_ILS = 500;
@@ -58,7 +58,7 @@ export async function POST(request) {
                 unit_amount: toMinor(unitIls),
                 product_data: {
                     name: `${found.product.name[lang]} — ${found.variant.color[lang]}`,
-                    description: lens.price > 0 ? lens.label[lang] : found.variant.lens[lang],
+                    description: lens.price > 0 ? lens.label[lang] : found.variant.accent[lang],
                     metadata: { slug: found.product.slug, variant: found.variant.id, lens: lens.id }
                 }
             }

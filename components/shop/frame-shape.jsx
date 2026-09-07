@@ -53,7 +53,8 @@ export function frameWidthMm(specs) {
 }
 
 export function FrameShape({ product, variant, className = '', style }) {
-    const { specs, shape } = product;
+    const specs = product.frame;
+    const { shape } = specs;
     const lensW = specs.lens;
     const lensH = Math.round(specs.lens * (shape === 'rectangle' ? 0.68 : shape === 'oval' ? 0.72 : 0.8));
     const totalW = frameWidthMm(specs);

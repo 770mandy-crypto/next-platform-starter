@@ -1,4 +1,4 @@
-import { products } from '../data/eyewear';
+import { products, CATEGORIES } from '../data/catalogue';
 
 const SHOP_ROUTES = ['', '/collection', '/story', '/fit', '/service'];
 
@@ -18,6 +18,12 @@ export default function sitemap() {
             lastModified: now,
             changeFrequency: route === '' ? 'weekly' : 'monthly',
             priority: route === '' ? 1 : 0.7
+        })),
+        ...Object.keys(CATEGORIES).map((key) => ({
+            url: `${origin}/category/${key}`,
+            lastModified: now,
+            changeFrequency: 'weekly',
+            priority: 0.8
         })),
         ...products.map((product) => ({
             url: `${origin}/product/${product.slug}`,

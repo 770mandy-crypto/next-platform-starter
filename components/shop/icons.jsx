@@ -73,3 +73,12 @@ export function IconGlobe(props) {
         </svg>
     );
 }
+
+export function IconSearch(props) {
+    return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" {...props}>
+            <circle cx="11" cy="11" r="6.4" />
+            <path d="m16 16 4 4" />
+        </svg>
+    );
+}

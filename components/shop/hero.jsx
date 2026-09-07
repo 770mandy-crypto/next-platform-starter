@@ -8,9 +8,9 @@ import { RevealWords } from './reveal';
 import { IconArrow } from './icons';
 
 const HERO_FRAMES = [
-    { src: '/products/hexa-olive-1.jpg', tint: '#7d8a5c' },
-    { src: '/products/aras-onyx-1.jpg', tint: '#a9793e' },
-    { src: '/products/vela-yellow-1.jpg', tint: '#e2942a' }
+    { src: '/products/sovereign-rose-1.jpg', tint: '#b76e53' },
+    { src: '/products/vesper-taupe-1.jpg', tint: '#6b5a51' },
+    { src: '/products/hexa-noir-1.jpg', tint: '#2f6fb5' }
 ];
 
 export function Hero() {
@@ -71,8 +71,8 @@ export function Hero() {
                             <span>{t.hero.cta}</span>
                             <IconArrow className="w-4 h-4 rtl:rotate-180" />
                         </Link>
-                        <Link href="/fit" className="btn-ayin btn-ghost">
-                            <span>{t.hero.ctaAlt}</span>
+                        <Link href="/#categories" className="btn-ayin btn-ghost">
+                            <span>{t.hero.ctaCategories}</span>
                         </Link>
                     </div>
                 </div>

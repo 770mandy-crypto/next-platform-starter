@@ -101,7 +101,7 @@ export function TryOn({ product, variant, onClose }) {
                     // percentage of the preview box
                     cx: ((left.x + right.x) / 2) * 100,
                     cy: (bridge.y + (left.y + right.y) / 2) / 2 * 100,
-                    widthPct: (spanRatio * frameWidthMm(product.specs)) / FACE_EYE_SPAN_MM * 100,
+                    widthPct: (spanRatio * frameWidthMm(product.frame)) / FACE_EYE_SPAN_MM * 100,
                     angle: (Math.atan2(dy * video.videoHeight, dx * video.videoWidth) * 180) / Math.PI
                 });
             } else {

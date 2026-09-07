@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { products, SHAPES } from '../../data/eyewear';
+import { products, CATEGORIES, COLOUR_FAMILIES } from '../../data/catalogue';
 import { useShop } from './providers';
 import { ProductCard } from './product-card';
 import { QuickView } from './quick-view';
@@ -9,18 +9,10 @@ import { Reveal } from './reveal';
 import { Newsletter } from './footer';
 
 const PRICE_BANDS = [
-    { id: 'under600', label: { he: 'עד 600 ₪', en: 'Under $170' }, test: (p) => p.price < 600 },
-    { id: 'mid', label: { he: '600–750 ₪', en: '$170–$210' }, test: (p) => p.price >= 600 && p.price <= 750 },
-    { id: 'over750', label: { he: 'מעל 750 ₪', en: 'Over $210' }, test: (p) => p.price > 750 }
+    { id: 'under200', label: { he: 'עד 200 ₪', en: 'Under $55' }, test: (p) => p.price < 200 },
+    { id: 'mid', label: { he: '200–400 ₪', en: '$55–$110' }, test: (p) => p.price >= 200 && p.price <= 400 },
+    { id: 'over400', label: { he: 'מעל 400 ₪', en: 'Over $110' }, test: (p) => p.price > 400 }
 ];
-
-const COLOUR_FAMILIES = {
-    black: { he: 'שחור', en: 'Black', hex: '#141414', match: (v) => ['#151312', '#0b0b0c', '#0d0d0f', '#101114', '#141414', '#111113'].includes(v.hex) },
-    tortoise: { he: 'שריון צב', en: 'Tortoise', hex: '#8a4a16', match: (v) => ['#8a4a16', '#5e2d10', '#77380f', '#5b2c0d', '#7a3f14', '#a5561f'].includes(v.hex) },
-    green: { he: 'ירוק', en: 'Green', hex: '#7d8a5c', match: (v) => ['#7d8a5c', '#6f7a52'].includes(v.hex) },
-    brown: { he: 'חום', en: 'Brown', hex: '#7c4a2a', match: (v) => ['#7c4a2a'].includes(v.hex) },
-    smoke: { he: 'עשן', en: 'Smoke', hex: '#4a4a52', match: (v) => ['#4a4a52'].includes(v.hex) }
-};
 
 function Chip({ active, children, ...rest }) {
     return (
@@ -36,17 +28,19 @@ function Chip({ active, children, ...rest }) {
     );
 }
 
-export function CollectionView() {
+export function CollectionView({ initialCategory = null }) {
     const { t, lang } = useShop();
-    const [shape, setShape] = useState(null);
+    const [category, setCategory] = useState(initialCategory);
     const [band, setBand] = useState(null);
     const [colour, setColour] = useState(null);
     const [sort, setSort] = useState('featured');
     const [quick, setQuick] = useState(null);
+    // A category page pins one category; the copy follows the language toggle.
+    const landing = initialCategory ? CATEGORIES[initialCategory] : null;
 
     const filtered = useMemo(() => {
         let list = products.filter((product) => {
-            if (shape && product.shape !== shape) return false;
+            if (category && product.category !== category) return false;
             if (band && !PRICE_BANDS.find((b) => b.id === band).test(product)) return false;
             if (colour && !product.variants.some((v) => COLOUR_FAMILIES[colour].match(v))) return false;
             return true;
@@ -55,26 +49,30 @@ export function CollectionView() {
         if (sort === 'priceDesc') list = [...list].sort((a, b) => b.price - a.price);
         if (sort === 'new') list = [...list].sort((a, b) => Number(b.badge === 'new') - Number(a.badge === 'new'));
         return list;
-    }, [shape, band, colour, sort]);
+    }, [category, band, colour, sort]);
 
-    const dirty = shape || band || colour;
+    const dirty = category || band || colour;
 
     return (
         <>
             <section className="px-5 pt-14 pb-8 sm:px-10 sm:pt-20">
                 <div className="mx-auto max-w-[1600px]">
                     <p className="mb-4 eyebrow animate-in-up">AYIN 2026</p>
-                    <h1 className="mb-4 max-w-3xl">{t.sections.all}</h1>
-                    <p className="max-w-md text-inksoft">{t.sections.allSub}</p>
+                    <h1 className="mb-4 max-w-3xl">{landing ? landing.name[lang] : t.sections.all}</h1>
+                    <p className="max-w-md text-inksoft">{landing ? landing.lead[lang] : t.sections.allSub}</p>
                 </div>
             </section>
 
             <section className="sticky z-30 px-5 py-4 border-y top-[57px] sm:px-10 hairline bg-paper/90 backdrop-blur-xl">
                 <div className="flex flex-wrap items-center gap-2 mx-auto max-w-[1600px]">
-                    <span className="eyebrow me-2 hidden sm:inline">{t.filters.shape}</span>
-                    {Object.entries(SHAPES).map(([key, label]) => (
-                        <Chip key={key} active={shape === key} onClick={() => setShape(shape === key ? null : key)}>
-                            {label[lang]}
+                    <span className="eyebrow me-2 hidden sm:inline">{t.filters.category}</span>
+                    {Object.entries(CATEGORIES).map(([key, entry]) => (
+                        <Chip
+                            key={key}
+                            active={category === key}
+                            onClick={() => setCategory(category === key ? null : key)}
+                        >
+                            {entry.name[lang]}
                         </Chip>
                     ))}
 
@@ -107,7 +105,7 @@ export function CollectionView() {
                             <button
                                 type="button"
                                 onClick={() => {
-                                    setShape(null);
+                                    setCategory(initialCategory);
                                     setBand(null);
                                     setColour(null);
                                 }}

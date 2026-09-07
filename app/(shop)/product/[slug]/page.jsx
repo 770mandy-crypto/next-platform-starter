@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { products, getProduct } from '../../../../data/eyewear';
+import { products, getProduct } from '../../../../data/catalogue';
 import { ProductView } from '../../../../components/shop/product-view';
 import { JsonLd, productJsonLd, breadcrumbJsonLd } from '../../../../lib/shop/seo';
 

@@ -157,7 +157,7 @@ export function CartDrawer() {
                                             <span className="text-sm ticker-digit">{price(line.total)}</span>
                                         </div>
                                         <p className="mt-1 text-xs text-inksoft">
-                                            {line.variant.color[lang]} · {line.variant.lens[lang]}
+                                            {line.variant.color[lang]} · {line.variant.accent[lang]}
                                         </p>
                                         {line.lens.price > 0 && (
                                             <p className="mt-0.5 text-xs text-brass">{line.lens.label[lang]}</p>

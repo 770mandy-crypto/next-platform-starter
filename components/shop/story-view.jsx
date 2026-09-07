@@ -3,24 +3,25 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useShop } from './providers';
+import { products, allVariants, CATEGORIES } from '../../data/catalogue';
 import { Reveal } from './reveal';
 import { Newsletter } from './footer';
 import { Marquee } from './hero';
 
 const GALLERY = [
-    '/products/sage-olive-1.jpg',
-    '/products/aras-noir-1.jpg',
+    '/products/cuban-steel-1.jpg',
+    '/products/vault-carbon-1.jpg',
     '/products/hexa-tortoise-1.jpg',
-    '/products/marlow-black-1.jpg'
+    '/products/lyra-silver-1.jpg'
 ];
 
-// Only figures the storefront itself can prove: they are counted from the
-// catalogue and from the shop's own policies.
+// Only figures the storefront itself can prove: the first three are counted
+// from the catalogue at build time, the last is the shop's own policy.
 const NUMBERS = [
-    { value: '10', label: { he: 'דגמים', en: 'models' } },
-    { value: '16', label: { he: 'גוונים', en: 'colourways' } },
-    { value: '30', label: { he: 'יום להחזרה', en: 'day returns' } },
-    { value: '2–4', label: { he: 'ימי משלוח', en: 'day delivery' } }
+    { value: String(products.length), label: { he: 'מוצרים', en: 'products' } },
+    { value: String(Object.keys(CATEGORIES).length), label: { he: 'קטגוריות', en: 'categories' } },
+    { value: String(allVariants.length), label: { he: 'גוונים', en: 'colourways' } },
+    { value: '30', label: { he: 'יום להחזרה', en: 'day returns' } }
 ];
 
 export function StoryView() {
@@ -39,7 +40,7 @@ export function StoryView() {
             <section className="px-5 pb-16 sm:px-10">
                 <Reveal mask className="relative mx-auto max-w-[1600px] aspect-[16/9] overflow-hidden rounded-3xl">
                     <Image
-                        src="/products/hexa-olive-1.jpg"
+                        src="/products/vesper-taupe-1.jpg"
                         alt=""
                         fill
                         priority

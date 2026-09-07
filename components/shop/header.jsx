@@ -4,8 +4,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { useShop } from './providers';
+import { CATEGORIES } from '../../data/catalogue';
 import { useDialog } from '../../lib/shop/use-dialog';
-import { IconBag, IconClose, IconGlobe, IconMenu } from './icons';
+import { IconBag, IconClose, IconGlobe, IconHeart, IconMenu, IconSearch } from './icons';
 
 export function AnnouncementBar() {
     const { t } = useShop();
@@ -39,7 +40,7 @@ export function AnnouncementBar() {
 }
 
 export function SiteHeader() {
-    const { t, lang, setLang, count, setCartOpen } = useShop();
+    const { t, lang, setLang, count, setCartOpen, wishlist } = useShop();
     const pathname = usePathname();
     const [scrolled, setScrolled] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
@@ -57,10 +58,26 @@ export function SiteHeader() {
         setMenuOpen(false);
     }, [pathname]);
 
+    const categoryLinks = Object.entries(CATEGORIES).map(([key, entry]) => ({
+        href: `/category/${key}`,
+        label: entry.name[lang]
+    }));
+
     const links = [
         { href: '/collection', label: t.nav.collection },
+        ...categoryLinks.slice(0, 4),
         { href: '/story', label: t.nav.story },
+        { href: '/service', label: t.nav.care }
+    ];
+
+    // The mobile drawer shows every category rather than the trimmed desktop row.
+    const mobileLinks = [
+        { href: '/collection', label: t.nav.collection },
+        ...categoryLinks,
         { href: '/fit', label: t.nav.fit },
+        { href: '/search', label: t.nav.search },
+        { href: '/wishlist', label: t.nav.wishlist },
+        { href: '/story', label: t.nav.story },
         { href: '/service', label: t.nav.care }
     ];
 
@@ -77,7 +94,7 @@ export function SiteHeader() {
                         type="button"
                         onClick={() => setMenuOpen(true)}
                         aria-label="Menu"
-                        className="py-5 md:hidden -mx-1 px-1"
+                        className="py-5 lg:hidden -mx-1 px-1"
                     >
                         <IconMenu className="w-6 h-6" />
                     </button>
@@ -88,7 +105,7 @@ export function SiteHeader() {
                         </span>
                     </Link>
 
-                    <nav className="hidden gap-8 md:flex ms-4">
+                    <nav className="hidden gap-5 lg:flex ms-4">
                         {links.map((link) => (
                             <Link
                                 key={link.href}
@@ -103,6 +120,25 @@ export function SiteHeader() {
                     </nav>
 
                     <div className="flex items-center gap-1 ms-auto sm:gap-3">
+                        <Link
+                            href="/search"
+                            aria-label={t.nav.search}
+                            className="px-2 py-2 transition-colors hover:text-brass"
+                        >
+                            <IconSearch className="w-[22px] h-[22px]" />
+                        </Link>
+
+                        <Link
+                            href="/wishlist"
+                            aria-label={t.nav.wishlist}
+                            className="relative hidden px-2 py-2 transition-colors sm:block hover:text-brass"
+                        >
+                            <IconHeart filled={wishlist.length > 0} className="w-[22px] h-[22px]" />
+                            {wishlist.length > 0 && (
+                                <span className="absolute top-0.5 end-0.5 w-2 h-2 rounded-full bg-brass" />
+                            )}
+                        </Link>
+
                         <button
                             type="button"
                             onClick={() => setLang(lang === 'he' ? 'en' : 'he')}
@@ -137,7 +173,7 @@ export function SiteHeader() {
 
             {/* mobile drawer */}
             <div
-                className={`fixed inset-0 z-50 md:hidden transition-opacity duration-300 ${
+                className={`fixed inset-0 z-50 lg:hidden transition-opacity duration-300 ${
                     menuOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
                 }`}
                 inert={!menuOpen}
@@ -164,19 +200,19 @@ export function SiteHeader() {
                             <IconClose className="w-6 h-6" />
                         </button>
                     </div>
-                    <nav className="flex flex-col gap-6">
-                        {links.map((link, i) => (
+                    <nav className="flex flex-col gap-5 overflow-y-auto scrollbar-hidden">
+                        {mobileLinks.map((link, i) => (
                             <Link
                                 key={link.href}
                                 href={link.href}
-                                className="display text-3xl"
+                                className="display text-2xl"
                                 style={{ animationDelay: `${i * 60}ms` }}
                             >
                                 {link.label}
                             </Link>
                         ))}
                     </nav>
-                    <p className="mt-auto text-sm text-inksoft">{t.brandTagline}</p>
+                    <p className="pt-6 mt-auto text-sm text-inksoft">{t.brandTagline}</p>
                 </div>
             </div>
         </>

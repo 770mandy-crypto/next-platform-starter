@@ -6,7 +6,7 @@ import { useShop } from './providers';
 import { useDialog } from '../../lib/shop/use-dialog';
 import { SpinViewer } from './spin-viewer';
 import { IconClose } from './icons';
-import { SHAPES } from '../../data/eyewear';
+import { CATEGORIES } from '../../data/catalogue';
 
 export function QuickView({ product, onClose }) {
     const { lang, t, price, addItem } = useShop();
@@ -58,7 +58,7 @@ export function QuickView({ product, onClose }) {
                     </div>
 
                     <div className="flex flex-col p-7 sm:p-9">
-                        <p className="eyebrow mb-3">{SHAPES[product.shape][lang]}</p>
+                        <p className="eyebrow mb-3">{CATEGORIES[product.category].name[lang]}</p>
                         <h3 className="display text-3xl mb-2">{product.name[lang]}</h3>
                         <p className="mb-4 text-sm text-inksoft">{product.tagline[lang]}</p>
 

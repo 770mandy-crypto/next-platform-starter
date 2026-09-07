@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
-import { products } from '../../data/eyewear';
+import { products, CATEGORIES, productsIn } from '../../data/catalogue';
 import { useShop } from './providers';
 import { Hero, Marquee } from './hero';
 import { ProductCard } from './product-card';
@@ -13,14 +13,14 @@ import { Reveal } from './reveal';
 import { Newsletter } from './footer';
 import { IconArrow } from './icons';
 
-const FEATURED = ['aras', 'hexa', 'marlow'];
-// Studio shots without packaging read best on the turntable.
+const FEATURED = ['sovereign', 'vault', 'tennis'];
+// Clean studio shots read best on the turntable.
 const SPIN_PICKS = [
-    { slug: 'hexa', variantId: 'hexa-amber' },
-    { slug: 'aras', variantId: 'aras-onyx' },
-    { slug: 'otto', variantId: 'otto-amber' },
-    { slug: 'nova', variantId: 'nova-tortoise' },
-    { slug: 'kira', variantId: 'kira-leopard' }
+    { slug: 'sovereign', variantId: 'sovereign-rose' },
+    { slug: 'hexa', variantId: 'hexa-noir' },
+    { slug: 'tennis', variantId: 'tennis-silver' },
+    { slug: 'lumen', variantId: 'lumen-gold' },
+    { slug: 'cord', variantId: 'cord-ivory' }
 ];
 
 function SectionHead({ eyebrow, title, sub, href, cta }) {
@@ -112,7 +112,7 @@ function StoryStrip() {
             <div className="grid gap-12 mx-auto max-w-[1600px] lg:grid-cols-2 lg:gap-20 lg:items-center">
                 <Reveal mask className="relative overflow-hidden rounded-3xl aspect-[4/3]">
                     <Image
-                        src="/products/kelso-amber-1.jpg"
+                        src="/products/vesper-taupe-1.jpg"
                         alt=""
                         fill
                         sizes="(max-width: 1024px) 92vw, 45vw"
@@ -166,8 +166,52 @@ function Promises() {
     );
 }
 
+function CategoryGrid() {
+    const { t, lang } = useShop();
+    const entries = Object.entries(CATEGORIES);
+
+    return (
+        <section id="categories" className="px-5 py-24 sm:px-10 sm:py-28 scroll-mt-24">
+            <div className="mx-auto max-w-[1600px]">
+                <Reveal>
+                    <SectionHead eyebrow="02" title={t.sections.categories} sub={t.sections.categoriesSub} />
+                </Reveal>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {entries.map(([key, entry], index) => {
+                        const cover = productsIn(key)[0]?.variants[0];
+                        return (
+                            <Reveal key={key} delay={(index % 3) * 90}>
+                                <Link
+                                    href={`/category/${key}`}
+                                    className="relative block overflow-hidden group rounded-2xl bg-bone aspect-[5/4]"
+                                >
+                                    {cover && (
+                                        <Image
+                                            src={cover.image}
+                                            alt=""
+                                            fill
+                                            sizes="(max-width: 640px) 92vw, (max-width: 1100px) 45vw, 30vw"
+                                            className="object-cover transition-transform duration-[1200ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-105"
+                                        />
+                                    )}
+                                    <span className="absolute inset-x-0 bottom-0 p-5 bg-gradient-to-t from-ink/70 to-transparent">
+                                        <span className="block display text-2xl text-bone">{entry.name[lang]}</span>
+                                        <span className="block mt-1 text-xs text-bone/70">
+                                            {t.filters.results(productsIn(key).length)}
+                                        </span>
+                                    </span>
+                                </Link>
+                            </Reveal>
+                        );
+                    })}
+                </div>
+            </div>
+        </section>
+    );
+}
+
 function FitTeaser() {
-    const { t } = useShop();
+    const { t, lang } = useShop();
     return (
         <section className="px-5 py-24 sm:px-10">
             <Reveal className="relative overflow-hidden mx-auto max-w-[1600px] rounded-3xl bg-ink text-bone px-8 py-16 sm:px-16 sm:py-24 text-center">
@@ -176,12 +220,20 @@ function FitTeaser() {
                     className="absolute inset-x-0 -bottom-40 h-80 blur-3xl opacity-25"
                     style={{ background: 'radial-gradient(ellipse at center, #a9793e 0%, transparent 70%)' }}
                 />
-                <p className="relative mb-4 eyebrow text-bone/60">AYIN Fit</p>
+                <p className="relative mb-4 eyebrow text-bone/60">AYIN Fit · {CATEGORIES.eyewear.name[lang]}</p>
                 <h2 className="relative max-w-2xl mx-auto mb-5">{t.sections.fit}</h2>
                 <p className="relative max-w-md mx-auto mb-10 text-bone/70">{t.sections.fitSub}</p>
-                <Link href="/fit" className="relative btn-ayin bg-bone text-ink border-bone">
-                    <span>{t.hero.ctaAlt}</span>
-                </Link>
+                <div className="relative flex flex-wrap items-center justify-center gap-3">
+                    <Link href="/fit" className="btn-ayin bg-bone text-ink border-bone">
+                        <span>{t.hero.ctaAlt}</span>
+                    </Link>
+                    <Link
+                        href="/category/eyewear"
+                        className="text-xs tracking-[0.1em] uppercase underline text-bone/70 underline-offset-4 hover:text-bone"
+                    >
+                        {CATEGORIES.eyewear.name[lang]}
+                    </Link>
+                </div>
             </Reveal>
         </section>
     );
@@ -218,13 +270,14 @@ export function HomeView() {
                 </div>
             </section>
 
+            <CategoryGrid />
             <SpinShowcase />
             <StoryStrip />
 
             <section className="px-5 pb-24 sm:px-10">
                 <div className="mx-auto max-w-[1600px]">
                     <Reveal>
-                        <SectionHead eyebrow="02" title={t.sections.all} sub={t.sections.allSub} />
+                        <SectionHead eyebrow="03" title={t.sections.all} sub={t.sections.allSub} />
                     </Reveal>
                     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 sm:gap-8">
                         {products.slice(0, 8).map((product, index) => (
