@@ -426,27 +426,29 @@ export const products = [
     },
 
     // --------------------------------------------------------------- eyewear
+    // One photograph, one product. The two hexagon colourways are listed
+    // separately so each has its own page rather than hiding behind a swatch.
     {
-        slug: 'hexa',
+        slug: 'hexa-noir',
         category: 'eyewear',
-        name: { he: 'הקסה', en: 'Hexa' },
-        tagline: { he: 'שש צלעות, אינסוף זוויות', en: 'Six sides, endless angles' },
+        name: { he: 'הקסה שחור', en: 'Hexa Noir' },
+        tagline: { he: 'משושה בשחור מלוטש', en: 'The hexagon in polished black' },
         price: 560,
         compareAt: 690,
         badge: 'new',
         story: {
-            he: 'שש צלעות שמחדדות את עצמות הלחיים, עם מסמרת יהלום בקצה החזית. שני גוונים, אותה גיאומטריה.',
-            en: 'Six sides that sharpen the cheekbones, finished with a diamond rivet at the browline. Two colourways, one geometry.'
+            he: 'שש צלעות שמחדדות את עצמות הלחיים, עם מסמרת יהלום בקצה החזית. חזית שחורה מלוטשת ועדשה כחולה מדורגת.',
+            en: 'Six sides that sharpen the cheekbones, finished with a diamond rivet at the browline. Polished black front, graduated azure lens.'
         },
         details: {
             he: [
-                'חזית משושה מלוטשת',
+                'חזית משושה מלוטשת בשחור',
                 'מסמרת יהלום בכל פינה',
                 'עדשות עם הגנת UV400',
                 'זרועות דקות עם קצה מחוספס'
             ],
             en: [
-                'Polished hexagonal front',
+                'Polished hexagonal front in black',
                 'Diamond rivet at each corner',
                 'UV400 protection',
                 'Slim temples with ridged tips'
@@ -469,7 +471,43 @@ export const products = [
                 accentHex: '#2f6fb5',
                 lensHex: '#2f6fb5',
                 image: '/products/hexa-noir-1.jpg'
-            },
+            }
+        ]
+    },
+    {
+        slug: 'hexa-tortoise',
+        category: 'eyewear',
+        name: { he: 'הקסה צב', en: 'Hexa Tortoise' },
+        tagline: { he: 'אותה גיאומטריה, שריון צב', en: 'Same geometry, tortoiseshell' },
+        price: 560,
+        compareAt: 690,
+        badge: null,
+        story: {
+            he: 'אותן שש צלעות, הפעם בשריון צב עם עדשת ענבר. הדפוס משתנה מזוג לזוג, אז אין שתי מסגרות זהות.',
+            en: 'The same six sides, this time in tortoiseshell with an amber lens. The pattern shifts from pair to pair, so no two frames are identical.'
+        },
+        details: {
+            he: [
+                'חזית משושה בשריון צב',
+                'מסמרת יהלום בכל פינה',
+                'עדשות ענבר עם הגנת UV400',
+                'זרועות דקות עם קצה מחוספס'
+            ],
+            en: [
+                'Hexagonal front in tortoiseshell',
+                'Diamond rivet at each corner',
+                'Amber lenses with UV400 protection',
+                'Slim temples with ridged tips'
+            ]
+        },
+        specs: [
+            { label: { he: 'רוחב עדשה', en: 'Lens width' }, value: { he: '48 מ״מ', en: '48 mm' } },
+            { label: { he: 'גשר', en: 'Bridge' }, value: { he: '20 מ״מ', en: '20 mm' } },
+            { label: { he: 'זרוע', en: 'Temple' }, value: { he: '142 מ״מ', en: '142 mm' } },
+            { label: { he: 'משקל', en: 'Weight' }, value: { he: '26 גרם', en: '26 g' } }
+        ],
+        frame: { shape: 'hexagon', lens: 48, bridge: 20, temple: 142, weight: 26, fits: ['round', 'oval', 'long'] },
+        variants: [
             {
                 id: 'hexa-tortoise',
                 color: { he: 'שריון צב', en: 'Tortoise' },

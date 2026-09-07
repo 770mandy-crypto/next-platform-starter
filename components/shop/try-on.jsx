@@ -134,7 +134,7 @@ export function TryOn({ product, variant, onClose }) {
                 aria-modal="true"
                 aria-label={copy.title}
                 tabIndex={-1}
-                className="relative w-full max-w-2xl overflow-hidden shadow-2xl outline-none rounded-3xl bg-paper animate-in-up"
+                className="relative w-full max-w-2xl overflow-hidden shadow-2xl outline-none rounded-none bg-paper animate-in-up"
             >
                 <div className="flex items-center justify-between px-6 py-4 border-b hairline">
                     <div>

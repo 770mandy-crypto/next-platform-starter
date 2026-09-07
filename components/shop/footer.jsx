@@ -40,7 +40,7 @@ export function Newsletter() {
                             value={email}
                             onChange={(event) => setEmail(event.target.value)}
                             placeholder={t.newsletter.placeholder}
-                            className="flex-1 px-6 py-4 text-sm bg-transparent border rounded-full border-bone/25 focus:outline-none focus:border-brass placeholder:text-bone/40"
+                            className="flex-1 px-6 py-4 text-sm bg-transparent border rounded-none border-bone/25 focus:outline-none focus:border-brass placeholder:text-bone/40"
                         />
                         <button type="submit" className="btn-ayin bg-bone text-ink border-bone">
                             <span>{t.newsletter.submit}</span>

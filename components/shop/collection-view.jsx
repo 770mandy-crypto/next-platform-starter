@@ -18,9 +18,7 @@ function Chip({ active, children, ...rest }) {
     return (
         <button
             type="button"
-            className={`px-4 py-2 text-xs tracking-[0.1em] uppercase rounded-full border transition-all ${
-                active ? 'bg-ink text-bone border-ink' : 'hairline hover:border-ink/40'
-            }`}
+            className={`chip ${active ? 'chip-on' : ''}`}
             {...rest}
         >
             {children}
@@ -116,7 +114,7 @@ export function CollectionView() {
                         <select
                             value={sort}
                             onChange={(event) => setSort(event.target.value)}
-                            className="px-3 py-2 text-xs bg-transparent border rounded-full hairline focus:outline-none"
+                            className="px-3 py-2 text-xs bg-transparent border rounded-none hairline focus:outline-none"
                         >
                             {Object.entries(t.filters.sortOptions).map(([key, label]) => (
                                 <option key={key} value={key}>

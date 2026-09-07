@@ -15,7 +15,7 @@ export function ProductCard({ product, onQuickView, priority = false }) {
 
     return (
         <article className="group card-ayin">
-            <div className="relative overflow-hidden rounded-2xl bg-bone aspect-[4/5]">
+            <div className="relative overflow-hidden border-b bg-bone aspect-[4/5] hairline">
                 <Link href={`/product/${product.slug}`} className="block w-full h-full">
                     <Image
                         key={variant.id}
@@ -38,7 +38,7 @@ export function ProductCard({ product, onQuickView, priority = false }) {
                 </Link>
 
                 {product.badge && (
-                    <span className="absolute top-4 start-4 px-3 py-1 text-[0.62rem] tracking-[0.18em] uppercase rounded-full bg-paper/90 backdrop-blur">
+                    <span className="absolute top-4 start-4 px-3 py-1 text-[0.62rem] tracking-[0.18em] uppercase rounded-none bg-paper/90 backdrop-blur">
                         {t.badges[product.badge]}
                     </span>
                 )}
@@ -57,7 +57,7 @@ export function ProductCard({ product, onQuickView, priority = false }) {
                         <button
                             type="button"
                             onClick={() => onQuickView(product)}
-                            className="w-full py-3 text-[0.7rem] tracking-[0.18em] uppercase rounded-full bg-paper/95 backdrop-blur hover:bg-ink hover:text-bone transition-colors"
+                            className="w-full py-3 text-[0.7rem] tracking-[0.18em] uppercase rounded-none bg-paper/95 backdrop-blur hover:bg-ink hover:text-bone transition-colors"
                         >
                             {t.product.quickView}
                         </button>
@@ -65,7 +65,7 @@ export function ProductCard({ product, onQuickView, priority = false }) {
                 )}
             </div>
 
-            <div className="flex items-start justify-between gap-3 mt-4">
+            <div className="flex items-start justify-between gap-3 p-4">
                 <div className="min-w-0">
                     <Link href={`/product/${product.slug}`}>
                         <h3 className="truncate transition-colors group-hover:text-brass">{product.name[lang]}</h3>
@@ -81,7 +81,7 @@ export function ProductCard({ product, onQuickView, priority = false }) {
             </div>
 
             {product.variants.length > 1 && (
-                <div className="flex gap-2 mt-3">
+                <div className="flex gap-2 px-4 pb-4">
                     {product.variants.map((option, index) => (
                         <button
                             key={option.id}

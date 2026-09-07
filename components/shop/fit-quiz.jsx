@@ -38,7 +38,7 @@ function Option({ children, active, onClick }) {
         <button
             type="button"
             onClick={onClick}
-            className={`px-6 py-5 text-start border rounded-2xl transition-all duration-300 ${
+            className={`px-6 py-5 text-start border rounded-none transition-all duration-300 ${
                 active ? 'border-ink bg-bone shadow-sm' : 'hairline hover:border-ink/40 hover:-translate-y-0.5'
             }`}
         >
@@ -119,7 +119,7 @@ export function FitQuiz() {
                             </div>
 
                             {step === 0 && (
-                                <div className="p-6 mt-10 rounded-2xl bg-bone">
+                                <div className="p-6 mt-10 rounded-none bg-bone">
                                     <p className="mb-2 eyebrow">{t.fit.unsure}</p>
                                     <p className="text-sm leading-relaxed text-inksoft">{t.fit.unsureBody}</p>
                                 </div>
@@ -146,7 +146,11 @@ export function FitQuiz() {
                                 className={
                                     // one frame in the catalogue should not sit in a
                                     // three-column grid with two empty columns
-                                    results.length > 1 ? 'grid gap-6 sm:grid-cols-3' : 'grid gap-6 mx-auto max-w-sm'
+                                    results.length >= 3
+                                        ? 'grid gap-6 sm:grid-cols-3'
+                                        : results.length === 2
+                                          ? 'grid gap-6 sm:grid-cols-2'
+                                          : 'grid gap-6 mx-auto max-w-sm'
                                 }
                             >
                                 {results.map((product, index) => (

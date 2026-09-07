@@ -104,7 +104,7 @@ export function ServiceView() {
                         ['טלפון / Phone', contact.phone],
                         [lang === 'he' ? 'שעות' : 'Hours', contact.hours]
                     ].map(([label, value], index) => (
-                        <Reveal key={label} delay={index * 90} className="p-6 rounded-2xl bg-bone">
+                        <Reveal key={label} delay={index * 90} className="p-6 rounded-none bg-bone">
                             <p className="mb-2 eyebrow">{label}</p>
                             <p className="display text-lg">{value}</p>
                         </Reveal>

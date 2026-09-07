@@ -41,7 +41,7 @@ export function QuickView({ product, onClose }) {
                 aria-modal="true"
                 aria-label={product.name[lang]}
                 tabIndex={-1}
-                className="relative w-full max-w-4xl overflow-hidden shadow-2xl outline-none rounded-3xl bg-paper animate-in-up"
+                className="relative w-full max-w-4xl overflow-hidden shadow-2xl outline-none rounded-none bg-paper animate-in-up"
             >
                 <button
                     type="button"

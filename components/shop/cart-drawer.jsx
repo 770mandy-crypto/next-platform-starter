@@ -9,7 +9,7 @@ import { IconClose } from './icons';
 
 function QtyStepper({ value, onChange }) {
     return (
-        <div className="inline-flex items-center border hairline rounded-full">
+        <div className="inline-flex items-center border hairline rounded-none">
             <button
                 type="button"
                 onClick={() => onChange(value - 1)}
@@ -190,7 +190,7 @@ export function CartDrawer() {
                                 }}
                                 readOnly={Boolean(promo)}
                                 placeholder={t.cart.promo}
-                                className="flex-1 px-4 py-2.5 text-sm bg-transparent border rounded-full hairline focus:outline-none focus:border-ink placeholder:text-inksoft/70"
+                                className="flex-1 px-4 py-2.5 text-sm bg-transparent border rounded-none hairline focus:outline-none focus:border-ink placeholder:text-inksoft/70"
                             />
                             <button type="submit" className="btn-ayin btn-sm">
                                 <span>{promo ? t.cart.remove : t.cart.apply}</span>

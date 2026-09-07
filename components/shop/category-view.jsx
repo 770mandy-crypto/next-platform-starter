@@ -24,7 +24,7 @@ function Spotlight({ product, onQuickView }) {
 
     return (
         <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
-            <div className="relative overflow-hidden rounded-3xl bg-bone aspect-[4/5]">
+            <div className="relative overflow-hidden border rounded-none bg-bone aspect-[4/5] hairline">
                 <Image
                     key={variant.id}
                     src={variant.image}
@@ -35,7 +35,7 @@ function Spotlight({ product, onQuickView }) {
                     className="object-cover"
                 />
                 {product.badge && (
-                    <span className="absolute top-5 start-5 px-3 py-1 text-[0.62rem] tracking-[0.18em] uppercase rounded-full bg-paper/90 backdrop-blur">
+                    <span className="absolute top-5 start-5 px-3 py-1 text-[0.62rem] tracking-[0.18em] uppercase rounded-none bg-paper/90 backdrop-blur">
                         {t.badges[product.badge]}
                     </span>
                 )}
@@ -188,7 +188,7 @@ export function CategoryView({ slug }) {
                                 <Link
                                     key={key}
                                     href={`/category/${key}`}
-                                    className="px-4 py-2 text-xs tracking-[0.1em] uppercase transition-all border rounded-full hairline hover:border-ink/40"
+                                    className="chip"
                                 >
                                     {entry.name[lang]}
                                 </Link>

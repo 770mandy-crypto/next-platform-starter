@@ -24,7 +24,7 @@ export function RecentlyViewed({ currentSlug = null }) {
                     {items.map((product) => (
                         <li key={product.slug} className="w-40 shrink-0 sm:w-48">
                             <Link href={`/product/${product.slug}`} className="block group">
-                                <div className="relative overflow-hidden rounded-xl bg-bone aspect-square">
+                                <div className="relative overflow-hidden border rounded-none bg-bone aspect-square hairline">
                                     <Image
                                         src={product.variants[0].image}
                                         alt={product.name[lang]}

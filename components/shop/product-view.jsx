@@ -18,7 +18,7 @@ function ZoomPhoto({ src, alt }) {
 
     return (
         <div
-            className="relative w-full overflow-hidden aspect-square rounded-2xl bg-bone"
+            className="relative w-full overflow-hidden border aspect-square rounded-none bg-bone hairline"
             onMouseMove={(event) => {
                 const rect = event.currentTarget.getBoundingClientRect();
                 setOrigin(
@@ -164,9 +164,7 @@ export function ProductView({ slug }) {
                                     key={mode}
                                     type="button"
                                     onClick={() => setView(mode)}
-                                    className={`px-4 py-2 text-[0.68rem] tracking-[0.16em] uppercase rounded-full border transition-all ${
-                                        view === mode ? 'bg-ink text-bone border-ink' : 'hairline hover:border-ink/40'
-                                    }`}
+                                    className={`chip ${view === mode ? 'chip-on' : ''}`}
                                 >
                                     {mode === 'photo' ? t.product.details : t.product.spinHint}
                                 </button>
@@ -176,7 +174,7 @@ export function ProductView({ slug }) {
                         {view === 'photo' ? (
                             <ZoomPhoto src={variant.image} alt={`${product.name[lang]} ${variant.color[lang]}`} />
                         ) : (
-                            <div className="p-4 rounded-2xl bg-bone sm:p-8">
+                            <div className="p-4 border rounded-none bg-bone hairline sm:p-8">
                                 <SpinViewer
                                     key={variant.id}
                                     src={variant.image}
@@ -193,7 +191,7 @@ export function ProductView({ slug }) {
                                         key={option.id}
                                         type="button"
                                         onClick={() => setIndex(i)}
-                                        className={`relative w-20 h-20 overflow-hidden rounded-xl shrink-0 border transition-all ${
+                                        className={`relative w-20 h-20 overflow-hidden rounded-none shrink-0 border transition-all ${
                                             i === index ? 'border-ink' : 'border-transparent opacity-60 hover:opacity-100'
                                         }`}
                                     >
@@ -208,7 +206,7 @@ export function ProductView({ slug }) {
                         <div className="flex items-center gap-3 mb-4">
                             <p className="eyebrow">{CATEGORIES[product.category].name[lang]}</p>
                             {product.badge && (
-                                <span className="px-3 py-1 text-[0.6rem] tracking-[0.18em] uppercase rounded-full bg-bone">
+                                <span className="px-3 py-1 text-[0.6rem] tracking-[0.18em] uppercase rounded-none bg-bone">
                                     {t.badges[product.badge]}
                                 </span>
                             )}
@@ -224,34 +222,21 @@ export function ProductView({ slug }) {
                             )}
                         </div>
 
-                        <div className="mb-8">
-                            <div className="flex items-baseline justify-between mb-3">
-                                <p className="eyebrow">{t.product.color}</p>
-                                <p className="text-sm text-inksoft">{variant.color[lang]}</p>
-                            </div>
-                            <div className="flex flex-wrap gap-3">
-                                {product.variants.map((option, i) => (
-                                    <button
-                                        key={option.id}
-                                        type="button"
-                                        onClick={() => setIndex(i)}
-                                        aria-label={option.color[lang]}
-                                        className={`w-9 h-9 rounded-full border transition-all ${
-                                            i === index
-                                                ? 'ring-1 ring-offset-2 ring-ink ring-offset-paper'
-                                                : 'hairline hover:scale-110'
-                                        }`}
-                                        style={{ background: option.hex }}
-                                    />
-                                ))}
-                            </div>
-                            <p className="mt-3 text-xs text-inksoft">
+                        {/* One product, one finish: the colour is stated, not chosen. */}
+                        <div className="flex items-center gap-3 py-4 mb-8 border-y hairline">
+                            <span
+                                aria-hidden
+                                className="w-5 h-5 rounded-full border hairline"
+                                style={{ background: variant.hex }}
+                            />
+                            <span className="text-sm">{variant.color[lang]}</span>
+                            <span className="text-xs text-inksoft ms-auto">
                                 {variant.accent[lang]}
                                 <span
                                     className="inline-block w-3 h-3 ms-2 align-middle rounded-full"
                                     style={{ background: variant.accentHex }}
                                 />
-                            </p>
+                            </span>
                         </div>
 
                         {isEyewear && (
@@ -263,7 +248,7 @@ export function ProductView({ slug }) {
                                         key={option.id}
                                         type="button"
                                         onClick={() => setLensId(option.id)}
-                                        className={`flex items-center justify-between px-4 py-3 text-sm border rounded-xl transition-all text-start ${
+                                        className={`flex items-center justify-between px-4 py-3 text-sm border rounded-none transition-all text-start ${
                                             lensId === option.id ? 'border-ink bg-bone' : 'hairline hover:border-ink/40'
                                         }`}
                                     >
@@ -331,11 +316,11 @@ export function ProductView({ slug }) {
                             <p className="mb-3 eyebrow">{t.product.fitsFaces}</p>
                             <div className="flex flex-wrap gap-2">
                                 {product.frame.fits.map((face) => (
-                                    <span key={face} className="px-4 py-2 text-xs rounded-full bg-bone">
+                                    <span key={face} className="px-4 py-2 text-xs rounded-none bg-bone">
                                         {FACE_SHAPES[face][lang]}
                                     </span>
                                 ))}
-                                <Link href="/fit" className="px-4 py-2 text-xs rounded-full link-line text-brass">
+                                <Link href="/fit" className="px-4 py-2 text-xs link-line text-brass">
                                     {t.hero.ctaAlt} →
                                 </Link>
                             </div>

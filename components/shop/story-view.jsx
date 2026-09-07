@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useShop } from './providers';
-import { products, allVariants, CATEGORIES } from '../../data/catalogue';
+import { products, CATEGORIES } from '../../data/catalogue';
 import { Reveal } from './reveal';
 import { Newsletter } from './footer';
 import { Marquee } from './hero';
@@ -20,7 +20,7 @@ const GALLERY = [
 const NUMBERS = [
     { value: String(products.length), label: { he: 'מוצרים', en: 'products' } },
     { value: String(Object.keys(CATEGORIES).length), label: { he: 'קטגוריות', en: 'categories' } },
-    { value: String(allVariants.length), label: { he: 'גוונים', en: 'colourways' } },
+    { value: '2–4', label: { he: 'ימי עסקים למשלוח', en: 'business days to ship' } },
     { value: '30', label: { he: 'יום להחזרה', en: 'day returns' } }
 ];
 
@@ -38,7 +38,7 @@ export function StoryView() {
             </section>
 
             <section className="px-5 pb-16 sm:px-10">
-                <Reveal mask className="relative mx-auto max-w-[1600px] aspect-[16/9] overflow-hidden rounded-3xl">
+                <Reveal mask className="relative mx-auto max-w-[1600px] aspect-[16/9] overflow-hidden rounded-none">
                     <Image
                         src="/products/vesper-taupe-1.jpg"
                         alt=""
@@ -66,7 +66,7 @@ export function StoryView() {
                                 <h2 className="mb-5">{step.t}</h2>
                                 <p className="max-w-md leading-relaxed text-inksoft">{step.b}</p>
                             </div>
-                            <div className="relative overflow-hidden aspect-[4/3] rounded-3xl bg-bone">
+                            <div className="relative overflow-hidden aspect-[4/3] rounded-none bg-bone">
                                 <Image
                                     src={GALLERY[index % GALLERY.length]}
                                     alt=""
@@ -83,7 +83,7 @@ export function StoryView() {
             <section className="px-5 py-20 sm:px-10 bg-ink text-bone">
                 <div className="grid gap-10 mx-auto max-w-[1600px] sm:grid-cols-2 lg:grid-cols-4">
                     {NUMBERS.map((item, index) => (
-                        <Reveal key={item.value} delay={index * 100} className="text-center">
+                        <Reveal key={item.label.en} delay={index * 100} className="text-center">
                             <p className="display text-[clamp(3rem,7vw,5rem)] leading-none mb-3 ticker-digit">
                                 {item.value}
                             </p>

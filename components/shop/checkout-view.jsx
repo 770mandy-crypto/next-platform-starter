@@ -107,7 +107,7 @@ export function CheckoutView() {
                                     type={field.type}
                                     value={form[field.key]}
                                     onChange={(event) => setForm({ ...form, [field.key]: event.target.value })}
-                                    className="w-full px-5 py-4 text-sm bg-transparent border rounded-xl hairline focus:outline-none focus:border-ink"
+                                    className="w-full px-5 py-4 text-sm bg-transparent border rounded-none hairline focus:outline-none focus:border-ink"
                                 />
                             </label>
                         ))}
@@ -123,7 +123,7 @@ export function CheckoutView() {
                     </form>
                 </div>
 
-                <aside className="p-6 rounded-3xl bg-bone h-fit lg:sticky lg:top-24">
+                <aside className="p-6 rounded-none bg-bone h-fit lg:sticky lg:top-24">
                     <ul className="divide-y hairline">
                         {items.map((line) => (
                             <li key={line.key} className="flex gap-4 py-4">

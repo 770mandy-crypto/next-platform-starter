@@ -163,13 +163,15 @@
  * ------------------------------------------------------------------ */
 
 @theme {
-    --color-bone: #f4f1ea;
-    --color-paper: #fbfaf7;
-    --color-ink: #14110f;
-    --color-inksoft: #6d655c;
-    --color-brass: #a9793e;
-    --color-line: #e2ddd3;
-    --font-display: 'Frank Ruhl Libre', 'Georgia', serif;
+    /* Gallery palette: white walls, a cool plate behind every product, one
+       clay accent. Warm studio photography carries the colour on its own. */
+    --color-bone: #eceae4;
+    --color-paper: #ffffff;
+    --color-ink: #0b0b0c;
+    --color-inksoft: #6f6f6b;
+    --color-brass: #b8442a;
+    --color-line: #e3e2de;
+    --font-display: 'Heebo', ui-sans-serif, system-ui, sans-serif;
     --font-body: 'Heebo', ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -178,8 +180,8 @@
         font-family: var(--font-body);
         color: var(--color-ink);
         background: var(--color-paper);
-        font-weight: 300;
-        letter-spacing: -0.005em;
+        font-weight: 400;
+        letter-spacing: -0.01em;
     }
 
     .shop a {
@@ -192,22 +194,23 @@
     .shop h3,
     .shop h4 {
         font-family: var(--font-display);
-        font-weight: 400;
-        letter-spacing: -0.02em;
-        line-height: 1.04;
+        font-weight: 800;
+        letter-spacing: -0.035em;
+        line-height: 1;
     }
 
     .shop h1 {
-        font-size: clamp(2.8rem, 9vw, 7.5rem);
+        font-size: clamp(2.4rem, 7vw, 5.4rem);
     }
 
     .shop h2 {
-        font-size: clamp(1.9rem, 4.4vw, 3.4rem);
+        font-size: clamp(1.7rem, 3.6vw, 2.8rem);
     }
 
     .shop h3 {
-        font-size: clamp(1.15rem, 2vw, 1.6rem);
-        font-weight: 500;
+        font-size: clamp(1rem, 1.5vw, 1.15rem);
+        font-weight: 600;
+        letter-spacing: -0.02em;
     }
 
     .shop button {
@@ -228,8 +231,8 @@
 
     /* ---- type helpers ---- */
     .eyebrow {
-        font-size: 0.68rem;
-        letter-spacing: 0.28em;
+        font-size: 0.66rem;
+        letter-spacing: 0.2em;
         text-transform: uppercase;
         font-weight: 500;
         color: var(--color-inksoft);
@@ -246,12 +249,12 @@
         align-items: center;
         justify-content: center;
         gap: 0.6rem;
-        padding: 1rem 2.2rem;
-        border-radius: 999px;
-        font-size: 0.85rem;
-        letter-spacing: 0.08em;
+        padding: 1.05rem 2rem;
+        border-radius: 2px;
+        font-size: 0.74rem;
+        letter-spacing: 0.16em;
         text-transform: uppercase;
-        font-weight: 500;
+        font-weight: 600;
         background: var(--color-ink);
         color: var(--color-bone);
         border: 1px solid var(--color-ink);
@@ -297,8 +300,29 @@
     }
 
     .btn-sm {
-        padding: 0.65rem 1.4rem;
-        font-size: 0.72rem;
+        padding: 0.7rem 1.3rem;
+        font-size: 0.66rem;
+    }
+
+    /* ---- filter chip ---- */
+    .chip {
+        padding: 0.6rem 1.05rem;
+        border: 1px solid var(--color-line);
+        border-radius: 2px;
+        font-size: 0.68rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        transition: border-color 0.25s ease, background 0.25s ease, color 0.25s ease;
+    }
+
+    .chip:hover {
+        border-color: color-mix(in oklab, var(--color-ink) 40%, transparent);
+    }
+
+    .chip-on {
+        background: var(--color-ink);
+        color: var(--color-paper);
+        border-color: var(--color-ink);
     }
 
     /* ---- underline-on-hover link ---- */
@@ -362,7 +386,18 @@
         animation-play-state: paused;
     }
 
-    /* ---- product card ---- */
+    /* ---- product card ----
+       Each product sits in its own framed cell, like a plate in a catalogue. */
+    .card-ayin {
+        border: 1px solid var(--color-line);
+        background: var(--color-paper);
+        transition: border-color 0.35s ease;
+    }
+
+    .card-ayin:hover {
+        border-color: color-mix(in oklab, var(--color-ink) 45%, transparent);
+    }
+
     .frame-shot {
         transition: transform 0.9s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease;
     }

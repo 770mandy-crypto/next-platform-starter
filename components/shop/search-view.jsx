@@ -94,7 +94,7 @@ export function SearchView() {
                             onChange={(event) => setQuery(event.target.value)}
                             placeholder={t.search.placeholder}
                             aria-label={t.search.title}
-                            className="w-full py-5 text-lg bg-transparent border rounded-full ps-14 pe-14 hairline focus:outline-none focus:border-ink/40 [&::-webkit-search-cancel-button]:appearance-none"
+                            className="w-full py-5 text-lg bg-transparent border rounded-none ps-14 pe-14 hairline focus:outline-none focus:border-ink/40 [&::-webkit-search-cancel-button]:appearance-none"
                         />
                         {query && (
                             <button
@@ -118,7 +118,7 @@ export function SearchView() {
                                 key={key}
                                 type="button"
                                 onClick={() => setQuery(entry.name[lang])}
-                                className="px-4 py-2 text-xs tracking-[0.1em] uppercase transition-all border rounded-full hairline hover:border-ink/40"
+                                className="chip"
                             >
                                 {entry.name[lang]}
                             </button>

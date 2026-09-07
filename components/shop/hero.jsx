@@ -81,7 +81,7 @@ export function Hero() {
                     className="relative aspect-[4/5] sm:aspect-square lg:aspect-[4/5]"
                     style={{ transform: `translateY(${offset * -0.06}px)` }}
                 >
-                    <div className="absolute inset-0 overflow-hidden rounded-[2rem] bg-bone">
+                    <div className="absolute inset-0 overflow-hidden rounded-none bg-bone">
                         {HERO_FRAMES.map((item, index) => (
                             <Image
                                 key={item.src}

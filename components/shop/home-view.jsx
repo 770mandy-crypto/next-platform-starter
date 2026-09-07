@@ -15,13 +15,7 @@ import { IconArrow } from './icons';
 
 const FEATURED = ['sovereign', 'vault', 'tennis'];
 // Clean studio shots read best on the turntable.
-const SPIN_PICKS = [
-    { slug: 'sovereign', variantId: 'sovereign-rose' },
-    { slug: 'hexa', variantId: 'hexa-noir' },
-    { slug: 'tennis', variantId: 'tennis-silver' },
-    { slug: 'lumen', variantId: 'lumen-gold' },
-    { slug: 'cord', variantId: 'cord-ivory' }
-];
+const SPIN_PICKS = ['sovereign', 'hexa-noir', 'tennis', 'lumen', 'cord'];
 
 function SectionHead({ eyebrow, title, sub, href, cta }) {
     return (
@@ -43,11 +37,9 @@ function SectionHead({ eyebrow, title, sub, href, cta }) {
 function SpinShowcase() {
     const { t, lang, price } = useShop();
     const [index, setIndex] = useState(0);
-    const picks = SPIN_PICKS.map((pick) => {
-        const product = products.find((p) => p.slug === pick.slug);
-        if (!product) return null;
-        return { product, variant: product.variants.find((v) => v.id === pick.variantId) ?? product.variants[0] };
-    }).filter(Boolean);
+    const picks = SPIN_PICKS.map((slug) => products.find((p) => p.slug === slug))
+        .filter(Boolean)
+        .map((product) => ({ product, variant: product.variants[0] }));
     const { product, variant } = picks[index];
 
     return (
@@ -58,7 +50,7 @@ function SpinShowcase() {
                 </Reveal>
 
                 <div className="grid gap-10 lg:grid-cols-[1fr_360px] lg:items-center">
-                    <Reveal className="relative p-4 overflow-hidden bg-paper rounded-3xl sm:p-10">
+                    <Reveal className="relative p-4 overflow-hidden bg-paper rounded-none sm:p-10">
                         <SpinViewer
                             key={variant.id}
                             src={variant.image}
@@ -74,11 +66,11 @@ function SpinShowcase() {
                                 key={itemVariant.id}
                                 type="button"
                                 onClick={() => setIndex(i)}
-                                className={`flex items-center gap-4 p-3 text-start transition-all rounded-2xl border ${
+                                className={`flex items-center gap-4 p-3 text-start transition-all rounded-none border ${
                                     i === index ? 'bg-paper border-ink/20 shadow-sm' : 'border-transparent hover:bg-paper/60'
                                 }`}
                             >
-                                <span className="relative w-16 h-16 overflow-hidden rounded-xl bg-bone shrink-0">
+                                <span className="relative w-16 h-16 overflow-hidden rounded-none bg-bone shrink-0">
                                     <Image
                                         src={itemVariant.image}
                                         alt=""
@@ -110,7 +102,7 @@ function StoryStrip() {
     return (
         <section className="px-5 py-24 sm:px-10 sm:py-32">
             <div className="grid gap-12 mx-auto max-w-[1600px] lg:grid-cols-2 lg:gap-20 lg:items-center">
-                <Reveal mask className="relative overflow-hidden rounded-3xl aspect-[4/3]">
+                <Reveal mask className="relative overflow-hidden rounded-none aspect-[4/3]">
                     <Image
                         src="/products/vesper-taupe-1.jpg"
                         alt=""
@@ -183,7 +175,7 @@ function CategoryGrid() {
                             <Reveal key={key} delay={(index % 3) * 90}>
                                 <Link
                                     href={`/category/${key}`}
-                                    className="relative block overflow-hidden group rounded-2xl bg-bone aspect-[5/4]"
+                                    className="relative block overflow-hidden group rounded-none bg-bone aspect-[5/4]"
                                 >
                                     {cover && (
                                         <Image
@@ -214,7 +206,7 @@ function FitTeaser() {
     const { t, lang } = useShop();
     return (
         <section className="px-5 py-24 sm:px-10">
-            <Reveal className="relative overflow-hidden mx-auto max-w-[1600px] rounded-3xl bg-ink text-bone px-8 py-16 sm:px-16 sm:py-24 text-center">
+            <Reveal className="relative overflow-hidden mx-auto max-w-[1600px] rounded-none bg-ink text-bone px-8 py-16 sm:px-16 sm:py-24 text-center">
                 <div
                     aria-hidden
                     className="absolute inset-x-0 -bottom-40 h-80 blur-3xl opacity-25"
