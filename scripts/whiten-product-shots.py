@@ -1,22 +1,31 @@
 #!/usr/bin/env python3
 """Lift the garments off their black studio backdrop and set them on white.
 
-Brightness alone cannot do this. The backdrop sits at L=10, and so do the
-darkest streaks of the black garments' distressed print — threshold on
-luminance and the shirt comes back with bites taken out of it.
+The backdrop is synthetic: one exact colour, RGB(10,10,10), laid down perfectly
+flat — local standard deviation is 0.00 across the whole of it. That gives a
+very sharp test for "is this pixel backdrop": does it differ from that colour at
+all. For the white garments the test is decisive on its own, and the cut needs
+no cleaning up afterwards at all.
 
-Two things do separate them:
+The black garments are the hard case. They carry a distressed print whose
+darkest streaks match the backdrop to within a value or two and run right out to
+the hem, so no per-pixel test can hold their outline. There a second property
+does the work: a streak is a narrow channel into the garment, while real
+backdrop is open field. The outline is closed across everything, and then only
+backdrop wide enough to hold a sizeable disk is cut back out — by opening rather
+than flood fill, since every streak drains into the same backdrop region and a
+flood would run straight back up them.
 
-  Texture. The backdrop is synthetic and perfectly flat — local standard
-  deviation is 0.00 across all of it. Cloth is never flat; even a fold in full
-  shadow carries weave and grain, around 0.7.
+Which of the two an image gets is measured, not configured: a garment whose
+interior stands well clear of the backdrop takes the exact cut, and one that
+does not takes the geometric one.
 
-  Width. Where a streak genuinely matches the backdrop, what tells them apart
-  is that a streak is a narrow channel into the garment while real backdrop is
-  open field. So the silhouette is closed across everything, and then only the
-  backdrop wide enough to hold a sizeable disk is cut back out — an opening,
-  not a flood, because every streak drains into the same backdrop region and a
-  flood would run straight back up them.
+Edges are re-backed rather than masked. A pixel on the outline is a mixture of
+cloth and backdrop; carrying it whole paints a dark line round the garment on a
+white page, and eroding it away thins the garment by however many pixels the
+erosion took. Instead each such pixel is given a coverage figure and handed back
+exactly what the black behind it took — which needs no estimate of the cloth's
+own colour and leaves no grey rim.
 
 Originals are copied to assets/product-originals/ before anything is
 overwritten, and every run re-cuts from those, so this is both reversible and
@@ -27,7 +36,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageFilter
+from PIL import Image
 from scipy import ndimage
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -35,27 +44,41 @@ IMAGES = ROOT / 'public' / 'store' / 'images'
 # Kept outside public/ so the untouched shots are not deployed with the site.
 ORIGINALS = ROOT / 'assets' / 'product-originals'
 
+# A pixel this far from the backdrop colour, on any channel, holds some cloth.
+# One value of slack absorbs the ringing JPEG leaves along an edge. It has to
+# stay this low for the black garments, whose cloth clears the backdrop by only
+# a handful of values.
+OFF_BACKDROP = 3
+# Against a bright garment that same threshold also catches the stray single
+# pixels JPEG scatters along the outline, which stipple the edge with grey
+# dots. There the threshold rides on the garment's own contrast instead.
+OFF_BACKDROP_SHARE = 0.04
+# Window for the flatness test, and the reading above which cloth is textured.
 TEXTURE_WINDOW = 7
-# Backdrop measures 0.00; the most shadowed cloth measures ~0.66.
 FLAT_MAX = 0.25
-# Lit cloth is unambiguous on brightness alone.
-LIT_MIN = 20
-# Close the silhouette across gaps up to twice this, in pixels.
+# A garment whose interior sits at least this far from the backdrop can be cut
+# on the exact test alone; below it, the geometric route is needed.
+EXACT_CUT_CONTRAST = 40
+
+# Geometric route: close the outline across gaps up to twice this...
 SEAL = 28
-# Backdrop only counts as backdrop where a disk of this radius fits inside it.
-# The streaks running out of the black garments are narrower than that, so they
-# stay part of the garment; the open field around it does not.
+# ...then cut back only backdrop wide enough to hold a disk of this radius.
 BACKDROP_DISK = 40
-# Snap thin bridges so a shadow line near the hem does not ride along with the
-# garment just because the closing reached it. Kept small on purpose: a wider
-# cut starts taking bites out of the garment itself, and a faint stray tick is
-# the cheaper fault.
+# Exact route needs only enough closing to bridge JPEG ringing.
+FINE_SEAL = 2
+
+# Sever bridges this thin, to drop shadow marks the closing happened to reach.
 BRIDGE = 5
-# How far to smooth the finished outline, in pixels.
-OUTLINE_SMOOTH = 4.0
-# The last few pixels before the cut are backdrop bleeding into the cloth, and
-# on a white page they read as an ink outline drawn round the garment.
-HALO = 5
+# Smoothing applied to the geometric outline only; the exact one is already
+# faithful and smoothing it would round off real detail.
+OUTLINE_SMOOTH = 3.0
+# A faint contact line runs along the floor under the black garments. It is
+# textured, so it reads as cloth, and the closing reaches it. It is also only a
+# few pixels tall while the garment is a thousand, so cutting vertically —
+# dropping anything shorter than this — removes the line and nothing else.
+GROUND_LINE = 25
+# Width of the rim that gets a graded alpha instead of a hard edge.
+RIM = 4
 
 CROSS = np.ones((3, 3), bool)
 
@@ -67,7 +90,6 @@ def local_std(lum: np.ndarray) -> np.ndarray:
 
 
 def touching_border(mask: np.ndarray) -> np.ndarray:
-    """The parts of `mask` connected to the edge of the frame."""
     labels, count = ndimage.label(mask)
     if not count:
         return np.zeros_like(mask)
@@ -84,50 +106,94 @@ def largest_region(mask: np.ndarray) -> np.ndarray:
     return labels == int(np.argmax(sizes)) + 1
 
 
-def cutout(path: Path) -> Image.Image:
-    rgb = Image.open(path).convert('RGB')
-    lum = np.asarray(rgb.convert('L'), dtype=np.float32)
-    std = local_std(lum)
+def close(mask: np.ndarray, radius: int) -> np.ndarray:
+    if radius <= 0:
+        return mask
+    grown = ndimage.binary_dilation(mask, CROSS, iterations=radius)
+    return ndimage.binary_erosion(grown, CROSS, iterations=radius)
 
-    garment = (std > FLAT_MAX) | (lum >= LIT_MIN)
 
-    # Close the outline, then take everything it encloses.
-    garment = ndimage.binary_dilation(garment, CROSS, iterations=SEAL)
-    garment = ndimage.binary_erosion(garment, CROSS, iterations=SEAL)
-    garment = ndimage.binary_fill_holes(garment)
+def drop_stray_marks(mask: np.ndarray) -> np.ndarray:
+    """Sever thin bridges, keep the body, then grow it back inside the outline.
 
-    # Cut back the backdrop the closing swallowed — but only where it is broad
-    # enough to be backdrop rather than a streak. Eroding drops the narrow
-    # channels; propagating regrows what survives to its true extent.
-    backdrop = touching_border(std <= FLAT_MAX)
+    Choosing the body before regrowing matters: regrow first and the shadow
+    mark the severing was meant to drop is simply re-attached.
+    """
+    body = largest_region(ndimage.binary_erosion(mask, CROSS, iterations=BRIDGE))
+    if not body.any():
+        return mask
+    return ndimage.binary_dilation(body, CROSS, iterations=BRIDGE) & mask
+
+
+def silhouette_exact(off: np.ndarray) -> np.ndarray:
+    mask = ndimage.binary_fill_holes(close(off, FINE_SEAL))
+    # JPEG leaves single stray pixels along the outline, and at full coverage
+    # they stipple the edge with grey dots. One pixel of open-then-close drops
+    # them without moving the outline itself.
+    mask = ndimage.binary_closing(ndimage.binary_opening(mask, CROSS), CROSS)
+    return drop_stray_marks(mask)
+
+
+def silhouette_geometric(off: np.ndarray, flat: np.ndarray) -> np.ndarray:
+    mask = ndimage.binary_fill_holes(close(off, SEAL))
+
+    backdrop = touching_border(flat)
     wide = ndimage.binary_erosion(backdrop, CROSS, iterations=BACKDROP_DISK)
     wide = ndimage.binary_dilation(wide, CROSS, iterations=BACKDROP_DISK)
-    garment &= ~wide
+    mask &= ~wide
 
-    # One garment per frame, so anything else is a stray mark or a shadow line
-    # the closing happened to reach. Sever the thin bridges, choose the body
-    # while it is still severed, and only then grow it back — regrowing first
-    # would re-attach exactly what the severing was meant to drop. Growth is
-    # held inside the silhouette so the outline does not creep outward.
-    silhouette = garment
-    body = largest_region(ndimage.binary_erosion(garment, CROSS, iterations=BRIDGE))
-    garment = ndimage.binary_dilation(body, CROSS, iterations=BRIDGE) & silhouette
-    garment = ndimage.binary_fill_holes(garment)
+    mask = ndimage.binary_fill_holes(drop_stray_marks(mask))
+    mask = ndimage.binary_opening(mask, np.ones((GROUND_LINE, 1), bool))
+    mask = ndimage.binary_fill_holes(largest_region(mask))
+    mask = ndimage.gaussian_filter(mask.astype(np.float32), OUTLINE_SMOOTH) > 0.5
+    return ndimage.binary_fill_holes(mask)
 
-    # Closing at that radius leaves the outline notched. Blurring the mask and
-    # re-cutting it at the halfway point rounds the notches off without moving
-    # the silhouette.
-    garment = ndimage.gaussian_filter(garment.astype(np.float32), OUTLINE_SMOOTH) > 0.5
-    garment = ndimage.binary_fill_holes(garment)
 
-    # The cut edge carries a dark halo from the backdrop behind it. Pulling the
-    # mask in drops the halo; a slight blur keeps the edge off a staircase.
-    alpha = ndimage.binary_erosion(garment, CROSS, iterations=HALO)
-    alpha_img = Image.fromarray((alpha * 255).astype(np.uint8), mode='L')
-    alpha_img = alpha_img.filter(ImageFilter.GaussianBlur(0.9))
+def cutout(path: Path) -> tuple[Image.Image, str]:
+    rgb = Image.open(path).convert('RGB')
+    arr = np.asarray(rgb, dtype=np.int16)
 
-    white = Image.new('RGB', rgb.size, (255, 255, 255))
-    return Image.composite(rgb, white, alpha_img)
+    # The frame corner is backdrop by construction.
+    backdrop = arr[2, 2].copy()
+    distance = np.abs(arr - backdrop[None, None, :]).max(axis=2)
+
+    lum = np.asarray(rgb.convert('L'), dtype=np.float32)
+    flat = local_std(lum) <= FLAT_MAX
+    off = distance >= OFF_BACKDROP
+
+    # How far clear of the backdrop does this garment actually sit? Measured
+    # well inside it, so an edge or a stray mark cannot speak for the whole.
+    interior = ndimage.binary_erosion(off, CROSS, iterations=25)
+    contrast = float(np.median(distance[interior])) if interior.any() else 0.0
+
+    if contrast >= EXACT_CUT_CONTRAST:
+        clear = max(OFF_BACKDROP, contrast * OFF_BACKDROP_SHARE)
+        mask, route = silhouette_exact(distance >= clear), 'exact'
+    else:
+        # Texture is what finds the black garments, but the window straddles the
+        # outline and so reads as textured for a few pixels of pure backdrop all
+        # the way round. Pulling that reading back in stops the cut carrying a
+        # collar of backdrop, which on a white page is a drawn-on outline.
+        textured = ndimage.binary_erosion(~flat, CROSS, iterations=TEXTURE_WINDOW // 2)
+        mask, route = silhouette_geometric(off | textured, flat), 'geometric'
+
+    # A pixel on the outline is a mixture of cloth and backdrop, so it needs a
+    # coverage figure, not a yes or no. How far it sits from the backdrop,
+    # against how far the cloth beside it sits, is that figure.
+    core = ndimage.binary_erosion(mask, CROSS, iterations=RIM)
+    cloth = ndimage.grey_dilation(np.where(core, distance, 0), size=2 * RIM + 3)
+    coverage = np.clip(distance / np.maximum(cloth, 1.0), 0.0, 1.0)
+    alpha = np.where(core, 1.0, coverage) * mask
+
+    # Re-backing the shot, rather than masking it. A half-covered pixel was
+    # darkened by the black behind it; put a white backing there instead and it
+    # gets back exactly what that black took:
+    #     out = a*F + (1-a)*white,  where  observed = a*F + (1-a)*backdrop
+    #         = observed + (1-a)*(white - backdrop)
+    # which needs no estimate of the cloth colour F and leaves no grey rim.
+    lift = (1.0 - alpha)[:, :, None] * (255.0 - backdrop.astype(np.float32))[None, None, :]
+    out = np.clip(arr.astype(np.float32) + lift, 0, 255).astype(np.uint8)
+    return Image.fromarray(out), route
 
 
 def main() -> int:
@@ -142,11 +208,11 @@ def main() -> int:
         if not backup.exists():
             shutil.copy2(path, backup)
 
-        out = cutout(backup)
-        out.save(path, 'JPEG', quality=88, optimize=True, progressive=True)
+        out, route = cutout(backup)
+        out.save(path, 'JPEG', quality=90, optimize=True, progressive=True)
 
         share = float((np.asarray(out.convert('L')) < 250).mean())
-        print(f'{path.name:24s} garment covers {share:5.1%} of the frame')
+        print(f'{path.name:24s} {route:10s} garment covers {share:5.1%}')
     return 0
 
 
