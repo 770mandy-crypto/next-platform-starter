@@ -68,6 +68,56 @@ header { position: sticky; top: 0; z-index: 60; background: var(--bg); border-bo
 .mark .vs { font-family: var(--display); font-size: 1.5rem; font-weight: 700; letter-spacing: 0.06em; }
 .mark .name { font-size: 0.54rem; font-weight: 500; letter-spacing: 0.34em; color: var(--muted); margin-top: 0.28rem; }
 
+/* Below the width that fits a nav bar, everything folds into one menu — a
+   phone with no way to reach the size guide or the shipping terms is a phone
+   that cannot buy. */
+.menu-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 2.25rem; height: 2.25rem; margin-inline-start: -0.4rem;
+  background: none; border: 0; color: var(--ink); flex-shrink: 0;
+}
+@media (min-width: 1140px) { .menu-toggle { display: none; } }
+.menu-bars { display: block; width: 1.15rem; height: 0.7rem; position: relative; }
+.menu-bars i {
+  position: absolute; inset-inline: 0; height: 1px; background: currentColor;
+  transition: transform 0.25s ease, opacity 0.2s ease;
+}
+.menu-bars i:first-child { top: 0; }
+.menu-bars i:last-child { bottom: 0; }
+.menu-bars.open i:first-child { transform: translateY(0.35rem) rotate(45deg); }
+.menu-bars.open i:last-child { transform: translateY(-0.35rem) rotate(-45deg); }
+
+.menu-scrim {
+  position: fixed; inset: 0; z-index: 55; background: rgba(17, 17, 17, 0.35);
+  opacity: 0; pointer-events: none; transition: opacity 0.25s;
+}
+.menu-scrim.on { opacity: 1; pointer-events: auto; }
+.menu-panel {
+  position: absolute; inset-inline: 0; top: 100%; z-index: 58;
+  background: var(--bg); border-bottom: 1px solid var(--line);
+  max-height: calc(100vh - 4rem); overflow-y: auto;
+  padding-block: 1.25rem 2rem;
+  box-shadow: 0 18px 30px rgba(17, 17, 17, 0.08);
+}
+.menu-panel h2 {
+  margin: 1.5rem 0 0.6rem; font-family: var(--sans);
+  font-size: 0.62rem; font-weight: 500; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--gold);
+}
+.menu-panel h2:first-of-type { margin-top: 1.25rem; }
+.menu-panel ul { list-style: none; margin: 0; padding: 0; display: grid; }
+.menu-panel li + li { border-top: 1px solid var(--line); }
+.menu-panel li a {
+  display: block; padding: 0.85rem 0;
+  font-family: var(--display); font-size: 1.15rem; font-weight: 500;
+}
+.menu-panel li a:hover { color: var(--gold); }
+.menu-search input {
+  width: 100%; padding: 0.7rem 0; background: none;
+  border: 0; border-bottom: 1px solid var(--line-strong); font-size: 1rem;
+}
+.menu-search input:focus { outline: none; border-bottom-color: var(--ink); }
+
 .head-search { flex: 1; max-width: 22rem; margin-inline: 1rem; display: none; }
 @media (min-width: 900px) { .head-search { display: block; } }
 .head-search input {
@@ -280,6 +330,13 @@ header { position: sticky; top: 0; z-index: 60; background: var(--bg); border-bo
 .details li { display: flex; gap: 0.65rem; color: var(--muted); font-size: 0.88rem; line-height: 1.65; }
 .details li::before { content: ''; width: 0.3rem; height: 0.3rem; border-radius: 50%; background: var(--gold); margin-top: 0.6rem; flex-shrink: 0; }
 
+/* On a phone the buy button should not have to share a line with the stepper —
+   it is the one control the whole page exists for. */
+@media (max-width: 560px) {
+  .detail-side .qa-row { flex-wrap: wrap; }
+  .detail-side .qa-row .qa-add { flex: 1 0 100%; }
+}
+
 .trust-bar { display: grid; gap: 0.6rem; margin-top: 1.75rem; padding-top: 1.5rem; border-top: 1px solid var(--line); }
 .trust-item { display: flex; align-items: center; gap: 0.6rem; font-size: 0.82rem; color: var(--muted); }
 .trust-item svg { color: var(--gold); flex-shrink: 0; }
@@ -490,22 +547,40 @@ footer { border-top: 1px solid var(--line); padding-block: 3rem 1.75rem; margin-
 </style>
 <div class="store-app">
 <header><div class="wrap bar">
+<button class="menu-toggle" aria-expanded="false" aria-controls="store-menu" aria-label="פתיחת התפריט" data-menu>
+<span class="menu-bars" aria-hidden="true"><i></i><i></i></span></button>
 <a class="mark" href="#/"><span class="vs">AM</span><span class="name">CLOTHING</span></a>
 <form class="head-search" role="search" onsubmit="return false"><input type="search" placeholder="חיפוש מוצר, צבע או מידה" aria-label="חיפוש בחנות"></form>
 <nav class="links">
-<a href="#/" data-page="home">הקולקציה</a>
 <a href="#/?cat=tees">חולצות</a>
 <a href="#/?cat=shorts">מכנסיים</a>
 <a href="#/?cat=sets">סטים</a>
 <a href="#/sizes" data-page="sizes">טבלת מידות</a>
 <a href="#/shipping" data-page="shipping">משלוח והחזרות</a>
 <a href="#/about" data-page="about">עלינו</a>
+<a href="#/contact" data-page="contact">צור קשר</a>
 </nav>
 <div class="icon-cluster">
-<a class="icon-link" href="#/contact"><span class="icon-link-label">צור קשר</span></a>
 <button class="icon-link cart-btn" data-open-drawer aria-label="סל הקניות"><span class="icon-link-label">הסל</span><span class="cart-count" data-empty>0</span></button>
 </div>
-</div></header>
+</div>
+<div class="menu-scrim" data-menu-close></div>
+<div class="menu-panel" id="store-menu" hidden><div class="wrap">
+<form class="menu-search" role="search" onsubmit="return false"><input type="search" placeholder="חיפוש מוצר, צבע או מידה" aria-label="חיפוש בחנות" data-menu-search></form>
+<h2>הקולקציה</h2><ul>
+<li><a href="#/">כל הקולקציה</a></li>
+<li><a href="#/?cat=tees">חולצות</a></li>
+<li><a href="#/?cat=shorts">מכנסיים</a></li>
+<li><a href="#/?cat=sets">סטים</a></li>
+</ul><h2>מידע</h2><ul>
+<li><a href="#/sizes">טבלת מידות</a></li>
+<li><a href="#/shipping">משלוח והחזרות</a></li>
+<li><a href="#/about">עלינו</a></li>
+<li><a href="#/contact">צור קשר</a></li>
+</ul><h2>החשבון</h2><ul>
+<li><a href="#/cart">הסל שלי</a></li>
+</ul></div></div>
+</header>
 <main id="app"></main>
 <footer><div class="wrap"><div class="foot-grid">
 <div><a class="mark" href="#/"><span class="vs">AM</span><span class="name">CLOTHING</span></a>
@@ -996,6 +1071,31 @@ document.querySelector('.head-search input').addEventListener('keydown', (e) => 
   if (e.key !== 'Enter') return;
   e.preventDefault();
   const q = e.target.value.trim();
+  go('/' + (q ? '?q=' + encodeURIComponent(q) : ''));
+});
+
+/* ---------------- menu ---------------- */
+const menuPanel = document.getElementById('store-menu');
+const menuScrim = document.querySelector('.menu-scrim');
+const menuBtn = document.querySelector('[data-menu]');
+
+function setMenu(open) {
+  menuPanel.hidden = !open;
+  menuPanel.classList.toggle('on', open);
+  menuScrim.classList.toggle('on', open);
+  menuBtn.setAttribute('aria-expanded', String(open));
+  menuBtn.setAttribute('aria-label', open ? 'סגירת התפריט' : 'פתיחת התפריט');
+  menuBtn.querySelector('.menu-bars').classList.toggle('open', open);
+  document.body.style.overflow = open ? 'hidden' : '';
+}
+menuBtn.addEventListener('click', () => setMenu(menuPanel.hidden));
+menuScrim.addEventListener('click', () => setMenu(false));
+menuPanel.addEventListener('click', (e) => { if (e.target.closest('a')) setMenu(false); });
+document.querySelector('[data-menu-search]').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const q = e.target.value.trim();
+  setMenu(false);
   go('/' + (q ? '?q=' + encodeURIComponent(q) : ''));
 });
 

@@ -533,6 +533,31 @@ document.querySelector('.head-search input').addEventListener('keydown', (e) => 
   go('/' + (q ? '?q=' + encodeURIComponent(q) : ''));
 });
 
+/* ---------------- menu ---------------- */
+const menuPanel = document.getElementById('store-menu');
+const menuScrim = document.querySelector('.menu-scrim');
+const menuBtn = document.querySelector('[data-menu]');
+
+function setMenu(open) {
+  menuPanel.hidden = !open;
+  menuPanel.classList.toggle('on', open);
+  menuScrim.classList.toggle('on', open);
+  menuBtn.setAttribute('aria-expanded', String(open));
+  menuBtn.setAttribute('aria-label', open ? 'סגירת התפריט' : 'פתיחת התפריט');
+  menuBtn.querySelector('.menu-bars').classList.toggle('open', open);
+  document.body.style.overflow = open ? 'hidden' : '';
+}
+menuBtn.addEventListener('click', () => setMenu(menuPanel.hidden));
+menuScrim.addEventListener('click', () => setMenu(false));
+menuPanel.addEventListener('click', (e) => { if (e.target.closest('a')) setMenu(false); });
+document.querySelector('[data-menu-search]').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const q = e.target.value.trim();
+  setMenu(false);
+  go('/' + (q ? '?q=' + encodeURIComponent(q) : ''));
+});
+
 scrim.addEventListener('click', closeDrawer);
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
 window.addEventListener('hashchange', render);
@@ -547,22 +572,40 @@ const html = [
 
   '<div class="store-app">',
   '<header><div class="wrap bar">',
+  '<button class="menu-toggle" aria-expanded="false" aria-controls="store-menu" aria-label="פתיחת התפריט" data-menu>',
+  '<span class="menu-bars" aria-hidden="true"><i></i><i></i></span></button>',
   '<a class="mark" href="#/"><span class="vs">AM</span><span class="name">CLOTHING</span></a>',
   '<form class="head-search" role="search" onsubmit="return false"><input type="search" placeholder="חיפוש מוצר, צבע או מידה" aria-label="חיפוש בחנות"></form>',
   '<nav class="links">',
-  '<a href="#/" data-page="home">הקולקציה</a>',
   '<a href="#/?cat=tees">חולצות</a>',
   '<a href="#/?cat=shorts">מכנסיים</a>',
   '<a href="#/?cat=sets">סטים</a>',
   '<a href="#/sizes" data-page="sizes">טבלת מידות</a>',
   '<a href="#/shipping" data-page="shipping">משלוח והחזרות</a>',
   '<a href="#/about" data-page="about">עלינו</a>',
+  '<a href="#/contact" data-page="contact">צור קשר</a>',
   '</nav>',
   '<div class="icon-cluster">',
-  '<a class="icon-link" href="#/contact"><span class="icon-link-label">צור קשר</span></a>',
   '<button class="icon-link cart-btn" data-open-drawer aria-label="סל הקניות"><span class="icon-link-label">הסל</span><span class="cart-count" data-empty>0</span></button>',
   '</div>',
-  '</div></header>',
+  '</div>',
+  '<div class="menu-scrim" data-menu-close></div>',
+  '<div class="menu-panel" id="store-menu" hidden><div class="wrap">',
+  '<form class="menu-search" role="search" onsubmit="return false"><input type="search" placeholder="חיפוש מוצר, צבע או מידה" aria-label="חיפוש בחנות" data-menu-search></form>',
+  '<h2>הקולקציה</h2><ul>',
+  '<li><a href="#/">כל הקולקציה</a></li>',
+  '<li><a href="#/?cat=tees">חולצות</a></li>',
+  '<li><a href="#/?cat=shorts">מכנסיים</a></li>',
+  '<li><a href="#/?cat=sets">סטים</a></li>',
+  '</ul><h2>מידע</h2><ul>',
+  '<li><a href="#/sizes">טבלת מידות</a></li>',
+  '<li><a href="#/shipping">משלוח והחזרות</a></li>',
+  '<li><a href="#/about">עלינו</a></li>',
+  '<li><a href="#/contact">צור קשר</a></li>',
+  '</ul><h2>החשבון</h2><ul>',
+  '<li><a href="#/cart">הסל שלי</a></li>',
+  '</ul></div></div>',
+  '</header>',
 
   '<main id="app"></main>',
 

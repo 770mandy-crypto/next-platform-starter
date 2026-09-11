@@ -4,7 +4,11 @@ import { useState } from 'react';
 
 export function ImageGallery({ images, title }) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const imagesToShow = images && images.length > 0 ? images : [images[0]];
+  // A product may carry one photograph or several; `images` can also arrive
+  // empty if the row has no gallery yet, and indexing into it would throw.
+  const imagesToShow = (images || []).filter(Boolean);
+
+  if (imagesToShow.length === 0) return null;
 
   return (
     <div className="gallery-container">
@@ -18,10 +22,10 @@ export function ImageGallery({ images, title }) {
               key={i}
               className={`thumb${i === activeIndex ? ' active' : ''}`}
               onClick={() => setActiveIndex(i)}
-              aria-label={`View image ${i + 1}`}
+              aria-label={`תמונה ${i + 1}`}
               aria-current={i === activeIndex}
             >
-              <img src={img} alt={`${title} view ${i + 1}`} />
+              <img src={img} alt={`${title} — תמונה ${i + 1}`} />
             </button>
           ))}
         </div>
