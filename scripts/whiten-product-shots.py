@@ -7,18 +7,17 @@ very sharp test for "is this pixel backdrop": does it differ from that colour at
 all. For the white garments the test is decisive on its own, and the cut needs
 no cleaning up afterwards at all.
 
-The black garments are the hard case. They carry a distressed print whose
-darkest streaks match the backdrop to within a value or two and run right out to
-the hem, so no per-pixel test can hold their outline. There a second property
-does the work: a streak is a narrow channel into the garment, while real
-backdrop is open field. The outline is closed across everything, and then only
-backdrop wide enough to hold a sizeable disk is cut back out — by opening rather
-than flood fill, since every streak drains into the same backdrop region and a
-flood would run straight back up them.
+The black garments come back from that same test not as a filled shape but as a
+drawing of one: seams, hems, waistband and logo separate cleanly, while the
+cloth between them is the backdrop's own value to the digit. The shorts are
+almost pure outline. So the shape is not found pixel by pixel — the outline is
+closed until it encircles the garment, and then filled. Closing has to reach
+thirty pixels before the shorts' outline joins up, and the fill is worth
+nothing until it does.
 
 Which of the two an image gets is measured, not configured: a garment whose
 interior stands well clear of the backdrop takes the exact cut, and one that
-does not takes the geometric one.
+does not is treated as an outline.
 
 Edges are re-backed rather than masked. A pixel on the outline is a mixture of
 cloth and backdrop; carrying it whole paints a dark line round the garment on a
@@ -53,49 +52,39 @@ OFF_BACKDROP = 3
 # pixels JPEG scatters along the outline, which stipple the edge with grey
 # dots. There the threshold rides on the garment's own contrast instead.
 OFF_BACKDROP_SHARE = 0.04
-# Window for the flatness test, and the reading above which cloth is textured.
-TEXTURE_WINDOW = 7
-FLAT_MAX = 0.25
 # A garment whose interior sits at least this far from the backdrop can be cut
 # on the exact test alone; below it, the geometric route is needed.
 EXACT_CUT_CONTRAST = 40
 
-# Geometric route: close the outline across gaps up to twice this...
-SEAL = 28
-# ...then cut back only backdrop wide enough to hold a disk of this radius.
-BACKDROP_DISK = 40
+# How far the outline route closes. Measured, not chosen: the shorts' outline
+# joins up at thirty and the enclosed area then stops moving, so this sits just
+# past where both garments settle.
+SEAL = 34
 # Exact route needs only enough closing to bridge JPEG ringing.
 FINE_SEAL = 2
 
 # Sever bridges this thin, to drop shadow marks the closing happened to reach.
 BRIDGE = 5
-# Smoothing applied to the geometric outline only; the exact one is already
-# faithful and smoothing it would round off real detail.
-OUTLINE_SMOOTH = 3.0
-# A faint contact line runs along the floor under the black garments. It is
-# textured, so it reads as cloth, and the closing reaches it. It is also only a
-# few pixels tall while the garment is a thousand, so cutting vertically —
-# dropping anything shorter than this — removes the line and nothing else.
+# Anything shorter than this is the floor's contact line, not garment.
 GROUND_LINE = 25
+# A mark smaller than this is dust or a loose thread on the backdrop. It matters
+# because the closing will happily build a bridge out to one, hanging a tab off
+# the hem; removed before the closing, there is nothing to reach for.
+SPECK = 60
 # Width of the rim that gets a graded alpha instead of a hard edge.
 RIM = 4
 
 CROSS = np.ones((3, 3), bool)
 
 
-def local_std(lum: np.ndarray) -> np.ndarray:
-    mean = ndimage.uniform_filter(lum, TEXTURE_WINDOW)
-    mean_sq = ndimage.uniform_filter(lum * lum, TEXTURE_WINDOW)
-    return np.sqrt(np.maximum(mean_sq - mean * mean, 0))
 
 
-def touching_border(mask: np.ndarray) -> np.ndarray:
+def drop_specks(mask: np.ndarray) -> np.ndarray:
     labels, count = ndimage.label(mask)
     if not count:
-        return np.zeros_like(mask)
-    edge = np.concatenate([labels[0, :], labels[-1, :], labels[:, 0], labels[:, -1]])
-    ids = [int(v) for v in np.unique(edge) if v]
-    return np.isin(labels, ids) if ids else np.zeros_like(mask)
+        return mask
+    sizes = ndimage.sum(mask, labels, range(1, count + 1))
+    return np.concatenate(([False], sizes >= SPECK))[labels]
 
 
 def largest_region(mask: np.ndarray) -> np.ndarray:
@@ -134,19 +123,20 @@ def silhouette_exact(off: np.ndarray) -> np.ndarray:
     return drop_stray_marks(mask)
 
 
-def silhouette_geometric(off: np.ndarray, flat: np.ndarray) -> np.ndarray:
-    mask = ndimage.binary_fill_holes(close(off, SEAL))
+def silhouette_outline(off: np.ndarray) -> np.ndarray:
+    """Close the garment's outline until it encircles it, then fill it.
 
-    backdrop = touching_border(flat)
-    wide = ndimage.binary_erosion(backdrop, CROSS, iterations=BACKDROP_DISK)
-    wide = ndimage.binary_dilation(wide, CROSS, iterations=BACKDROP_DISK)
-    mask &= ~wide
-
+    The radius is not a taste setting. Below it the outline is still broken and
+    the fill leaks out to the frame; at it the enclosed area jumps and then
+    stops moving, because the shape is now the garment and closing further has
+    nothing left to join.
+    """
+    mask = largest_region(ndimage.binary_fill_holes(close(off, SEAL)))
     mask = ndimage.binary_fill_holes(drop_stray_marks(mask))
+    # A faint contact line runs along the floor under these shots, a few pixels
+    # tall where the garment is a thousand, so a vertical cut takes it alone.
     mask = ndimage.binary_opening(mask, np.ones((GROUND_LINE, 1), bool))
-    mask = ndimage.binary_fill_holes(largest_region(mask))
-    mask = ndimage.gaussian_filter(mask.astype(np.float32), OUTLINE_SMOOTH) > 0.5
-    return ndimage.binary_fill_holes(mask)
+    return ndimage.binary_fill_holes(largest_region(mask))
 
 
 def cutout(path: Path) -> tuple[Image.Image, str]:
@@ -157,9 +147,7 @@ def cutout(path: Path) -> tuple[Image.Image, str]:
     backdrop = arr[2, 2].copy()
     distance = np.abs(arr - backdrop[None, None, :]).max(axis=2)
 
-    lum = np.asarray(rgb.convert('L'), dtype=np.float32)
-    flat = local_std(lum) <= FLAT_MAX
-    off = distance >= OFF_BACKDROP
+    off = drop_specks(distance >= OFF_BACKDROP)
 
     # How far clear of the backdrop does this garment actually sit? Measured
     # well inside it, so an edge or a stray mark cannot speak for the whole.
@@ -168,14 +156,9 @@ def cutout(path: Path) -> tuple[Image.Image, str]:
 
     if contrast >= EXACT_CUT_CONTRAST:
         clear = max(OFF_BACKDROP, contrast * OFF_BACKDROP_SHARE)
-        mask, route = silhouette_exact(distance >= clear), 'exact'
+        mask, route = silhouette_exact(drop_specks(distance >= clear)), 'exact'
     else:
-        # Texture is what finds the black garments, but the window straddles the
-        # outline and so reads as textured for a few pixels of pure backdrop all
-        # the way round. Pulling that reading back in stops the cut carrying a
-        # collar of backdrop, which on a white page is a drawn-on outline.
-        textured = ndimage.binary_erosion(~flat, CROSS, iterations=TEXTURE_WINDOW // 2)
-        mask, route = silhouette_geometric(off | textured, flat), 'geometric'
+        mask, route = silhouette_outline(off), 'outline'
 
     # A pixel on the outline is a mixture of cloth and backdrop, so it needs a
     # coverage figure, not a yes or no. How far it sits from the backdrop,
