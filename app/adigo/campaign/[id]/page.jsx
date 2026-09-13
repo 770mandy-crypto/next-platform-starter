@@ -184,6 +184,31 @@ export default function CampaignPage() {
           />
         </div>
 
+        {/* Image Section */}
+        {campaign.imageUrl && (
+          <div className="mt-12 bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+            <h2 className="text-2xl font-bold mb-6">🎨 תמונת המודעה</h2>
+            <div className="border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-50">
+              <img
+                src={campaign.imageUrl}
+                alt={campaign.businessName}
+                className="w-full h-auto max-h-96 object-cover"
+              />
+            </div>
+            <button
+              onClick={() => {
+                const link = document.createElement('a');
+                link.href = campaign.imageUrl;
+                link.download = `${campaign.businessName}-ad.png`;
+                link.click();
+              }}
+              className="mt-4 w-full bg-green-600 text-white py-2 rounded-lg font-bold hover:bg-green-700 transition"
+            >
+              ⬇️ הורד תמונה
+            </button>
+          </div>
+        )}
+
         {/* Preview Section */}
         <div className="mt-12 bg-white rounded-xl shadow-sm border border-gray-200 p-8">
           <h2 className="text-2xl font-bold mb-6">👀 תצוגה מקדימה לפייסבוק</h2>
