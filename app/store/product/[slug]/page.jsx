@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { isSupabaseConfigured } from 'lib/supabase/config';
-import { getProduct, getVariantsOf, totalStock } from 'lib/store/catalog';
+import { getProduct, getVariantsOf, listProducts, totalStock } from 'lib/store/catalog';
 import { nis } from 'lib/store/format';
 import { SetupNotice } from 'components/store/setup-notice';
 import { ProductPurchaseForm } from 'components/store/product-purchase-form';
@@ -11,6 +11,7 @@ import { ImageGallery } from 'components/store/image-gallery';
 import { SizeGuide } from 'components/store/size-guide';
 import { RecentlyViewed, trackProductView } from 'components/store/recently-viewed';
 import { ProductViewTracker } from 'components/store/product-view-tracker';
+import { CompleteTheLook } from 'components/store/complete-the-look';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,6 +37,7 @@ export default async function ProductPage({ params }) {
   if (!product) notFound();
 
   const siblings = (await getVariantsOf(product.category)).filter((s) => s.color !== undefined);
+  const catalogue = await listProducts();
   const outOfStock = totalStock(product) === 0;
 
   return (
@@ -105,6 +107,7 @@ export default async function ProductPage({ params }) {
           </div>
         </div>
       </div>
+      <CompleteTheLook product={product} products={catalogue} />
       <RecentlyViewed />
     </section>
   );

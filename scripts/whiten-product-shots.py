@@ -145,6 +145,11 @@ def cutout(path: Path) -> tuple[Image.Image, str]:
 
     # The frame corner is backdrop by construction.
     backdrop = arr[2, 2].copy()
+
+    # A shot that already arrived on white needs nothing doing to it, and
+    # running the cut over one would only invent an outline where there is none.
+    if backdrop.min() >= 240:
+        return rgb, 'already white'
     distance = np.abs(arr - backdrop[None, None, :]).max(axis=2)
 
     off = drop_specks(distance >= OFF_BACKDROP)

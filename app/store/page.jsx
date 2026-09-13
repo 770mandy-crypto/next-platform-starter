@@ -5,6 +5,9 @@ import { Hero } from 'components/store/hero';
 import { Ticker } from 'components/store/ticker';
 import { CatalogGrid } from 'components/store/catalog-grid';
 import { BrandSection } from 'components/store/brand-section';
+import { CategoryTiles } from 'components/store/category-tiles';
+import { SetOffer } from 'components/store/set-offer';
+import { FaqTeaser } from 'components/store/faq-teaser';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,8 +27,11 @@ export default async function StoreHomePage() {
     <>
       <Hero />
       <Ticker />
+      <CategoryTiles products={products} />
       <CatalogGrid products={products} />
+      <SetOffer products={products} />
       <BrandSection />
+      <FaqTeaser />
     </>
   );
 }

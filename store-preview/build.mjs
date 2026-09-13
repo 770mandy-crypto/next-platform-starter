@@ -194,7 +194,7 @@ function homePage(r) {
 
   const hero =
     '<section class="hero">' +
-      '<div class="hero-media"><img src="' + PRODUCTS[5].img + '" alt="סט AM לבן"></div>' +
+      '<div class="hero-media"><img src="' + bySlug('am-tee-black').img + '" alt="חולצת AM שחורה"></div>' +
       '<div class="hero-copy">' +
         '<p class="eyebrow">קולקציית הפתיחה · 2026</p>' +
         '<h1>לבוש שנשאר<br><em>נקי לאורך זמן</em></h1>' +
@@ -237,6 +237,57 @@ function homePage(r) {
       '</div>' +
     '</div></div>';
 
+  const tiles = [
+    ['tees', 'חולצות', 'כותנה מסורקת, 240 גרם'],
+    ['shorts', 'מכנסיים', 'פוטר כבד, 320 גרם'],
+    ['sets', 'סטים', 'חולצה ומכנסיים יחד']
+  ].map(([key, label, note]) => {
+    const inCat = PRODUCTS.filter((p) => p.category === key);
+    if (!inCat.length) return '';
+    return '<a class="tile" href="#/?cat=' + key + '">' +
+      '<span class="tile-shot"><img src="' + inCat[0].img + '" alt="' + label + '" loading="lazy"></span>' +
+      '<span class="tile-body">' +
+        '<span class="tile-name">' + label + '</span>' +
+        '<span class="tile-note">' + note + '</span>' +
+        '<span class="tile-count">' + inCat.length + (inCat.length === 1 ? ' דגם' : ' דגמים') + '</span>' +
+      '</span></a>';
+  }).join('');
+
+  const tilesSection =
+    '<section class="wrap tiles-section"><h2 class="section-title">קנו לפי קטגוריה</h2>' +
+    '<div class="tiles">' + tiles + '</div></section>';
+
+  const set = PRODUCTS.find((p) => p.category === 'sets' && p.compareAtPrice > p.price);
+  const offer = !set ? '' :
+    '<section class="offer"><div class="wrap offer-grid">' +
+      '<div class="offer-shot"><img src="' + set.img + '" alt="' + esc(set.title) + '" loading="lazy"></div>' +
+      '<div class="offer-copy">' +
+        '<p class="eyebrow">הסט המלא</p>' +
+        '<h2>חולצה ומכנסיים, ' + nis(set.compareAtPrice - set.price) + ' פחות</h2>' +
+        '<p>אותם שני פריטים בדיוק שנמכרים בנפרד, באותה מידה או בשתי מידות שונות. ' +
+          nis(set.compareAtPrice) + ' כשקונים אותם לחוד, ' + nis(set.price) + ' כסט.</p>' +
+        '<div class="offer-figures">' +
+          '<span class="offer-was">' + nis(set.compareAtPrice) + '</span>' +
+          '<span class="offer-now">' + nis(set.price) + '</span>' +
+          '<span class="offer-save">חיסכון ' + nis(set.compareAtPrice - set.price) + '</span>' +
+        '</div>' +
+        '<div class="hero-cta"><a class="btn-gold" href="#/?cat=sets">לסטים</a>' +
+          '<a class="btn-line" href="#/p/' + set.slug + '">לפריט</a></div>' +
+      '</div>' +
+    '</div></section>';
+
+  const faq =
+    '<section class="wrap faq-section"><div class="faq-head">' +
+      '<h2 class="section-title">שאלות לפני שקונים</h2>' +
+      '<a class="faq-more" href="#/shipping">כל השאלות</a>' +
+    '</div><div class="faq-grid">' +
+    [['כמה עולה המשלוח?', 'חינם בהזמנה מעל ₪250. מתחת לזה ₪29 לכל הארץ, או איסוף עצמי בתל אביב בלי עלות.'],
+     ['מתי זה מגיע?', '3–5 ימי עסקים מרגע התשלום. הזמנות שנקלטות אחרי 14:00 יוצאות ביום העסקים הבא.'],
+     ['ואם המידה לא מתאימה?', 'החלפת מידה ראשונה על חשבוננו, תוך 14 יום, כל עוד הפריט לא נלבש והתווית עליו.'],
+     ['איך משלמים?', 'בכרטיס אשראי דרך Stripe. פרטי הכרטיס לא עוברים דרכנו ולא נשמרים אצלנו בשום שלב.']]
+      .map(([qq, aa]) => '<div class="faq-item"><h3>' + qq + '</h3><p>' + aa + '</p></div>').join('') +
+    '</div></section>';
+
   const body =
     '<section class="wrap catalog-layout" id="catalog">' +
       '<h2 class="rail-title">' + (q ? 'תוצאות עבור “' + esc(q) + '”' : 'הקולקציה') + '</h2>' +
@@ -246,7 +297,23 @@ function homePage(r) {
       '</div>' +
     '</section>';
 
-  return hero + bar + body;
+  const brand =
+    '<section class="brand" id="brand"><div class="wrap brand-grid">' +
+      '<div class="brand-shot"><img src="' + bySlug('am-tee-white').img + '" alt="רקמת הזהב של AM" loading="lazy"></div>' +
+      '<div>' +
+        '<p class="eyebrow">המותג</p>' +
+        '<h2>הפרט שאי אפשר להדפיס</h2>' +
+        '<p>הלוגו של AM נרקם בחוט זהב, לא מודפס. רקמה לא מתקלפת בכביסה ולא נסדקת אחרי עונה — היא נשארת בדיוק כמו ביום הראשון. זה הפרט שהכי קל לחסוך בו, ובדיוק בגללו התחלנו.</p>' +
+        '<p>הקולקציה נשארת קטנה בכוונה: שני צבעים, שתי גזרות, וסט שמחבר ביניהן. כל פריט נבחר כי הוא עובד לבד וגם ביחד.</p>' +
+        '<div class="pillars">' +
+          '<div class="pillar"><h6>הבד</h6><p>כותנה מסורקת 240 גרם למ״ר. נופלת ישר, לא מתעוותת.</p></div>' +
+          '<div class="pillar"><h6>הרקמה</h6><p>חוט זהב על החזה השמאלי. לא הדפס.</p></div>' +
+          '<div class="pillar"><h6>המשלוח</h6><p>חינם מעל ₪250, 3–5 ימי עסקים.</p></div>' +
+        '</div>' +
+      '</div>' +
+    '</div></section>';
+
+  return hero + bar + tilesSection + body + offer + brand + faq;
 }
 
 function card(p) {
@@ -333,7 +400,29 @@ function productPage(r) {
         '</div>' +
       '</div>' +
     '</div>' +
+    completeTheLook(p) +
   '</section>';
+}
+
+/* ---- what goes with this ---- */
+const GOES_WITH = { tees: ['shorts', 'sets'], shorts: ['tees', 'sets'], sets: ['tees', 'shorts'] };
+
+function completeTheLook(p) {
+  const picks = (GOES_WITH[p.category] || []).map((cat) => {
+    const inCat = PRODUCTS.filter((x) => x.category === cat && x.slug !== p.slug);
+    return inCat.find((x) => x.color === p.color) || inCat[0];
+  }).filter(Boolean);
+  if (!picks.length) return '';
+  return '<section class="look-section"><h2 class="section-title">להשלים את הלוק</h2><div class="look-grid">' +
+    picks.map((x) =>
+      '<a class="look-card" href="#/p/' + x.slug + '">' +
+        '<span class="look-shot"><img src="' + x.img + '" alt="' + esc(x.title) + '" loading="lazy"></span>' +
+        '<span class="look-info">' +
+          '<span class="look-name">' + x.titleHe + '</span>' +
+          '<span class="look-colour">' + x.color + '</span>' +
+          '<span class="look-price">' + nis(x.price) + '</span>' +
+        '</span></a>'
+    ).join('') + '</div></section>';
 }
 
 /* ---- cart ---- */

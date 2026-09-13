@@ -4,7 +4,7 @@ export function Hero() {
   return (
     <section className="hero">
       <div className="hero-media">
-        <img src="/store/images/am-set-white.jpg" alt="קולקציית AM CLOTHING — סט לבן עם רקמת זהב" />
+        <img src="/store/images/am-tee-black.jpg" alt="חולצת AM שחורה עם רקמת זהב" />
       </div>
       <div className="hero-copy">
         <p className="eyebrow">קולקציית הפתיחה · 2026</p>
