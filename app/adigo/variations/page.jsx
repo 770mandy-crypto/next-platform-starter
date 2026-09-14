@@ -1,10 +1,29 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
+function LoadingScreen({ message }) {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
+      <div className="text-center">
+        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+        <p className="text-gray-700 text-lg">{message}</p>
+      </div>
+    </div>
+  );
+}
+
 export default function VariationsPage() {
+  return (
+    <Suspense fallback={<LoadingScreen message="טוען..." />}>
+      <VariationsContent />
+    </Suspense>
+  );
+}
+
+function VariationsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const campaignId = searchParams.get("campaignId");
@@ -66,14 +85,7 @@ export default function VariationsPage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-          <p className="text-gray-700 text-lg">יוצר גרסאות המודעה...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen message="יוצר גרסאות המודעה..." />;
   }
 
   if (!variations.length) {

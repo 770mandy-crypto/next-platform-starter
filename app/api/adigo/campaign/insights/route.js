@@ -1,13 +1,32 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { anthropicClient, hasClaude } from "@/lib/adigo/ai-clients";
 
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+const FALLBACK_INSIGHTS = `✅ נקודות חוזק בקמפיין:
+- הכותרת קצרה וברורה
+- הקריאה לפעולה חד-משמעית
+- הטקסט כתוב בעברית תקנית
+
+💡 הצעות לשיפור:
+- הוסיפו מספר או נתון קונקרטי כדי להגביר אמינות
+- הדגישו את הערך הייחודי שלכם, לא רק את המחיר
+- הוסיפו מסגרת זמן ("עד יום חמישי") כדי ליצור דחיפות
+
+🎯 ערוצים מומלצים:
+- וואטסאפ: הכי יעיל לקהל מקומי ולקבוצות שכונה
+- אינסטגרם: מתאים כשיש תמונה חזקה
+- פייסבוק: הגעה רחבה לקהל מבוגר יותר`;
 
 export async function POST(request) {
+  if (!hasClaude()) {
+    return Response.json({
+      insights: FALLBACK_INSIGHTS,
+      mockMode: true,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
   try {
-    const body = await request.json();
-    const { headline, body, cta, businessName, businessCategory, targetAudience } = body;
+    const payload = await request.json();
+    const { headline, body, cta, businessName, businessCategory, targetAudience } = payload;
 
     const prompt = `אתה מנתח שיווק מומחה. יש לך קמפיין בעברית:
 
@@ -29,7 +48,7 @@ CTA: ${cta}
 
 כתוב בעברית, תשובה קצרה ישירה.`;
 
-    const response = await client.messages.create({
+    const response = await anthropicClient().messages.create({
       model: "claude-3-5-sonnet-20241022",
       max_tokens: 500,
       messages: [
@@ -49,24 +68,8 @@ CTA: ${cta}
   } catch (error) {
     console.error("שגיאה בניתוח קמפיין:", error);
 
-    // Return mock insights if API fails
-    const mockInsights = `✅ נקודות חוזק בקמפיין:
-- הכותרת קצרה וממושכת
-- ה-CTA ברור וחד-משמעי
-- הטקסט בעברית מושלמת
-
-💡 הצעות לשיפור:
-- הוסף מספרים או סטטיסטיקות להעלאת משקעות
-- הדגש את הערך הייחודי של המוצר
-- תן דחיפות (הצעה מוגבלת בזמן)
-
-🎯 ערוץים מומלצים:
-- WhatsApp: טוב לקהל אישי
-- Instagram: טוב לתמונות ויזואליות
-- Facebook: טוב להגעה רחבה`;
-
     return Response.json({
-      insights: mockInsights,
+      insights: FALLBACK_INSIGHTS,
       mockMode: true,
       timestamp: new Date().toISOString(),
     });

@@ -1,6 +1,7 @@
 import { generateCampaign } from "@/lib/adigo/ai-service";
 import { generateCampaignMock } from "@/lib/adigo/mock-ai";
 import { generateCampaignImage, generateImageMock } from "@/lib/adigo/image-generator";
+import { hasClaude, hasOpenAI } from "@/lib/adigo/ai-clients";
 
 export async function POST(request) {
   try {
@@ -29,15 +30,8 @@ export async function POST(request) {
 
     let campaign;
     let imageData = null;
-    const hasValidApiKey =
-      process.env.ANTHROPIC_API_KEY &&
-      process.env.ANTHROPIC_API_KEY.startsWith("sk-") &&
-      !process.env.ANTHROPIC_API_KEY.includes("YOUR_API_KEY");
-
-    const hasValidOpenAIKey =
-      process.env.OPENAI_API_KEY &&
-      process.env.OPENAI_API_KEY.startsWith("sk-") &&
-      !process.env.OPENAI_API_KEY.includes("YOUR_OPENAI_KEY");
+    const hasValidApiKey = hasClaude();
+    const hasValidOpenAIKey = hasOpenAI();
 
     try {
       if (hasValidApiKey) {

@@ -1,5 +1,20 @@
 import { generateCampaignVariations } from "@/lib/adigo/ai-service";
 import { generateCampaignMock } from "@/lib/adigo/mock-ai";
+import { hasClaude } from "@/lib/adigo/ai-clients";
+
+function mockVariations(campaignData) {
+  return Promise.all([
+    generateCampaignMock(campaignData),
+    generateCampaignMock({
+      ...campaignData,
+      offerDescription: campaignData.offerDescription + " ",
+    }),
+    generateCampaignMock({
+      ...campaignData,
+      offerDescription: " " + campaignData.offerDescription + "  ",
+    }),
+  ]);
+}
 
 export async function POST(request) {
   try {
@@ -29,31 +44,16 @@ export async function POST(request) {
     let variations;
     let mockMode = false;
 
-    // בדיקה של API key
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey || apiKey.includes("YOUR_KEY")) {
-      // אם אין API key, השתמש בMock
-      console.log("ללא API key תקף, משתמש בMock service");
+    if (!hasClaude()) {
       mockMode = true;
-      // צור 3 גרסאות mock
-      const mockVariation = generateCampaignMock(campaignData);
-      variations = [
-        mockVariation,
-        generateCampaignMock({ ...campaignData, offerDescription: offerDescription + " (גרסה 2)" }),
-        generateCampaignMock({ ...campaignData, offerDescription: offerDescription + " (גרסה 3)" }),
-      ];
+      variations = await mockVariations(campaignData);
     } else {
       try {
         variations = await generateCampaignVariations(campaignData);
       } catch (aiError) {
         console.error("שגיאה ב-AI, משתמש בMock:", aiError);
         mockMode = true;
-        const mockVariation = generateCampaignMock(campaignData);
-        variations = [
-          mockVariation,
-          generateCampaignMock({ ...campaignData, offerDescription: offerDescription + " (גרסה 2)" }),
-          generateCampaignMock({ ...campaignData, offerDescription: offerDescription + " (גרסה 3)" }),
-        ];
+        variations = await mockVariations(campaignData);
       }
     }
 
