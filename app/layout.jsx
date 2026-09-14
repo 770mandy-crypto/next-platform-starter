@@ -1,5 +1,4 @@
 import '../styles/globals.css';
-import { AuthProvider } from '../components/session-provider';
 
 export const metadata = {
     title: {
@@ -15,9 +14,7 @@ export default function RootLayout({ children }) {
             <head>
                 <link rel="icon" href="/favicon.svg" sizes="any" />
             </head>
-            <body className="antialiased bg-white">
-                <AuthProvider>{children}</AuthProvider>
-            </body>
+            <body className="antialiased bg-white">{children}</body>
         </html>
     );
 }
