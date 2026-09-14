@@ -226,6 +226,12 @@ export default function CampaignPage() {
         {/* Action Buttons */}
         <div className="mt-12 flex gap-4 flex-col sm:flex-row">
           <button
+            onClick={() => router.push(`/adigo/variations?campaignId=${campaign.id}`)}
+            className="flex-1 bg-orange-600 text-white py-3 rounded-lg font-bold text-lg hover:bg-orange-700 transition"
+          >
+            🔄 גרסאות נוספות
+          </button>
+          <button
             onClick={() => router.push(`/adigo/editor/${campaign.id}`)}
             className="flex-1 bg-purple-600 text-white py-3 rounded-lg font-bold text-lg hover:bg-purple-700 transition"
           >

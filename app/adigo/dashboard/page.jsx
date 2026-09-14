@@ -8,12 +8,18 @@ import Link from "next/link";
 export default function DashboardPage() {
   const router = useRouter();
   const [campaigns, setCampaigns] = useState([]);
-  const [stats, setStats] = useState({ total: 0, today: 0, thisWeek: 0 });
+  const [stats, setStats] = useState({
+    total: 0,
+    today: 0,
+    thisWeek: 0,
+    avgHeadlineLength: 0,
+    topCategories: []
+  });
 
   useEffect(() => {
     // טען קמפיינים מ-localStorage
     const saved = JSON.parse(localStorage.getItem("adigoCampaigns") || "[]");
-    setCampaigns(saved);
+    setCampaigns(saved.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
 
     // חשב סטטיסטיקות
     const now = new Date();
@@ -35,10 +41,27 @@ export default function DashboardPage() {
       return cDate >= weekAgo;
     }).length;
 
+    // חשב קטגוריות הנפוצות ביותר
+    const categoryCount = {};
+    saved.forEach((c) => {
+      categoryCount[c.businessCategory] = (categoryCount[c.businessCategory] || 0) + 1;
+    });
+    const topCategories = Object.entries(categoryCount)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([cat, count]) => ({ category: cat, count }));
+
+    // חשב אורך כותרת ממוצע
+    const avgHeadline = saved.length > 0
+      ? Math.round(saved.reduce((sum, c) => sum + (c.headline?.length || 0), 0) / saved.length)
+      : 0;
+
     setStats({
       total: saved.length,
       today: todayCount,
       thisWeek: weekCount,
+      avgHeadlineLength: avgHeadline,
+      topCategories: topCategories,
     });
   }, []);
 
@@ -54,7 +77,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -84,7 +107,33 @@ export default function DashboardPage() {
               <div className="text-4xl">📈</div>
             </div>
           </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 font-medium">אורך כותרת ממוצע</p>
+                <p className="text-3xl font-bold mt-2">{stats.avgHeadlineLength}</p>
+              </div>
+              <div className="text-4xl">📝</div>
+            </div>
+          </div>
         </div>
+
+        {/* Top Categories */}
+        {stats.topCategories.length > 0 && (
+          <div className="mb-12 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-xl font-bold mb-4">🏆 קטגוריות הנפוצות</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {stats.topCategories.map((item, idx) => (
+                <div key={idx} className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
+                  <div className="text-sm text-gray-600 mb-1">#{idx + 1}</div>
+                  <div className="font-semibold text-gray-900">{item.category}</div>
+                  <div className="text-sm text-gray-500 mt-2">{item.count} קמפיינים</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Action Button */}
         <div className="mb-12">
