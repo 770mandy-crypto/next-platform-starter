@@ -34,29 +34,34 @@ function VariationsContent() {
   const [campaignData, setCampaignData] = useState(null);
 
   useEffect(() => {
+    if (!campaignId) {
+      setLoading(false);
+      return;
+    }
+
     const loadData = async () => {
       try {
-        // טען את נתוני הקמפיין מ-localStorage
-        const saved = localStorage.getItem(`campaign_${campaignId}`);
-        if (saved) {
-          const data = JSON.parse(saved);
-          setCampaignData(data);
+        const campaigns = JSON.parse(
+          localStorage.getItem("adigoCampaigns") || "[]"
+        );
+        const data = campaigns.find((c) => c.id === campaignId);
+        if (!data) return;
 
-          // צור גרסאות
-          const res = await fetch("/api/adigo/campaign/variations", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              businessName: data.businessName,
-              businessCategory: data.businessCategory,
-              targetAudience: data.targetAudience,
-              offerDescription: data.offerDescription,
-            }),
-          });
+        setCampaignData(data);
 
-          const result = await res.json();
-          setVariations(result.variations || []);
-        }
+        const res = await fetch("/api/adigo/campaign/variations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            businessName: data.businessName,
+            businessCategory: data.businessCategory,
+            targetAudience: data.targetAudience,
+            offerDescription: data.offerDescription,
+          }),
+        });
+
+        const result = await res.json();
+        setVariations(result.variations || []);
       } catch (error) {
         console.error("שגיאה בטעינת גרסאות:", error);
       } finally {
@@ -64,24 +69,20 @@ function VariationsContent() {
       }
     };
 
-    if (campaignId) {
-      loadData();
-    }
+    loadData();
   }, [campaignId]);
 
   const handleSelectVariation = () => {
-    if (variations[selectedIndex]) {
-      // שמור את הגרסה הנבחרת
-      const selected = variations[selectedIndex];
-      localStorage.setItem(
-        `campaign_${campaignId}`,
-        JSON.stringify({
-          ...campaignData,
-          ...selected,
-        })
-      );
-      router.push(`/adigo/campaign/${campaignId}`);
+    const selected = variations[selectedIndex];
+    if (!selected || !campaignData) return;
+
+    const campaigns = JSON.parse(localStorage.getItem("adigoCampaigns") || "[]");
+    const index = campaigns.findIndex((c) => c.id === campaignId);
+    if (index !== -1) {
+      campaigns[index] = { ...campaigns[index], ...selected };
+      localStorage.setItem("adigoCampaigns", JSON.stringify(campaigns));
     }
+    router.push(`/adigo/campaign/${campaignId}`);
   };
 
   if (loading) {

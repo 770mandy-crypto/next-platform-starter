@@ -2,18 +2,10 @@ import { generateCampaignVariations } from "@/lib/adigo/ai-service";
 import { generateCampaignMock } from "@/lib/adigo/mock-ai";
 import { hasClaude } from "@/lib/adigo/ai-clients";
 
+// בלי Claude יש רק תבנית אחת לכל קטגוריה, ואין דרך לייצר ממנה שלוש גרסאות
+// שונות באמת. מחזירים אחת ומסמנים mockMode, במקום שלוש זהות.
 function mockVariations(campaignData) {
-  return Promise.all([
-    generateCampaignMock(campaignData),
-    generateCampaignMock({
-      ...campaignData,
-      offerDescription: campaignData.offerDescription + " ",
-    }),
-    generateCampaignMock({
-      ...campaignData,
-      offerDescription: " " + campaignData.offerDescription + "  ",
-    }),
-  ]);
+  return Promise.all([generateCampaignMock(campaignData)]);
 }
 
 export async function POST(request) {
@@ -60,7 +52,9 @@ export async function POST(request) {
     return Response.json({
       variations,
       mockMode,
-      message: mockMode ? "גרסה מוקדמת של הגרסאות" : "הגרסאות הוצרו בהצלחה",
+      message: mockMode
+        ? "כדי לקבל שלוש גרסאות שונות צריך לחבר מפתח Claude. בינתיים זו גרסה אחת מתבנית."
+        : "הגרסאות נוצרו בהצלחה",
     });
   } catch (error) {
     console.error("שגיאה כללית:", error);

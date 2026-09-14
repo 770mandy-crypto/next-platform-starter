@@ -89,8 +89,11 @@ export default function CampaignPage() {
     );
   }
 
-  const CampaignSection = ({ title, content, section, icon }) => (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+  const renderSection = ({ title, content, section, icon }) => (
+    <div
+      key={section}
+      className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
+    >
       <div className="bg-gradient-to-l from-blue-600 to-blue-500 text-white px-6 py-4 flex items-center justify-between">
         <h3 className="font-bold text-lg">{title}</h3>
         <span>{icon}</span>
@@ -169,47 +172,16 @@ export default function CampaignPage() {
 
         {/* Campaign Sections */}
         <div className="space-y-6">
-          <CampaignSection
-            title="כותרת המודעה"
-            content={campaign.headline}
-            section="headline"
-            icon="📌"
-          />
-
-          <CampaignSection
-            title="גוף המודעה"
-            content={campaign.body}
-            section="body"
-            icon="📝"
-          />
-
-          <CampaignSection
-            title="קריאה לפעולה (CTA)"
-            content={campaign.cta}
-            section="cta"
-            icon="🎯"
-          />
-
-          <CampaignSection
-            title="לחלוקה ב-WhatsApp"
-            content={campaign.whatsapp}
-            section="whatsapp"
-            icon="💬"
-          />
-
-          <CampaignSection
-            title="לחלוקה ב-Instagram"
-            content={campaign.instagram}
-            section="instagram"
-            icon="📸"
-          />
-
-          <CampaignSection
-            title="רעיון סרטון קצר"
-            content={campaign.videoIdea}
-            section="videoIdea"
-            icon="🎥"
-          />
+          {[
+            { title: "כותרת המודעה", section: "headline", icon: "📌" },
+            { title: "גוף המודעה", section: "body", icon: "📝" },
+            { title: "קריאה לפעולה", section: "cta", icon: "🎯" },
+            { title: "לחלוקה ב-WhatsApp", section: "whatsapp", icon: "💬" },
+            { title: "לחלוקה ב-Instagram", section: "instagram", icon: "📸" },
+            { title: "רעיון סרטון קצר", section: "videoIdea", icon: "🎥" },
+          ].map((s) =>
+            renderSection({ ...s, content: campaign[s.section] })
+          )}
         </div>
 
         {/* Image Section */}

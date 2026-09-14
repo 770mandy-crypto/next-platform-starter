@@ -41,6 +41,9 @@ export async function POST(request) {
     }))
     .slice(-20);
 
+  // the conversation must open on a user turn, and trimming can cut mid-exchange
+  while (clean.length && clean[0].role !== "user") clean.shift();
+
   if (!clean.length) {
     return Response.json({ error: "אין הודעה לשלוח" }, { status: 400 });
   }
@@ -50,8 +53,9 @@ export async function POST(request) {
     async start(controller) {
       try {
         const claudeStream = anthropicClient().messages.stream({
-          model: "claude-3-5-sonnet-20241022",
-          max_tokens: 2048,
+          model: "claude-opus-5",
+          max_tokens: 16000,
+          output_config: { effort: "medium" },
           system: SYSTEM_PROMPT,
           messages: clean,
         });

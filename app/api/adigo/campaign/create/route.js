@@ -92,6 +92,7 @@ export async function POST(request) {
       createdAt: new Date().toISOString(),
       businessName: body.businessName,
       businessCategory: body.businessCategory,
+      targetAudience: body.targetAudience,
       offerDescription: body.offerDescription,
       imageUrl: imageData?.imageUrl || null,
       mockMode: !hasValidApiKey,

@@ -49,8 +49,9 @@ CTA: ${cta}
 כתוב בעברית, תשובה קצרה ישירה.`;
 
     const response = await anthropicClient().messages.create({
-      model: "claude-3-5-sonnet-20241022",
-      max_tokens: 500,
+      model: "claude-opus-5",
+      max_tokens: 16000,
+      output_config: { effort: "low" },
       messages: [
         {
           role: "user",

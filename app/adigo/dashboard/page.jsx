@@ -168,17 +168,20 @@ export default function DashboardPage() {
                 c.businessCategory,
                 c.targetAudience,
                 c.headline,
-                c.body.substring(0, 50),
+                c.body,
                 c.cta,
                 new Date(c.createdAt).toLocaleDateString('he-IL'),
               ]);
 
-              let csv = headers.join('\t') + '\n';
-              rows.forEach(row => {
-                csv += row.map(cell => `"${cell}"`).join('\t') + '\n';
-              });
+              // כל תא עטוף במרכאות ומרכאות פנימיות מוכפלות — אחרת פסיק או
+              // שורה חדשה בתוך טקסט המודעה שובר את כל הטבלה
+              const quote = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+              const csv = [headers, ...rows]
+                .map((row) => row.map(quote).join(','))
+                .join('\r\n');
 
-              const dataBlob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+              // BOM כדי ש-Excel יזהה את העברית כ-UTF-8
+              const dataBlob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
               const url = URL.createObjectURL(dataBlob);
               const link = document.createElement('a');
               link.href = url;
