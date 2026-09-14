@@ -12,6 +12,8 @@ export default function CampaignPage() {
   const [copied, setCopied] = useState("");
   const [editMode, setEditMode] = useState(null);
   const [editValue, setEditValue] = useState("");
+  const [insights, setInsights] = useState(null);
+  const [loadingInsights, setLoadingInsights] = useState(false);
 
   useEffect(() => {
     // טען את הקמפיין מ-localStorage
@@ -19,8 +21,34 @@ export default function CampaignPage() {
     const found = campaigns.find((c) => c.id === params.id);
     if (found) {
       setCampaign(found);
+      // טען insights
+      loadInsights(found);
     }
   }, [params.id]);
+
+  const loadInsights = async (camp) => {
+    setLoadingInsights(true);
+    try {
+      const res = await fetch("/api/adigo/campaign/insights", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          headline: camp.headline,
+          body: camp.body,
+          cta: camp.cta,
+          businessName: camp.businessName,
+          businessCategory: camp.businessCategory,
+          targetAudience: camp.targetAudience,
+        }),
+      });
+      const data = await res.json();
+      setInsights(data.insights);
+    } catch (error) {
+      console.error("שגיאה בטעינת insights:", error);
+    } finally {
+      setLoadingInsights(false);
+    }
+  };
 
   const copyToClipboard = (text, section) => {
     navigator.clipboard.writeText(text);
@@ -226,6 +254,21 @@ export default function CampaignPage() {
         {/* Action Buttons */}
         <div className="mt-12 flex gap-4 flex-col sm:flex-row">
           <button
+            onClick={() => {
+              const dataStr = JSON.stringify(campaign, null, 2);
+              const dataBlob = new Blob([dataStr], { type: 'application/json' });
+              const url = URL.createObjectURL(dataBlob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = `${campaign.businessName}-campaign.json`;
+              link.click();
+              URL.revokeObjectURL(url);
+            }}
+            className="flex-1 bg-green-600 text-white py-3 rounded-lg font-bold text-lg hover:bg-green-700 transition"
+          >
+            💾 ייצא JSON
+          </button>
+          <button
             onClick={() => router.push(`/adigo/variations?campaignId=${campaign.id}`)}
             className="flex-1 bg-orange-600 text-white py-3 rounded-lg font-bold text-lg hover:bg-orange-700 transition"
           >
@@ -250,6 +293,25 @@ export default function CampaignPage() {
             📊 לדשבורד
           </Link>
         </div>
+
+        {/* AI Insights */}
+        {insights && (
+          <div className="mt-12 bg-blue-50 rounded-xl p-6 border border-blue-200">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold">🤖 הערות אישור מ-AI</h3>
+              <button
+                onClick={() => loadInsights(campaign)}
+                disabled={loadingInsights}
+                className="text-sm text-blue-600 hover:text-blue-700 disabled:text-gray-400"
+              >
+                {loadingInsights ? "⏳ טוען..." : "🔄 רענן"}
+              </button>
+            </div>
+            <div className="text-gray-700 whitespace-pre-wrap text-sm leading-relaxed">
+              {insights}
+            </div>
+          </div>
+        )}
 
         {/* Tip Box */}
         <div className="mt-12 bg-green-50 rounded-xl p-6 border border-green-200">

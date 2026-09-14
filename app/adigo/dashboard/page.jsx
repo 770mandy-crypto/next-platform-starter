@@ -135,14 +135,62 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Action Button */}
-        <div className="mb-12">
+        {/* Action Buttons */}
+        <div className="mb-12 flex gap-4 flex-wrap">
           <Link
             href="/adigo/create"
             className="inline-block bg-blue-600 text-white px-8 py-3 rounded-lg font-bold text-lg hover:bg-blue-700 transition"
           >
             + קמפיין חדש
           </Link>
+          <button
+            onClick={() => {
+              const dataStr = JSON.stringify(campaigns, null, 2);
+              const dataBlob = new Blob([dataStr], { type: 'application/json' });
+              const url = URL.createObjectURL(dataBlob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = `adigo-campaigns-${new Date().toISOString().split('T')[0]}.json`;
+              link.click();
+              URL.revokeObjectURL(url);
+            }}
+            className="inline-block bg-green-600 text-white px-8 py-3 rounded-lg font-bold text-lg hover:bg-green-700 transition disabled:bg-gray-400"
+            disabled={campaigns.length === 0}
+          >
+            💾 ייצא JSON
+          </button>
+          <button
+            onClick={() => {
+              // Export as CSV
+              const headers = ['שם עסק', 'קטגוריה', 'קהל יעד', 'כותרת', 'גוף', 'CTA', 'תאריך'];
+              const rows = campaigns.map(c => [
+                c.businessName,
+                c.businessCategory,
+                c.targetAudience,
+                c.headline,
+                c.body.substring(0, 50),
+                c.cta,
+                new Date(c.createdAt).toLocaleDateString('he-IL'),
+              ]);
+
+              let csv = headers.join('\t') + '\n';
+              rows.forEach(row => {
+                csv += row.map(cell => `"${cell}"`).join('\t') + '\n';
+              });
+
+              const dataBlob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+              const url = URL.createObjectURL(dataBlob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = `adigo-campaigns-${new Date().toISOString().split('T')[0]}.csv`;
+              link.click();
+              URL.revokeObjectURL(url);
+            }}
+            className="inline-block bg-purple-600 text-white px-8 py-3 rounded-lg font-bold text-lg hover:bg-purple-700 transition disabled:bg-gray-400"
+            disabled={campaigns.length === 0}
+          >
+            📊 ייצא Excel
+          </button>
         </div>
 
         {/* Campaigns List */}
