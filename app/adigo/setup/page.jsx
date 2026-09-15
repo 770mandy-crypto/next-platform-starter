@@ -1,8 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/adigo/navbar";
+
+const MAX_LOGO_PX = 512;
+
+// הלוגו נשמר בדפדפן כ-data URL, ולכן חייב להיות קטן. מקטינים לפני שמירה,
+// אחרת localStorage מתמלא ושמירת העסק נכשלת.
+function shrinkImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("read"));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("decode"));
+      img.onload = () => {
+        const scale = Math.min(1, MAX_LOGO_PX / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const keepsTransparency = file.type === "image/png";
+        resolve(
+          keepsTransparency
+            ? canvas.toDataURL("image/png")
+            : canvas.toDataURL("image/jpeg", 0.85)
+        );
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 const CATEGORIES = [
   "בית קפה",
@@ -38,20 +69,61 @@ export default function BusinessSetupPage() {
     secondaryColor: "#1e40af",
   });
   const [loading, setLoading] = useState(false);
+  const [logoError, setLogoError] = useState("");
+  const [saveError, setSaveError] = useState("");
+  const fileRef = useRef(null);
+
+  // טוענים פרטים קיימים כדי שעריכה לא תתחיל מטופס ריק
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("adigoBusiness");
+      if (saved) setFormData((prev) => ({ ...prev, ...JSON.parse(saved) }));
+    } catch {
+      // פרטים פגומים בדפדפן - ממשיכים עם טופס ריק
+    }
+  }, []);
+
+  const handleLogoFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setLogoError("");
+
+    if (!file.type.startsWith("image/")) {
+      setLogoError("צריך לבחור קובץ תמונה (JPG, PNG או WEBP).");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setLogoError("התמונה גדולה מדי. בחרו קובץ עד 10MB.");
+      return;
+    }
+
+    try {
+      const dataUrl = await shrinkImage(file);
+      setFormData((prev) => ({ ...prev, logoUrl: dataUrl }));
+    } catch {
+      setLogoError("לא הצלחנו לקרוא את התמונה. נסו קובץ אחר.");
+    }
+  };
+
+  const removeLogo = () => {
+    setFormData((prev) => ({ ...prev, logoUrl: "" }));
+    setLogoError("");
+    if (fileRef.current) fileRef.current.value = "";
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setSaveError("");
 
     try {
-      // שמור את פרטי העסק ב-localStorage
       localStorage.setItem("adigoBusiness", JSON.stringify(formData));
-      // עבור לעמוד יצירת קמפיין
       router.push("/adigo/create");
-    } catch (error) {
-      console.error("שגיאה:", error);
-      alert("שגיאה בשמירת פרטי העסק");
-    } finally {
+    } catch {
+      setSaveError(
+        "אין מספיק מקום בדפדפן לשמור את הלוגו. נסו תמונה קטנה יותר, או הסירו אותה."
+      );
       setLoading(false);
     }
   };
@@ -128,19 +200,53 @@ export default function BusinessSetupPage() {
             />
           </div>
 
-          {/* Logo URL */}
+          {/* Logo upload */}
           <div>
             <label className="block text-sm font-semibold mb-2">
-              קישור ללוגו (אופציונלי)
+              הלוגו שלך (אופציונלי)
             </label>
-            <input
-              type="url"
-              name="logoUrl"
-              value={formData.logoUrl}
-              onChange={handleInputChange}
-              placeholder="https://example.com/logo.png"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 text-right"
-            />
+
+            {formData.logoUrl ? (
+              <div className="flex items-center gap-4 p-4 border border-gray-300 rounded-lg bg-white">
+                <img
+                  src={formData.logoUrl}
+                  alt="הלוגו שהעליתם"
+                  className="h-20 w-20 object-contain rounded bg-gray-50 shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium mb-1">הלוגו נשמר ✓</p>
+                  <p className="text-sm text-gray-600">
+                    הוא יופיע על המודעות שתיצרו.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={removeLogo}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium shrink-0"
+                >
+                  הסר
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center gap-2 p-8 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-600 hover:bg-blue-50 transition">
+                <span className="text-3xl">📷</span>
+                <span className="font-medium">בחרו תמונה מהמחשב או מהטלפון</span>
+                <span className="text-sm text-gray-600">
+                  JPG, PNG או WEBP — עד 10MB
+                </span>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoFile}
+                  className="hidden"
+                />
+              </label>
+            )}
+
+            {logoError && (
+              <p className="mt-2 text-sm text-red-700">{logoError}</p>
+            )}
           </div>
 
           {/* Colors */}
@@ -154,7 +260,7 @@ export default function BusinessSetupPage() {
                 name="primaryColor"
                 value={formData.primaryColor}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                className="w-full h-12 p-1 border border-gray-300 rounded-lg cursor-pointer bg-white"
               />
             </div>
             <div>
@@ -166,10 +272,16 @@ export default function BusinessSetupPage() {
                 name="secondaryColor"
                 value={formData.secondaryColor}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                className="w-full h-12 p-1 border border-gray-300 rounded-lg cursor-pointer bg-white"
               />
             </div>
           </div>
+
+          {saveError && (
+            <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3">
+              {saveError}
+            </p>
+          )}
 
           {/* Submit Button */}
           <button

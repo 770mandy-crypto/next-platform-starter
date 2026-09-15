@@ -14,6 +14,7 @@ export default function CampaignPage() {
   const [editValue, setEditValue] = useState("");
   const [insights, setInsights] = useState(null);
   const [loadingInsights, setLoadingInsights] = useState(false);
+  const [business, setBusiness] = useState(null);
 
   useEffect(() => {
     // טען את הקמפיין מ-localStorage
@@ -23,6 +24,13 @@ export default function CampaignPage() {
       setCampaign(found);
       // טען insights
       loadInsights(found);
+    }
+
+    try {
+      const saved = localStorage.getItem("adigoBusiness");
+      if (saved) setBusiness(JSON.parse(saved));
+    } catch {
+      // פרטי עסק פגומים - פשוט לא מציגים לוגו
     }
   }, [params.id]);
 
@@ -213,6 +221,16 @@ export default function CampaignPage() {
         <div className="mt-12 bg-white rounded-xl shadow-sm border border-gray-200 p-8">
           <h2 className="text-2xl font-bold mb-6">👀 תצוגה מקדימה לפייסבוק</h2>
           <div className="border-2 border-gray-300 rounded-lg p-6 bg-gray-50">
+            {business?.logoUrl && (
+              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-300">
+                <img
+                  src={business.logoUrl}
+                  alt=""
+                  className="h-12 w-12 object-contain rounded"
+                />
+                <span className="font-semibold">{campaign.businessName}</span>
+              </div>
+            )}
             <div className="font-bold text-lg mb-3">{campaign.headline}</div>
             <div className="text-gray-700 whitespace-pre-wrap mb-4">
               {campaign.body}

@@ -20,6 +20,7 @@ export default function EditorPage() {
     imageStyle: "photo",
   });
   const [previewMode, setPreviewMode] = useState("instagram");
+  const [business, setBusiness] = useState(null);
 
   useEffect(() => {
     const campaigns = JSON.parse(localStorage.getItem("adigoCampaigns") || "[]");
@@ -30,6 +31,13 @@ export default function EditorPage() {
       if (savedDesign) {
         setDesign(JSON.parse(savedDesign));
       }
+    }
+
+    try {
+      const saved = localStorage.getItem("adigoBusiness");
+      if (saved) setBusiness(JSON.parse(saved));
+    } catch {
+      // פרטי עסק פגומים - פשוט לא מציגים לוגו
     }
   }, [params.id]);
 
@@ -250,6 +258,18 @@ export default function EditorPage() {
                   style={{ maxWidth: "400px", margin: "0 auto" }}
                 >
                   <div style={{ background: design.backgroundColor, padding: "16px" }}>
+                    {business?.logoUrl && (
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+                        <img
+                          src={business.logoUrl}
+                          alt=""
+                          style={{ height: "32px", width: "32px", objectFit: "contain", borderRadius: "6px" }}
+                        />
+                        <span style={{ fontWeight: 600, color: design.textColor, fontSize: "14px" }}>
+                          {campaign.businessName}
+                        </span>
+                      </div>
+                    )}
                     <div style={{ background: templates[design.template].bg, borderRadius: "12px", padding: "20px", marginBottom: "16px" }}>
                       <img
                         src={campaign.imageUrl || "data:image/svg+xml,%3Csvg%3E%3C/svg%3E"}
