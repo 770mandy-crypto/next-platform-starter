@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Navbar from "@/components/adigo/navbar";
 import Link from "next/link";
+import { drawPoster, PALETTE_NAMES } from "@/lib/adigo/poster";
 
 export default function CampaignPage() {
   const params = useParams();
@@ -15,6 +16,9 @@ export default function CampaignPage() {
   const [insights, setInsights] = useState(null);
   const [loadingInsights, setLoadingInsights] = useState(false);
   const [business, setBusiness] = useState(null);
+  const [palette, setPalette] = useState("חם");
+  const posterBox = useRef(null);
+  const posterCanvas = useRef(null);
 
   useEffect(() => {
     // טען את הקמפיין מ-localStorage
@@ -33,6 +37,45 @@ export default function CampaignPage() {
       // פרטי עסק פגומים - פשוט לא מציגים לוגו
     }
   }, [params.id]);
+
+  // מציירים מחדש בכל שינוי צבע, ורק אחרי שהגופנים נטענו - אחרת הקנבס
+  // מודד רוחב בגופן ברירת מחדל והשורות יוצאות שבורות
+  useEffect(() => {
+    if (!campaign || !posterBox.current) return;
+    let cancelled = false;
+
+    const render = async () => {
+      if (document.fonts?.ready) {
+        await document.fonts.ready;
+      }
+      const canvas = await drawPoster({ campaign, business, palette });
+      if (cancelled || !posterBox.current) return;
+      canvas.style.width = "100%";
+      canvas.style.height = "auto";
+      canvas.style.display = "block";
+      posterBox.current.replaceChildren(canvas);
+      posterCanvas.current = canvas;
+    };
+
+    render();
+    return () => {
+      cancelled = true;
+    };
+  }, [campaign, business, palette]);
+
+  const downloadPoster = () => {
+    const canvas = posterCanvas.current;
+    if (!canvas) return;
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${campaign.businessName || "מודעה"}.png`;
+      link.click();
+      URL.revokeObjectURL(url);
+    }, "image/png");
+  };
 
   const loadInsights = async (camp) => {
     setLoadingInsights(true);
@@ -216,6 +259,42 @@ export default function CampaignPage() {
             </button>
           </div>
         )}
+
+        {/* Poster */}
+        <div className="mt-12 bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+          <h2 className="text-2xl font-bold mb-2">🖼️ המודעה כתמונה</h2>
+          <p className="text-gray-600 mb-6">
+            מוכנה לאינסטגרם, לפייסבוק ולוואטסאפ. העברית נכתבת מדויק.
+          </p>
+
+          <div className="flex flex-wrap gap-2 mb-6">
+            {PALETTE_NAMES.map((name) => (
+              <button
+                key={name}
+                onClick={() => setPalette(name)}
+                className={`px-5 py-2 rounded-lg font-medium border-2 transition ${
+                  palette === name
+                    ? "border-blue-600 bg-blue-50 text-blue-700"
+                    : "border-gray-300 hover:border-gray-400"
+                }`}
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+
+          <div
+            ref={posterBox}
+            className="rounded-lg overflow-hidden border border-gray-300 max-w-md mx-auto bg-gray-100"
+          />
+
+          <button
+            onClick={downloadPoster}
+            className="mt-6 w-full bg-green-600 text-white py-3 rounded-lg font-bold text-lg hover:bg-green-700 transition"
+          >
+            ⬇️ הורד את התמונה
+          </button>
+        </div>
 
         {/* Preview Section */}
         <div className="mt-12 bg-white rounded-xl shadow-sm border border-gray-200 p-8">
