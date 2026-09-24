@@ -9,6 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CityPicker } from '@/components/city-picker';
 import { Button, Card, Chip, EmptyState, Field, Row, Segmented, Text } from '@/components/ui';
 import { createItem, describePhoto, listCommunities } from '@/lib/api';
+import { AI_ENABLED } from '@/lib/features';
 import { useAuth } from '@/lib/auth';
 import { CATEGORIES, CITIES, CONDITIONS } from '@/lib/catalog';
 import { nearestCity, type Point } from '@/lib/geo';
@@ -118,7 +119,7 @@ export default function Post() {
       if (!added.length) return;
       const wasEmpty = photos.length === 0;
       setPhotos((p) => [...p, ...added].slice(0, MAX_PHOTOS));
-      if (wasEmpty && kind === 'offer') runAi(added[0]);
+      if (AI_ENABLED && wasEmpty && kind === 'offer') runAi(added[0]);
     } catch (e) {
       setError((e as Error).message);
     }
@@ -228,7 +229,9 @@ export default function Post() {
             <Text variant="title">{offer ? 'למסור משהו' : 'לבקש משהו'}</Text>
             <Text color={colors.muted}>
               {offer
-                ? `היי ${profile?.display_name ?? ''}, צלמו את הפריט — ננסח לכם את המודעה אוטומטית ✨`
+                ? AI_ENABLED
+                  ? `היי ${profile?.display_name ?? ''}, צלמו את הפריט — ננסח לכם את המודעה אוטומטית ✨`
+                  : `היי ${profile?.display_name ?? ''}, צלמו את הפריט ותוך דקה מישהו מהשכונה ישמח בו`
                 : 'ספרו מה אתם מחפשים, ושכנים שיש להם יוכלו לפנות אליכם.'}
             </Text>
             <Segmented

@@ -21,6 +21,7 @@ import {
   toggleFavorite,
 } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { AI_ENABLED } from '@/lib/features';
 import { category, conditionLabel } from '@/lib/catalog';
 import { distanceKm, formatDistance } from '@/lib/geo';
 import { useOrigin } from '@/lib/location';
@@ -288,7 +289,7 @@ export default function ItemScreen() {
             </Row>
           </View>
 
-          {item.ai_assisted && (
+          {AI_ENABLED && item.ai_assisted && (
             <Text variant="caption" color={colors.faint}>
               ✨ המודעה נוסחה בעזרת AI ואושרה על ידי המפרסם/ת
             </Text>

@@ -1,5 +1,7 @@
 # GiveBack 🎁
 
+> מדריך הפעלה בעברית, צעד אחרי צעד: [SETUP-HE.md](SETUP-HE.md)
+
 **מוסרים ומקבלים חפצים בחינם מהשכנים הכי קרובים.** מצלמים — ה-AI מנסח את המודעה, מי שקרוב
 מוצא אותה ראשון, מתכתבים בצ׳אט, והכתובת נשלחת בלחיצה עם ניווט ישיר ב-Waze.
 
@@ -14,7 +16,7 @@ Edge Functions) and **Claude** for photo-to-listing.
 | Sign in with Google, Apple (iPhone), or a 6-digit email code | Supabase Auth; profile created from the Google name and photo | — |
 | One account everywhere | Sign in with the same email (or the Google account with that email) on any phone or browser and you land in the same profile, items and chats; the session is remembered until you sign out | — |
 | Every listing shows the real item | An offer can't be published without a photo of it, only the owner's own uploads are accepted (checked in the database), and the first photo is what search, chat and the map show. Owners can add, remove and reorder photos | Olio |
-| Post in a minute | Take or pick photos; Claude drafts the Hebrew title, category, condition and description, and blocks prohibited items (weapons, medicines, alcohol, animals…) | Olio |
+| Post in a minute (AI optional, off by default — `EXPO_PUBLIC_AI_ENABLED=true`) | Take or pick photos; Claude drafts the Hebrew title, category, condition and description, and blocks prohibited items (weapons, medicines, alcohol, animals…) | Olio |
 | Nearest-first search | PostGIS distance ranking, 1–25 km radius, Hebrew-aware matching ("השידה" finds "שידה", "עגלה" finds "עגלת") | — |
 | Offers **and** requests | "מוסרים" / "מחפשים" — ask for what you need | Buy Nothing "Ask", Trash Nothing "Wanted" |
 | Map | Items around you on Google Maps (Android) / Apple Maps (iOS), approximate pins only | Olio |
@@ -123,6 +125,13 @@ Google Cloud → enable **Maps SDK for Android** → create an API key restricte
 package and SHA-1, and set it as `GOOGLE_MAPS_ANDROID_KEY`. iOS uses Apple Maps (no key).
 
 ### 7. Build and install
+
+**Automatic (recommended):** `.github/workflows/android.yml` builds the APK on GitHub for every push to
+`main` and publishes `GiveBack.apk` on the repository's Releases page. Add the repository secrets
+`EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` (and optionally
+`GOOGLE_MAPS_ANDROID_KEY`). On your own computer: `./scripts/build-android.sh` (Docker).
+
+**With EAS** (needed for the stores and for iPhone builds):
 ```bash
 npx eas-cli@latest build -p android --profile preview   # an .apk you can install on any Android phone
 npx eas-cli@latest build -p ios --profile preview       # installs on registered iPhones

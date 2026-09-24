@@ -1,0 +1,31 @@
+// Maven Central rate-limits this network, so every repository pointing at it
+// is switched to Google's mirror of Maven Central (same artifacts), and the
+// mirror is tried first everywhere.
+def MIRROR = 'https://maven-central.storage-download.googleapis.com/maven2/'
+def fix = { repos ->
+    repos.all { repo ->
+        if (repo instanceof MavenArtifactRepository) {
+            def u = repo.url.toString()
+            if (u.contains('repo.maven.apache.org') || u.contains('repo1.maven.org')) repo.url = MIRROR
+        }
+    }
+}
+def mirrorFirst = { repos ->
+    def m = repos.maven { url MIRROR; name 'CentralMirror' }
+    repos.remove(m)
+    repos.addFirst(m)
+}
+beforeSettings { settings ->
+    def pm = settings.pluginManagement.repositories
+    mirrorFirst(pm)
+    pm.gradlePluginPortal()
+    pm.google()
+    fix(pm)
+    fix(settings.dependencyResolutionManagement.repositories)
+}
+allprojects {
+    fix(buildscript.repositories)
+    fix(repositories)
+    mirrorFirst(buildscript.repositories)
+    mirrorFirst(repositories)
+}

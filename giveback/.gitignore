@@ -49,3 +49,6 @@ supabase/.temp/
 supabase/.branches/
 /ios
 /android
+
+# Build output
+/build

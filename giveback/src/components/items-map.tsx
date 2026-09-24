@@ -4,10 +4,14 @@ import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 
 import { category } from '@/lib/catalog';
 import type { Point } from '@/lib/geo';
+import { inAppMaps } from '@/lib/maps';
 import type { ItemCard } from '@/lib/types';
 import { colors } from '@/theme';
 
+import { ItemsListFallback } from './items-list-fallback';
+
 export function ItemsMap({ items, center }: { items: ItemCard[]; center: Point }) {
+  if (!inAppMaps) return <ItemsListFallback items={items} />;
   return (
     <View style={{ flex: 1 }}>
       <MapView

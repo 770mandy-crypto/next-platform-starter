@@ -1,11 +1,35 @@
 // Native: a small map with a soft circle over the approximate area. The exact
 // point is never shown — the circle is centred on the jittered location.
-import { Linking, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Linking, Pressable, View } from 'react-native';
 import MapView, { Circle } from 'react-native-maps';
 
-import { colors, radius } from '@/theme';
+import { inAppMaps } from '@/lib/maps';
+import { colors, radius, space } from '@/theme';
+
+import { Text } from './ui';
 
 export function AreaMap({ lat, lng, height = 180 }: { lat: number; lng: number; height?: number }) {
+  const open = () => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`);
+  if (!inAppMaps) {
+    return (
+      <Pressable
+        onPress={open}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: space.md,
+          padding: space.lg,
+          borderRadius: radius.lg,
+          backgroundColor: colors.primarySoft,
+        }}>
+        <Ionicons name="map" size={26} color={colors.primary} />
+        <Text weight="bold" color={colors.primaryDark} style={{ flex: 1 }}>
+          הצגת האזור ב-Google Maps
+        </Text>
+      </Pressable>
+    );
+  }
   return (
     <View style={{ height, borderRadius: radius.lg, overflow: 'hidden' }}>
       <MapView
@@ -15,7 +39,7 @@ export function AreaMap({ lat, lng, height = 180 }: { lat: number; lng: number; 
         zoomEnabled={false}
         rotateEnabled={false}
         pitchEnabled={false}
-        onPress={() => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`)}>
+        onPress={open}>
         <Circle
           center={{ latitude: lat, longitude: lng }}
           radius={500}

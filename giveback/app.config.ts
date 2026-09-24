@@ -75,6 +75,8 @@ const config: ExpoConfig = {
   experiments: { typedRoutes: true, reactCompiler: true },
   extra: {
     router: {},
+    // Google Maps on Android needs a key; without one the app shows lists instead of maps.
+    androidMaps: Boolean(process.env.GOOGLE_MAPS_ANDROID_KEY),
     ...(EAS_PROJECT_ID ? { eas: { projectId: EAS_PROJECT_ID } } : {}),
   },
   ...(EAS_PROJECT_ID
