@@ -29,10 +29,42 @@ export function useOrigin() {
 
 /** A single GPS fix, or a readable Hebrew error. */
 export async function getGpsFix(): Promise<Point> {
+  // expo-location's web version always answers with the first position it
+  // ever got (maximumAge: Infinity), so someone who moved would keep seeing
+  // the old place. Ask the browser directly for a fix at most a minute old.
+  if (Platform.OS === 'web') return browserFix();
   const { status } = await Location.requestForegroundPermissionsAsync();
   if (status !== 'granted') throw new Error('לא ניתנה הרשאת מיקום — אפשר לבחור עיר במקום');
   const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
   return { lat: pos.coords.latitude, lng: pos.coords.longitude };
+}
+
+// The person just pressed "my location", so ask for a fresh position; if the
+// device cannot get one in time, fall back to the last one it knows.
+function browserFix(): Promise<Point> {
+  if (typeof navigator === 'undefined' || !navigator.geolocation) {
+    return Promise.reject(new Error('הדפדפן לא תומך במיקום — אפשר לבחור עיר במקום'));
+  }
+  const ask = (maximumAge: number, timeout: number) =>
+    new Promise<Point>((resolve, reject) =>
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        reject,
+        { enableHighAccuracy: true, maximumAge, timeout },
+      ),
+    );
+  return ask(0, 15_000)
+    .catch((err: GeolocationPositionError) => {
+      if (err.code === err.PERMISSION_DENIED) throw err;
+      return ask(Infinity, 5_000);
+    })
+    .catch((err: GeolocationPositionError) => {
+      throw new Error(
+        err.code === err.PERMISSION_DENIED
+          ? 'לא ניתנה הרשאת מיקום — אפשר לבחור עיר במקום'
+          : 'לא הצלחנו לאתר את המיקום — אפשר לבחור עיר במקום',
+      );
+    });
 }
 
 /** Street-level place names for a point (phones only; the web has no geocoder). */

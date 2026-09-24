@@ -177,7 +177,12 @@ const pages = [];
   await giver.getByTestId('community-name').fill('שכונת הבורסה');
   await giver.getByTestId('create-community').click();
   await giver.getByText('הזמינו שכנים').waitFor({ timeout: 15000 });
-  const code = (await giver.getByText(/^[0-9A-F]{6}$/).first().textContent()).trim();
+  const code = (
+    await giver
+      .getByText(/^[0-9A-F]{6}$/)
+      .first()
+      .textContent()
+  ).trim();
   await giver.getByText(/^קהילות בתוכה/).click();
   await giver.getByTestId('create-sub-community').click();
   await giver.getByTestId('community-name').fill('בניין ביאליק 10');

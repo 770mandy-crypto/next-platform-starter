@@ -493,8 +493,12 @@ function AddressForm({
     queryFn: () => getPrivateAddress(itemId!),
     enabled: !!itemId,
   });
+  const { profile } = useAuth();
   const [typed, setAddress] = useState<string | null>(null);
   const address = typed ?? stored?.address ?? '';
+  // On a request the address is my own, so it is completed with my city,
+  // not the city of the person asking.
+  const myCity = itemId ? city : (profile?.city ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -503,9 +507,10 @@ function AddressForm({
     setError(null);
     try {
       const same = !!stored && address.trim() === stored.address;
+      const full = itemId || !myCity || address.includes(myCity) ? address.trim() : `${address.trim()}, ${myCity}`;
       // A new address is pinned on the phone so Waze lands on the door.
-      const point = same ? null : await geocode(`${address}, ${city}`);
-      onSent(await shareAddress(conversationId, same ? null : address.trim(), point));
+      const point = same ? null : await geocode(itemId ? `${full}, ${city}` : full);
+      onSent(await shareAddress(conversationId, same ? null : full, point));
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -518,7 +523,7 @@ function AddressForm({
       <Field
         testID="pickup-address"
         label="הכתובת תישלח רק לאדם הזה"
-        placeholder="רחוב, מספר, קומה / כניסה"
+        placeholder={itemId ? 'רחוב, מספר, קומה / כניסה' : 'רחוב, מספר ועיר'}
         value={address}
         onChangeText={setAddress}
         maxLength={160}

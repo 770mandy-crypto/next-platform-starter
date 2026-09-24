@@ -38,11 +38,20 @@ async function newUser(browser, { geo }) {
   });
   const page = await ctx.newPage();
   page.on('pageerror', (e) => console.log('PAGEERROR', e.message));
-  page.on('console', (m) => m.type() === 'error' && !/favicon|ERR_|Failed to load resource/.test(m.text()) && console.log('CONSOLE', m.text().slice(0, 300)));
+  page.on(
+    'console',
+    (m) =>
+      m.type() === 'error' &&
+      !/favicon|ERR_|Failed to load resource/.test(m.text()) &&
+      console.log('CONSOLE', m.text().slice(0, 300)),
+  );
   // Capture navigation links (Waze / Google) instead of leaving the app.
   await page.addInitScript(() => {
     window.__opened = [];
-    window.open = (url) => { window.__opened.push(String(url)); return null; };
+    window.open = (url) => {
+      window.__opened.push(String(url));
+      return null;
+    };
   });
   return page;
 }
@@ -63,7 +72,9 @@ async function firstPhoto(page) {
   const handle = await page.waitForFunction(
     () => {
       const img = [...document.querySelectorAll('img')].find((i) => i.src.includes('/item-photos/'));
-      return img && img.complete && img.naturalWidth > 0 ? { src: img.src, w: img.naturalWidth, h: img.naturalHeight } : null;
+      return img && img.complete && img.naturalWidth > 0
+        ? { src: img.src, w: img.naturalWidth, h: img.naturalHeight }
+        : null;
     },
     null,
     { timeout: 15000 },

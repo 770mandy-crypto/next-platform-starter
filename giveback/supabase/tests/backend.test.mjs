@@ -411,7 +411,9 @@ test('"wanted" posts: the person who answers is the giver and shares the address
       .rpc('share_pickup_address', { p_conversation_id: cid, p_address: 'הרצל 5', p_lat: 32.07, p_lng: 34.8 })
       .single(),
   );
-  assert.equal(msg.address, 'הרצל 5, רמת גן');
+  // The answerer's own address is sent as given — never completed with the
+  // requester's city.
+  assert.equal(msg.address, 'הרצל 5');
   assert.equal(ok(await yossi.db.rpc('list_conversations')).find((c) => c.id === cid).role, 'taker');
 
   // Receiving what you asked for: the answerer gave, the author received.
