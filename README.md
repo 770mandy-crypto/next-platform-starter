@@ -38,6 +38,33 @@ netlify dev
 
 If your browser doesn't navigate to the site automatically, visit [localhost:8888](http://localhost:8888).
 
+## GiveBack — מסירת חפצים לשכנים (`/giveback`)
+
+A Hebrew, mobile-first app for giving away things you no longer need to people nearby.
+
+- **Post an item** (`/giveback/new`) — title, category, condition, up to 4 photos (downscaled in
+  the browser), and where it is: the phone's GPS, a city, and an optional street address.
+- **Search** (`/giveback`) — free text plus category chips, sorted **nearest first** from the
+  searcher's GPS or chosen city, with a 2/5/15 km radius. Search understands Hebrew: niqqud and
+  final letters are ignored, and "השידה" finds "שידה".
+- **Chat** (`/giveback/messages`) — one conversation per item and interested person, polled every
+  few seconds, with an unread badge in the nav.
+- **Address → Waze** — the exact address is never shown on the listing (the public map and
+  distance use a point snapped to a ~1 km grid). The giver taps **"שלח כתובת לאיסוף"** in the chat,
+  and the other person gets **Waze** and **Google Maps** buttons that start navigation directly
+  (exact coordinates when known, the address text otherwise).
+- **Mark as given / reserved** — the owner's status change hides the item from search and posts
+  a note into every chat about it.
+
+Storage is Netlify Blobs (`giveback` for JSON, `giveback-photos` for images). Outside Netlify
+(plain `next dev`, tests) it falls back to an in-memory store, so it runs with zero setup but
+forgets everything on restart — use `netlify dev` for persistence. Identity is a display name plus
+an httpOnly cookie; set `GOOGLE_MAPS_API_KEY` (see `.env.example`) to pin typed addresses precisely.
+
+Before a public launch: SMS phone verification instead of cookie-only accounts, report/block, push
+notifications for new messages, and a real database with geo queries (e.g. Postgres + PostGIS) once
+listings reach the thousands — search currently reads every item, which is fine for one city.
+
 ## שוקי — Stock Analyst Bot (`/bot`)
 
 A Hebrew-language stock analysis bot. Enter a ticker and it fetches a year of prices plus
