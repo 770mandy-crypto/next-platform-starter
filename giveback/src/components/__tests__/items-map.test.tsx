@@ -4,6 +4,9 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import type { ItemCard } from '@/lib/types';
 
+import { AreaMap } from '../area-map';
+import { ItemsMap } from '../items-map';
+
 const mockPush = jest.fn();
 jest.mock('expo-router', () => ({ router: { push: (...a: unknown[]) => mockPush(...a) } }));
 jest.mock('react-native-maps', () => {
@@ -58,7 +61,6 @@ describe('ItemsMap on phones', () => {
 
   it('puts a pin on the approximate point of every item, opening the item', async () => {
     mockMaps = true;
-    const { ItemsMap } = require('../items-map');
     await render(<ItemsMap items={items} center={{ lat: 32.07, lng: 34.82 }} />);
     expect(screen.getAllByTestId('pin')).toHaveLength(2);
     await fireEvent.press(screen.getByText('שידה@32.07'));
@@ -67,7 +69,6 @@ describe('ItemsMap on phones', () => {
 
   it('falls back to a nearest-first list without a maps key', async () => {
     mockMaps = false;
-    const { ItemsMap } = require('../items-map');
     await render(<ItemsMap items={items} center={{ lat: 32.07, lng: 34.82 }} />);
     expect(screen.queryByTestId('map')).toBeNull();
     await fireEvent.press(screen.getByText('ספה'));
@@ -78,7 +79,6 @@ describe('ItemsMap on phones', () => {
 describe('AreaMap on phones', () => {
   it('draws the approximate area, or offers Google Maps without a key', async () => {
     mockMaps = true;
-    const { AreaMap } = require('../area-map');
     await render(<AreaMap lat={32.07} lng={34.82} />);
     expect(screen.getByTestId('circle')).toBeTruthy();
     mockMaps = false;
