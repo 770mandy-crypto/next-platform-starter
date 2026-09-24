@@ -122,17 +122,21 @@ export default function RootLayout() {
   );
 }
 
-// Shown when the build has no server settings yet (for the website: an empty
-// config.js), instead of a broken app.
+// Shown when the build has no server settings yet, instead of a broken app.
+// The website reads them from config.js; the phone apps get them at build
+// time from the repository secrets.
 function NotConfigured() {
+  const web = Platform.OS === 'web';
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, backgroundColor: colors.bg }}>
       <Text style={{ fontFamily: fonts.black, fontSize: 28, color: colors.primary }}>GiveBack</Text>
       <Text style={{ fontFamily: fonts.bold, fontSize: 18, color: colors.ink, marginTop: 16, textAlign: 'center' }}>
-        האתר עוד לא מחובר לשרת
+        {web ? 'האתר עוד לא מחובר לשרת' : 'האפליקציה עוד לא מחוברת לשרת'}
       </Text>
       <Text style={{ fontFamily: fonts.regular, fontSize: 15, color: colors.muted, marginTop: 8, textAlign: 'center' }}>
-        פתחו את הקובץ config.js שבתיקיית האתר, הדביקו את כתובת הפרויקט והמפתח מ-Supabase, והעלו את האתר מחדש.
+        {web
+          ? 'פתחו את הקובץ config.js שבתיקיית האתר, הדביקו את כתובת הפרויקט והמפתח מ-Supabase, והעלו את האתר מחדש.'
+          : 'זו גרסת ניסיון. אחרי שמחברים את השרת (Supabase) יוצאת גרסה חדשה — מתקינים אותה מעל זו, והכול עובד.'}
       </Text>
     </View>
   );
