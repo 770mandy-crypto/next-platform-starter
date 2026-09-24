@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, Switch, View } from 'react-native';
 
@@ -11,11 +11,14 @@ import { getGpsFix, useOrigin } from '@/lib/location';
 import { colors, space } from '@/theme';
 
 export default function NewCommunity() {
+  // With ?parent= this creates a community inside another one (a building
+  // inside a neighbourhood); it then inherits the parent's location.
+  const { parent, parentName } = useLocalSearchParams<{ parent?: string; parentName?: string }>();
   const { origin } = useOrigin();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [kind, setKind] = useState<string>('building');
-  const [isPrivate, setIsPrivate] = useState(true);
+  const [isPrivate, setIsPrivate] = useState(!parent);
   const [city, setCity] = useState<string | null>(origin ? nearestCity(origin).name : null);
   const [point, setPoint] = useState(origin ? { lat: origin.lat, lng: origin.lng } : null);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -27,7 +30,7 @@ export default function NewCommunity() {
     if (name.trim().length < 2) return setError('תנו שם לקהילה');
     let where = point;
     let cityName = city;
-    if (!where) {
+    if (!parent && !where) {
       try {
         where = await getGpsFix();
         cityName = nearestCity(where).name;
@@ -43,9 +46,10 @@ export default function NewCommunity() {
         name: name.trim(),
         description: description.trim(),
         kind,
-        city: cityName ?? '',
-        point: where,
+        city: parent ? null : (cityName ?? ''),
+        point: parent ? null : where,
         isPrivate,
+        parentId: parent ?? null,
       });
       router.replace(`/communities/${created.id}`);
     } catch (e) {
@@ -57,9 +61,16 @@ export default function NewCommunity() {
   return (
     <ScrollView
       contentContainerStyle={{ padding: space.lg, gap: space.xl, maxWidth: 560, width: '100%', alignSelf: 'center' }}>
+      <Stack.Screen options={{ title: parent ? `קהילה בתוך ${parentName ?? ''}` : 'קהילה חדשה' }} />
+      {parent && (
+        <Text color={colors.muted}>
+          הקהילה החדשה תהיה חלק מ{parentName}. רק מי שנמצא/ת ב{parentName} יוכל/תוכל לראות אותה.
+        </Text>
+      )}
       <Field
+        testID="community-name"
         label="שם הקהילה"
-        placeholder="בניין הרצל 12 / גן החצב / שכונת נווה עוז"
+        placeholder={parent ? 'בניין הרצל 12 / גן החצב / חוג שחמט' : 'בניין הרצל 12 / גן החצב / שכונת נווה עוז'}
         value={name}
         onChangeText={setName}
         maxLength={60}
@@ -93,9 +104,16 @@ export default function NewCommunity() {
           <Switch value={isPrivate} onValueChange={setIsPrivate} trackColor={{ true: colors.primary }} />
         </Row>
       </Card>
-      <Button variant="ghost" icon="location-outline" title={city ?? 'בחירת עיר'} onPress={() => setPickerOpen(true)} />
+      {!parent && (
+        <Button
+          variant="ghost"
+          icon="location-outline"
+          title={city ?? 'בחירת עיר'}
+          onPress={() => setPickerOpen(true)}
+        />
+      )}
       {error && <Text color={colors.danger}>{error}</Text>}
-      <Button size="lg" title="יצירת הקהילה" onPress={submit} loading={busy} />
+      <Button testID="create-community" size="lg" title="יצירת הקהילה" onPress={submit} loading={busy} />
       <CityPicker
         visible={pickerOpen}
         onClose={() => setPickerOpen(false)}

@@ -6,6 +6,7 @@ import type {
   AiListing,
   Alert,
   Community,
+  CommunityMessage,
   Conversation,
   ConversationRow,
   ItemCard,
@@ -111,7 +112,7 @@ export async function createItem(item: NewItem) {
 
 export async function updateItem(
   id: string,
-  fields: Partial<Pick<ItemCard, 'title' | 'description' | 'category' | 'condition' | 'pickup_notes'>>,
+  fields: Partial<Pick<ItemCard, 'title' | 'description' | 'category' | 'condition' | 'pickup_notes' | 'photos'>>,
 ) {
   unwrap(await supabase.from('items').update(fields).eq('id', id));
 }
@@ -306,12 +307,13 @@ export async function deleteAccount(userId: string) {
 
 // Communities
 
-export async function listCommunities(origin: Point | null, query = '') {
+export async function listCommunities(origin: Point | null, query = '', parentId: string | null = null) {
   return unwrap(
     await supabase.rpc('communities_nearby', {
       p_lat: origin?.lat ?? null,
       p_lng: origin?.lng ?? null,
       p_query: query,
+      p_parent_id: parentId,
     }),
   ) as Community[];
 }
@@ -321,24 +323,28 @@ export async function getCommunity(id: string, origin: Point | null) {
   const hit = all.find((c) => c.id === id);
   if (hit) return hit;
   const row = unwrap(await supabase.from('communities').select('*').eq('id', id).maybeSingle()) as Community | null;
-  return row ? { ...row, member_count: 0, active_items: 0, distance_km: null, is_member: false } : null;
+  return row
+    ? { ...row, member_count: 0, active_items: 0, distance_km: null, is_member: false, parent_name: null, sub_count: 0 }
+    : null;
 }
 
 export async function createCommunity(fields: {
   name: string;
   description: string;
   kind: string;
-  city: string;
-  point: Point;
+  city: string | null;
+  point: Point | null;
   isPrivate: boolean;
+  parentId?: string | null;
 }) {
   return unwrap(
     await supabase
       .rpc('create_community', {
         p_name: fields.name,
-        p_lat: fields.point.lat,
-        p_lng: fields.point.lng,
+        p_lat: fields.point?.lat ?? null,
+        p_lng: fields.point?.lng ?? null,
         p_city: fields.city,
+        p_parent_id: fields.parentId ?? null,
         p_description: fields.description,
         p_kind: fields.kind,
         p_is_private: fields.isPrivate,
@@ -353,6 +359,33 @@ export async function joinCommunity(id: string | null, code?: string) {
 
 export async function leaveCommunity(id: string, userId: string) {
   unwrap(await supabase.from('community_members').delete().eq('community_id', id).eq('user_id', userId));
+}
+
+export async function listCommunityMessages(communityId: string) {
+  const rows = unwrap(
+    await supabase
+      .from('community_messages')
+      .select('*')
+      .eq('community_id', communityId)
+      .order('id', { ascending: false })
+      .limit(200),
+  ) as CommunityMessage[];
+  return rows.reverse();
+}
+
+export async function sendCommunityMessage(communityId: string, senderId: string, body: string) {
+  return unwrap(
+    await supabase
+      .from('community_messages')
+      .insert({ community_id: communityId, sender_id: senderId, body: body.trim() })
+      .select()
+      .single(),
+  ) as CommunityMessage;
+}
+
+export async function getProfiles(ids: string[]) {
+  if (!ids.length) return [];
+  return unwrap(await supabase.from('profiles').select('*').in('id', ids)) as Profile[];
 }
 
 export async function inviteCode(id: string) {

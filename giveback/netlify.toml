@@ -1,0 +1,16 @@
+# Deploys the website version of GiveBack. In Netlify → Site configuration →
+# Environment variables, set EXPO_PUBLIC_SUPABASE_URL and
+# EXPO_PUBLIC_SUPABASE_ANON_KEY (or fill in public/config.js instead).
+[build]
+  command = "npx expo export --platform web"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+  EXPO_OFFLINE = "1"
+
+# config.js holds the server settings; never serve a stale copy.
+[[headers]]
+  for = "/config.js"
+  [headers.values]
+    Cache-Control = "no-cache"

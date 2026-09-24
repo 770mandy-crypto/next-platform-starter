@@ -1,10 +1,10 @@
-import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView } from 'react-native';
 
 import { Avatar, Button, Field, Text } from '@/components/ui';
 import { updateProfile } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { goBack } from '@/lib/nav';
 import { colors, space } from '@/theme';
 
 export default function EditProfile() {
@@ -22,7 +22,7 @@ export default function EditProfile() {
     try {
       await updateProfile(userId, { display_name: name.trim(), bio: bio.trim(), city: city.trim() || null });
       await refreshProfile();
-      router.back();
+      goBack('/profile');
     } catch (e) {
       setError((e as Error).message);
       setBusy(false);

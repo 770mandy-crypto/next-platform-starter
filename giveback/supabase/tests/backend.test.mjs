@@ -15,6 +15,10 @@ const admin = createClient(URL, env.SERVICE_ROLE_KEY, { auth: { persistSession: 
 const anon = createClient(URL, env.ANON_KEY, { auth: { persistSession: false } });
 
 const run = Date.now();
+const PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+  'base64',
+);
 let userCount = 0;
 async function makeUser(name) {
   const email = `user${++userCount}.${run}@example.com`;
@@ -28,7 +32,11 @@ async function makeUser(name) {
   const client = createClient(URL, env.ANON_KEY, { auth: { persistSession: false } });
   const { error: signInError } = await client.auth.signInWithPassword({ email, password: 'password123' });
   if (signInError) throw signInError;
-  return { id: data.user.id, name, db: client };
+  // Every offer needs a photo of its own; each test user uploads one.
+  const photo = `${data.user.id}/photo-${run}.png`;
+  const up = await client.storage.from('item-photos').upload(photo, PNG, { contentType: 'image/png' });
+  if (up.error) throw up.error;
+  return { id: data.user.id, name, email, db: client, photo };
 }
 
 function ok({ data, error }) {
@@ -59,6 +67,7 @@ function post(user, extra = {}) {
       p_condition: 'good',
       p_address: 'ביאליק 10',
       p_precise: true,
+      p_photos: [user.photo],
       ...extra,
     })
     .single()
@@ -263,17 +272,119 @@ test('reports and account deletion', async () => {
   assert.equal(ok(await admin.from('items').select('id').eq('owner_id', temp.id)).length, 0);
 });
 
-test('photos: users upload only into their own folder', async () => {
-  const png = Buffer.from(
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
-    'base64',
-  );
-  ok(await dana.db.storage.from('item-photos').upload(`${dana.id}/${run}.png`, png, { contentType: 'image/png' }));
+test('photos: every offer shows its own uploaded photo', async () => {
+  // Uploads land only in the uploader's own folder.
+  ok(await dana.db.storage.from('item-photos').upload(`${dana.id}/${run}.png`, PNG, { contentType: 'image/png' }));
   const { error } = await yossi.db.storage
     .from('item-photos')
-    .upload(`${dana.id}/${run}-x.png`, png, { contentType: 'image/png' });
+    .upload(`${dana.id}/${run}-x.png`, PNG, { contentType: 'image/png' });
   assert.ok(error);
-  await assert.rejects(post(dana, { p_photos: [`${yossi.id}/x.jpg`] }), /תמונה/);
+
+  // An offer needs a photo, and only the owner's own.
+  await assert.rejects(post(dana, { p_photos: [] }), /לפחות תמונה/);
+  await assert.rejects(post(dana, { p_photos: [yossi.photo] }), /תמונה/);
+  const item = await post(dana, { p_title: `כורסה ${run}`, p_photos: [dana.photo, `${dana.id}/${run}.png`] });
+
+  // The photo in search is exactly the uploaded file, and it is served.
+  const [found] = ok(await anon.rpc('search_items', { p_query: `כורסה ${run}` }));
+  assert.deepEqual(found.photos, [dana.photo, `${dana.id}/${run}.png`]);
+  const res = await fetch(`${URL}/storage/v1/object/public/item-photos/${found.photos[0]}`);
+  assert.equal(res.status, 200);
+  assert.deepEqual(Buffer.from(await res.arrayBuffer()), PNG);
+
+  // Editing: reordering is fine; removing every photo or borrowing one is not.
+  ok(
+    await dana.db
+      .from('items')
+      .update({ photos: [`${dana.id}/${run}.png`, dana.photo] })
+      .eq('id', item.id),
+  );
+  assert.match((await dana.db.from('items').update({ photos: [] }).eq('id', item.id)).error.message, /לפחות תמונה/);
+  assert.match(
+    (
+      await dana.db
+        .from('items')
+        .update({ photos: [yossi.photo] })
+        .eq('id', item.id)
+    ).error.message,
+    /תמונה/,
+  );
+});
+
+test('same email on another device is the same account', async () => {
+  const second = createClient(URL, env.ANON_KEY, { auth: { persistSession: false } });
+  ok(await second.auth.signInWithPassword({ email: dana.email, password: 'password123' }));
+  const { data } = await second.auth.getUser();
+  assert.equal(data.user.id, dana.id);
+  const me = ok(await second.from('profiles').select('display_name').eq('id', dana.id).single());
+  assert.equal(me.display_name, 'דנה');
+  const mine = ok(await second.from('item_private').select('item_id'));
+  assert.ok(mine.length > 0, 'sees their own private addresses from the new device');
+});
+
+test('sub-communities and community chat', async () => {
+  const hood = ok(
+    await dana.db
+      .rpc('create_community', { p_name: `נווה עוז ${run}`, p_lat: RG.lat, p_lng: RG.lng, p_is_private: true })
+      .single(),
+  );
+  // Only members open a sub-community, one level deep, inheriting the location.
+  await assert.rejects(yossi.db.rpc('create_community', { p_name: 'x', p_parent_id: hood.id }).then(ok), /רק בקהילה/);
+  const building = ok(
+    await dana.db.rpc('create_community', { p_name: `בניין 10 ${run}`, p_parent_id: hood.id }).single(),
+  );
+  assert.equal(building.parent_id, hood.id);
+  await assert.rejects(
+    dana.db.rpc('create_community', { p_name: 'x', p_parent_id: building.id }).then(ok),
+    /בתוך תת-קהילה/,
+  );
+
+  // Outsiders see neither the private neighbourhood nor the building inside it.
+  assert.equal(ok(await yossi.db.from('communities').select('id').eq('id', building.id)).length, 0);
+  const subs = ok(await dana.db.rpc('communities_nearby', { p_parent_id: hood.id }));
+  assert.deepEqual(
+    subs.map((c) => c.id),
+    [building.id],
+  );
+  assert.equal(subs[0].parent_name, `נווה עוז ${run}`);
+
+  // Join the neighbourhood by code; the building is then visible and joinable.
+  const code = ok(await dana.db.rpc('get_invite_code', { p_community_id: hood.id }));
+  ok(await rina.db.rpc('join_community', { p_invite_code: code }));
+  ok(await rina.db.rpc('join_community', { p_community_id: building.id }));
+
+  // Group chat is members-only in both directions.
+  ok(
+    await dana.db
+      .from('community_messages')
+      .insert({ community_id: building.id, sender_id: dana.id, body: 'מי צריך קרטונים?' }),
+  );
+  ok(await rina.db.from('community_messages').insert({ community_id: building.id, sender_id: rina.id, body: 'אני!' }));
+  assert.ok(
+    (await yossi.db.from('community_messages').insert({ community_id: building.id, sender_id: yossi.id, body: 'x' }))
+      .error,
+  );
+  assert.equal(ok(await yossi.db.from('community_messages').select('*').eq('community_id', building.id)).length, 0);
+  // An alert never reveals a post in a sub-community of a private group.
+  ok(
+    await eli.db.from('alerts').insert({
+      user_id: eli.id,
+      query: `קרטונים ${run}`,
+      center: `SRID=4326;POINT(${RG.lng} ${RG.lat})`,
+      radius_km: 10,
+    }),
+  );
+  await post(dana, { p_title: `קרטונים ${run}`, p_category: 'home', p_community_id: building.id });
+  const leaked = ok(await eli.db.from('notifications').select('*').eq('kind', 'alert')).filter((n) =>
+    /קרטונים/.test(n.title),
+  );
+  assert.equal(leaked.length, 0);
+
+  const seen = ok(await rina.db.from('community_messages').select('body').eq('community_id', building.id).order('id'));
+  assert.deepEqual(
+    seen.map((m) => m.body),
+    ['מי צריך קרטונים?', 'אני!'],
+  );
 });
 
 test('"wanted" posts: the person who answers is the giver and shares the address', async () => {
@@ -302,4 +413,11 @@ test('"wanted" posts: the person who answers is the giver and shares the address
   );
   assert.equal(msg.address, 'הרצל 5, רמת גן');
   assert.equal(ok(await yossi.db.rpc('list_conversations')).find((c) => c.id === cid).role, 'taker');
+
+  // Receiving what you asked for: the answerer gave, the author received.
+  const stats = async (u) => ok(await anon.rpc('get_profile_stats', { p_user_id: u.id }).single());
+  const [rinaBefore, yossiBefore] = [await stats(rina), await stats(yossi)];
+  ok(await yossi.db.rpc('set_item_status', { p_item_id: wanted.id, p_status: 'given', p_recipient: rina.id }));
+  assert.equal((await stats(rina)).given_count, rinaBefore.given_count + 1);
+  assert.equal((await stats(yossi)).received_count, yossiBefore.received_count + 1);
 });

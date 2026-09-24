@@ -27,6 +27,7 @@ import { useOrigin } from '@/lib/location';
 import { photoUrl } from '@/lib/supabase';
 import { timeAgo } from '@/lib/time';
 import type { ItemStatus } from '@/lib/types';
+import { goBack } from '@/lib/nav';
 import { colors, radius, shadow, space } from '@/theme';
 
 export default function ItemScreen() {
@@ -114,7 +115,7 @@ export default function ItemScreen() {
   }
 
   function remove() {
-    const run = () => changeStatus('removed').then(() => router.back());
+    const run = () => changeStatus('removed').then(() => goBack('/profile'));
     if (Platform.OS === 'web') return window.confirm('להסיר את הפריט?') && run();
     Alert.alert('להסיר את הפריט?', 'הוא ייעלם מהחיפוש, ומי שכתב/ה עליו יקבל/תקבל עדכון.', [
       { text: 'ביטול', style: 'cancel' },
@@ -328,7 +329,7 @@ export default function ItemScreen() {
                     icon="checkmark-done"
                     title={offer ? 'נמסר!' : 'קיבלתי!'}
                     loading={busy}
-                    onPress={() => (itemConversations.length && offer ? setPicker('given') : changeStatus('given'))}
+                    onPress={() => (itemConversations.length ? setPicker('given') : changeStatus('given'))}
                   />
                   {item.status === 'available' && itemConversations.length > 0 && offer && (
                     <Button
@@ -434,9 +435,9 @@ export default function ItemScreen() {
 
       <PersonPicker
         visible={picker !== null}
-        title={picker === 'given' ? 'למי מסרת?' : 'למי לשמור?'}
+        title={picker === 'given' ? (offer ? 'למי מסרת?' : 'ממי קיבלת?') : 'למי לשמור?'}
         people={itemConversations}
-        allowNone={picker === 'given' ? 'למישהו מחוץ לאפליקציה' : undefined}
+        allowNone={picker === 'given' ? (offer ? 'למישהו מחוץ לאפליקציה' : 'ממישהו מחוץ לאפליקציה') : undefined}
         onClose={() => setPicker(null)}
         onPick={(uid) => changeStatus(picker!, uid)}
       />

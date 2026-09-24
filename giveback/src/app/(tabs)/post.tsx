@@ -148,6 +148,8 @@ export default function Post() {
     if (!requireAuth() || !userId) return;
     setError(null);
     if (ai.state === 'blocked') return setError(ai.message ?? 'לא ניתן לפרסם את הפריט הזה');
+    // The photo is the listing: people decide from it, and see exactly what they will get.
+    if (kind === 'offer' && photos.length === 0) return setError('הוסיפו לפחות תמונה אחת של הפריט עצמו');
     if (form.title.trim().length < 2) return setError('מה מוסרים? כתבו כותרת קצרה');
     if (!form.category) return setError('בחרו קטגוריה');
     if (!city) return setError('בחרו עיר');
@@ -240,7 +242,7 @@ export default function Post() {
           </View>
 
           <View style={{ gap: space.sm }}>
-            <Text variant="heading">תמונות {offer ? '' : '(לא חובה)'}</Text>
+            <Text variant="heading">{offer ? 'תמונות של הפריט (חובה)' : 'תמונות (לא חובה)'}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>
               {photos.length < MAX_PHOTOS && (
                 <>
@@ -284,6 +286,11 @@ export default function Post() {
                 </View>
               ))}
             </ScrollView>
+            {offer && photos.length === 0 && (
+              <Text variant="caption" color={colors.muted}>
+                צלמו את הפריט עצמו — זו התמונה שכולם יראו, כדי שיידעו בדיוק מה מקבלים.
+              </Text>
+            )}
             <AiBanner state={ai.state} message={ai.message} onRetry={() => photos[0] && runAi(photos[0])} />
           </View>
 

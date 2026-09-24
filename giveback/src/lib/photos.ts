@@ -39,6 +39,11 @@ export async function takePhoto(): Promise<LocalPhoto | null> {
   return prepare(result.assets[0]);
 }
 
+/** Deletes photos that are no longer on any listing (best effort). */
+export async function deletePhotos(paths: string[]) {
+  if (paths.length) await supabase.storage.from('item-photos').remove(paths);
+}
+
 /** Uploads into the user's own folder; returns the storage path. */
 export async function uploadPhoto(userId: string, photo: LocalPhoto) {
   const path = `${userId}/${Crypto.randomUUID()}.jpg`;

@@ -5,18 +5,20 @@ import {
   Heebo_800ExtraBold,
   useFonts,
 } from '@expo-google-fonts/heebo';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { router, Stack, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
-import { I18nManager, Platform } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { I18nManager, Platform, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from '@/lib/auth';
-import { LocationProvider } from '@/lib/location';
+import { CITIES } from '@/lib/catalog';
+import { LocationProvider, useOrigin } from '@/lib/location';
 import { usePushNotifications } from '@/lib/notifications';
+import { isConfigured } from '@/lib/supabase';
 import { useLiveNotifications } from '@/lib/realtime';
 import { colors, fonts } from '@/theme';
 
@@ -35,9 +37,27 @@ const queryClient = new QueryClient({
 
 function SessionEffects() {
   const { userId, profile } = useAuth();
+  const { origin, ready, chooseCity } = useOrigin();
+  const queryClient = useQueryClient();
+  const previousUser = useRef(userId);
   const segments = useSegments();
   usePushNotifications(userId);
   useLiveNotifications(userId);
+
+  // Switching accounts on a shared phone must never show the previous
+  // person's chats or items, even for a moment. Restoring the session on
+  // launch (no one → someone) is not a switch; signing out or into another
+  // account is, and resets every query so open screens refetch as the new user.
+  useEffect(() => {
+    const previous = previousUser.current;
+    previousUser.current = userId;
+    if (previous && previous !== userId) queryClient.resetQueries();
+  }, [userId, queryClient]);
+
+  // Signing in on a new device: start from the city saved on the account.
+  useEffect(() => {
+    if (ready && !origin && profile?.city && CITIES.some((c) => c.name === profile.city)) chooseCity(profile.city);
+  }, [ready, origin, profile, chooseCity]);
 
   // New accounts confirm their name and area once before anything else.
   useEffect(() => {
@@ -56,6 +76,7 @@ export default function RootLayout() {
   }, [loaded]);
 
   if (!loaded) return null;
+  if (!isConfigured) return <NotConfigured />;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -98,5 +119,21 @@ export default function RootLayout() {
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
+  );
+}
+
+// Shown when the build has no server settings yet (for the website: an empty
+// config.js), instead of a broken app.
+function NotConfigured() {
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, backgroundColor: colors.bg }}>
+      <Text style={{ fontFamily: fonts.black, fontSize: 28, color: colors.primary }}>GiveBack</Text>
+      <Text style={{ fontFamily: fonts.bold, fontSize: 18, color: colors.ink, marginTop: 16, textAlign: 'center' }}>
+        האתר עוד לא מחובר לשרת
+      </Text>
+      <Text style={{ fontFamily: fonts.regular, fontSize: 15, color: colors.muted, marginTop: 8, textAlign: 'center' }}>
+        פתחו את הקובץ config.js שבתיקיית האתר, הדביקו את כתובת הפרויקט והמפתח מ-Supabase, והעלו את האתר מחדש.
+      </Text>
+    </View>
   );
 }

@@ -12,6 +12,8 @@ Edge Functions) and **Claude** for photo-to-listing.
 | Feature | How it works | Inspired by |
 | --- | --- | --- |
 | Sign in with Google, Apple (iPhone), or a 6-digit email code | Supabase Auth; profile created from the Google name and photo | — |
+| One account everywhere | Sign in with the same email (or the Google account with that email) on any phone or browser and you land in the same profile, items and chats; the session is remembered until you sign out | — |
+| Every listing shows the real item | An offer can't be published without a photo of it, only the owner's own uploads are accepted (checked in the database), and the first photo is what search, chat and the map show. Owners can add, remove and reorder photos | Olio |
 | Post in a minute | Take or pick photos; Claude drafts the Hebrew title, category, condition and description, and blocks prohibited items (weapons, medicines, alcohol, animals…) | Olio |
 | Nearest-first search | PostGIS distance ranking, 1–25 km radius, Hebrew-aware matching ("השידה" finds "שידה", "עגלה" finds "עגלת") | — |
 | Offers **and** requests | "מוסרים" / "מחפשים" — ask for what you need | Buy Nothing "Ask", Trash Nothing "Wanted" |
@@ -21,7 +23,7 @@ Edge Functions) and **Claude** for photo-to-listing.
 | Choose who gets it | Reserve for a specific person, mark as given to them; everyone else is told automatically | Buy Nothing |
 | Thanks & reputation | After a hand-over the receiver can send a public thank-you; profiles show given / received / thanks | Buy Nothing gratitude, Olio ratings |
 | Alerts | "Tell me when a stroller shows up within 3 km" → push notification | Olio, Trash Nothing |
-| Local communities | Public or private (invite code) groups for a building, street, kindergarten, kibbutz | Buy Nothing groups — the app's differentiator |
+| Local communities | Public or private (invite code) groups for a neighbourhood, building, kindergarten, kibbutz — with communities inside communities (a building inside its neighbourhood) and a live group chat for members | Buy Nothing groups — the app's differentiator |
 | Safety | Report, block (both directions), moderation by AI, account deletion in-app | App Store / Play requirements for user-generated content |
 
 ### Privacy model
@@ -65,8 +67,9 @@ sign-in and push notifications need a development build (`npx expo run:android` 
 ```bash
 npm run typecheck && npm run lint && npm test   # TypeScript, ESLint, unit tests
 npm run test:backend                            # database rules and flows (needs supabase start)
-npm run build:web && node e2e/serve.mjs dist &  # then:
-npm run test:e2e                                # two users, full flow, in Chromium
+npm run build:web                               # then put the local URL/key into dist/config.js
+node e2e/serve.mjs dist &                       # serves on :8082
+npm run test:e2e                                # the whole app A→Z, three browsers
 ```
 
 ## Going live
@@ -126,6 +129,22 @@ npx eas-cli@latest build -p ios --profile preview       # installs on registered
 npx eas-cli@latest build --profile production           # store builds
 npx eas-cli@latest submit -p android / -p ios           # upload to Google Play / App Store
 ```
+
+### 8. The website
+The same app runs as a website. Either:
+- **Upload a ready folder**: `npm run build:web`, fill in `dist/config.js` with the Supabase URL
+  and anon key, and drag the `dist` folder onto https://app.netlify.com/drop (or any static host;
+  `_redirects` makes deep links work on Netlify). Or
+- **Connect this repository to Netlify**: `netlify.toml` builds it; set
+  `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` in the site's environment variables.
+
+Add the site's address (and the same with `/auth/callback`) to Supabase's redirect URLs.
+
+### One account on every device
+Accounts belong to the email address. Signing in with Google and with an email code for the same
+address lands in the same account (Supabase links identities with the same verified email
+automatically). The one exception is Apple's "Hide my email", which gives Apple a private relay
+address — such a user should sign in the same way on every device.
 
 ### Store checklist
 - Apple Developer account ($99/year), Google Play Console ($25 once).

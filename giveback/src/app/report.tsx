@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
@@ -6,6 +6,7 @@ import { Button, Chip, Field, Text } from '@/components/ui';
 import { blockUser, report } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { REPORT_REASONS } from '@/lib/catalog';
+import { goBack } from '@/lib/nav';
 import { colors, space } from '@/theme';
 
 export default function Report() {
@@ -48,7 +49,7 @@ export default function Report() {
         <Text color={colors.muted} style={{ textAlign: 'center' }}>
           צוות GiveBack יבדוק תוך 24 שעות. הקהילה בטוחה יותר בזכותך.
         </Text>
-        <Button title="סגירה" onPress={() => router.back()} />
+        <Button title="סגירה" onPress={() => goBack()} />
       </View>
     );
   }

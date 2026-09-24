@@ -10,6 +10,8 @@ export type Origin = Point & { label: string; source: 'gps' | 'city' };
 
 type LocationState = {
   origin: Origin | null;
+  /** True once the saved location (if any) has been read from this device. */
+  ready: boolean;
   locating: boolean;
   error: string | null;
   locate: () => Promise<Origin | null>;
@@ -62,13 +64,15 @@ export async function geocode(address: string, near?: Point): Promise<Point | nu
 
 export function LocationProvider({ children }: { children: ReactNode }) {
   const [origin, setOrigin] = useState<Origin | null>(null);
+  const [ready, setReady] = useState(false);
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     AsyncStorage.getItem(KEY)
       .then((raw) => raw && setOrigin(JSON.parse(raw)))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setReady(true));
   }, []);
 
   const save = useCallback((next: Origin) => {
@@ -102,8 +106,8 @@ export function LocationProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ origin, locating, error, locate, chooseCity }),
-    [origin, locating, error, locate, chooseCity],
+    () => ({ origin, ready, locating, error, locate, chooseCity }),
+    [origin, ready, locating, error, locate, chooseCity],
   );
   return <LocationContext.Provider value={value}>{children}</LocationContext.Provider>;
 }

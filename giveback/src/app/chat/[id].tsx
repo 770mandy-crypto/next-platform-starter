@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Image } from 'expo-image';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -36,7 +37,7 @@ import {
 import { useAuth } from '@/lib/auth';
 import { googleMapsLink, wazeLink } from '@/lib/geo';
 import { geocode } from '@/lib/location';
-import { supabase } from '@/lib/supabase';
+import { photoUrl, supabase } from '@/lib/supabase';
 import { clockTime } from '@/lib/time';
 import type { Message } from '@/lib/types';
 import { colors, fonts, noOutline, radius, space } from '@/theme';
@@ -140,6 +141,20 @@ export default function Chat() {
   const closed = item?.status === 'given' || item?.status === 'removed';
   const iReceived = item?.status === 'given' && ((offer && item.given_to === userId) || (!offer && iAmOwner));
 
+  async function changeStatus(status: 'reserved' | 'given') {
+    if (!item) return;
+    setError(null);
+    try {
+      await setItemStatus(item.id, status, otherId);
+      await refetchItem();
+      queryClient.invalidateQueries({ queryKey: ['search'] });
+      queryClient.invalidateQueries({ queryKey: ['my-items'] });
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
   function openMenu() {
     const toggleBlock = async () => {
       if (blocked) await unblockUser(userId!, otherId!);
@@ -202,7 +217,15 @@ export default function Chat() {
             borderBottomWidth: 1,
             borderColor: colors.border,
           }}>
-          <Ionicons name={offer ? 'gift-outline' : 'hand-left-outline'} size={18} color={colors.primary} />
+          {item.photos[0] ? (
+            <Image
+              source={{ uri: photoUrl(item.photos[0]) }}
+              style={{ width: 36, height: 36, borderRadius: radius.sm }}
+              contentFit="cover"
+            />
+          ) : (
+            <Ionicons name={offer ? 'gift-outline' : 'hand-left-outline'} size={18} color={colors.primary} />
+          )}
           <Text variant="label" style={{ flex: 1 }} numberOfLines={1}>
             {iAmGiver ? 'את/ה מוסר/ת' : 'את/ה מקבל/ת'} · {item.title} · {item.area_label}
           </Text>
@@ -277,16 +300,16 @@ export default function Chat() {
                       size="sm"
                       variant="secondary"
                       title="לשמור עבורו/ה"
-                      onPress={() => setItemStatus(item.id, 'reserved', otherId).then(() => refetchItem())}
+                      onPress={() => changeStatus('reserved')}
                     />
                   )}
-                  {offer && iAmOwner && (
+                  {offer && iAmOwner && item && (
                     <Button
                       testID="chat-mark-given"
                       size="sm"
                       variant="secondary"
                       title="נמסר ✓"
-                      onPress={() => setItemStatus(item!.id, 'given', otherId).then(() => refetchItem())}
+                      onPress={() => changeStatus('given')}
                     />
                   )}
                 </Row>

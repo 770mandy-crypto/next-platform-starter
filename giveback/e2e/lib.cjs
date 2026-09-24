@@ -7,11 +7,17 @@ const MAILPIT = 'http://127.0.0.1:54324';
 const SP = __dirname;
 const SHOTS = process.env.SHOTS_DIR ?? require('os').tmpdir();
 
-async function latestCode(email) {
-  for (let i = 0; i < 30; i++) {
-    const list = await (await fetch(`${MAILPIT}/api/v1/search?query=${encodeURIComponent('to:' + email)}`)).json();
-    if (list.messages?.length) {
-      const msg = await (await fetch(`${MAILPIT}/api/v1/message/${list.messages[0].ID}`)).json();
+async function messageIds(email) {
+  const list = await (await fetch(`${MAILPIT}/api/v1/search?query=${encodeURIComponent('to:' + email)}`)).json();
+  return (list.messages ?? []).map((m) => m.ID);
+}
+
+// Waits for a sign-in email that was not there before, and reads its code.
+async function newCode(email, before) {
+  for (let i = 0; i < 40; i++) {
+    const fresh = (await messageIds(email)).filter((id) => !before.includes(id));
+    if (fresh.length) {
+      const msg = await (await fetch(`${MAILPIT}/api/v1/message/${fresh[0]}`)).json();
       const m = /\b(\d{6})\b/.exec(msg.Text);
       if (m) return m[1];
     }
@@ -44,12 +50,27 @@ async function newUser(browser, { geo }) {
 async function signIn(page, email) {
   await page.goto(BASE + '/sign-in');
   await page.getByTestId('email-input').fill(email);
+  const before = await messageIds(email);
   await page.getByTestId('send-code').click();
-  const code = await latestCode(email);
+  const code = await newCode(email, before);
   await page.getByTestId('code-input').fill(code);
   await page.getByTestId('verify-code').click();
 }
 
+// Size of the first listing photo on the page once it has loaded — proves the
+// picture shown is the uploaded file and not a placeholder.
+async function firstPhoto(page) {
+  const handle = await page.waitForFunction(
+    () => {
+      const img = [...document.querySelectorAll('img')].find((i) => i.src.includes('/item-photos/'));
+      return img && img.complete && img.naturalWidth > 0 ? { src: img.src, w: img.naturalWidth, h: img.naturalHeight } : null;
+    },
+    null,
+    { timeout: 15000 },
+  );
+  return handle.jsonValue();
+}
+
 const shot = (page, name) => page.screenshot({ path: `${SHOTS}/app-${name}.png` });
 
-module.exports = { chromium, BASE, SP, newUser, signIn, shot };
+module.exports = { chromium, BASE, SP, newUser, signIn, shot, firstPhoto };

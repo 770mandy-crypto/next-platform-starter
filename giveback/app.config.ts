@@ -38,7 +38,7 @@ const config: ExpoConfig = {
     blockedPermissions: ['android.permission.RECORD_AUDIO'],
   },
   web: {
-    output: 'static',
+    output: 'single',
     favicon: './assets/images/favicon.png',
     name: 'GiveBack',
     shortName: 'GiveBack',

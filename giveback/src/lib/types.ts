@@ -90,6 +90,17 @@ export type Community = {
   active_items: number;
   distance_km: number | null;
   is_member: boolean;
+  parent_id: string | null;
+  parent_name: string | null;
+  sub_count: number;
+};
+
+export type CommunityMessage = {
+  id: number;
+  community_id: string;
+  sender_id: string;
+  body: string;
+  created_at: string;
 };
 
 export type Notification = {

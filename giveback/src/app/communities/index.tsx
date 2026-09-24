@@ -123,6 +123,7 @@ function CommunityRow({ community: c, onJoined }: { community: Community; onJoin
         <Text weight="bold">{c.name}</Text>
         <Text variant="caption" color={colors.muted}>
           {[
+            c.parent_name ? `בתוך ${c.parent_name}` : null,
             kind,
             c.city,
             `${c.member_count} חברים`,

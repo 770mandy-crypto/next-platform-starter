@@ -3,8 +3,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import { AppState, Platform } from 'react-native';
 
-export const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
-const SUPABASE_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
+// The website reads its server settings at runtime from /config.js, so one
+// build can be uploaded anywhere; the phone apps get them at build time.
+type RuntimeConfig = { supabaseUrl?: string; supabaseAnonKey?: string };
+const runtime: RuntimeConfig | undefined =
+  typeof window === 'undefined' ? undefined : (window as { GIVEBACK_CONFIG?: RuntimeConfig }).GIVEBACK_CONFIG;
+
+export const SUPABASE_URL = runtime?.supabaseUrl || process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+const SUPABASE_KEY = runtime?.supabaseAnonKey || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
 export const isConfigured = Boolean(SUPABASE_URL && SUPABASE_KEY);
 
