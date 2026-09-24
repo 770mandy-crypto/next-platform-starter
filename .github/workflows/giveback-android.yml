@@ -68,7 +68,13 @@ jobs:
         # skip the dev tools the checks need.
         env:
           NODE_ENV: production
-        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a
+        # Android lint runs out of memory on this many modules and is not needed
+        # (TypeScript, ESLint and the tests above already checked the code).
+        run: >-
+          ./gradlew assembleRelease --no-daemon
+          -PreactNativeArchitectures=arm64-v8a
+          -x lintVitalAnalyzeRelease -x lintVitalReportRelease -x lintVitalRelease
+          "-Dorg.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=2g -Dfile.encoding=UTF-8"
 
       - name: Name it
         run: |

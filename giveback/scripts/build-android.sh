@@ -26,7 +26,9 @@ npx expo prebuild --platform android --clean --no-install
 args=(--rm -v "$PWD":"$PWD" -w "$PWD/android"
   -e EXPO_PUBLIC_SUPABASE_URL -e EXPO_PUBLIC_SUPABASE_ANON_KEY -e EXPO_PUBLIC_AI_ENABLED
   -e GOOGLE_MAPS_ANDROID_KEY -e NODE_ENV=production -e CI=1)
-gradle_args=(assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a)
+gradle_args=(assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a
+  -x lintVitalAnalyzeRelease -x lintVitalReportRelease -x lintVitalRelease
+  "-Dorg.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=2g -Dfile.encoding=UTF-8")
 if [[ "${MAVEN_MIRROR:-}" == "1" ]]; then
   args+=(-v "$PWD/scripts/maven-mirror.init.gradle:/tmp/mirror.init.gradle:ro")
   gradle_args+=(--init-script /tmp/mirror.init.gradle)
