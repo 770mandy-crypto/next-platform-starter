@@ -1,31 +1,33 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import netlifyLogo from 'public/netlify-logo.svg';
 import githubLogo from 'public/images/github-mark-white.svg';
+import { useAuth } from './auth-provider';
 
 const navItems = [
-    { linkText: 'Home', href: '/' },
-    { linkText: '🤖 Stock Bot', href: '/bot' },
-    { linkText: '📸 Upload', href: '/upload' },
-    { linkText: '🗺️ Market', href: '/market' },
-    { linkText: '🔍 Scan', href: '/scan' },
-    { linkText: '🔑 Setup', href: '/setup' },
-    { linkText: 'Revalidation', href: '/revalidation' },
-    { linkText: 'Image CDN', href: '/image-cdn' },
-    { linkText: 'Edge Function', href: '/edge' },
-    { linkText: 'Blobs', href: '/blobs' },
-    { linkText: 'Classics', href: '/classics' },
-    { linkText: 'Middleware', href: '/middleware' },
-    { linkText: 'Routing', href: '/routing' }
+    { linkText: 'דף הבית', href: '/' },
+    { linkText: '📋 לוח בקרה', href: '/dashboard' },
+    { linkText: '🔧 שירותים', href: '/services' },
 ];
 
 export function Header() {
+    const { user, logout } = useAuth();
+    const router = useRouter();
+
+    const handleLogout = async () => {
+        await logout();
+        router.push('/login');
+    };
+
     return (
         <nav className="flex flex-wrap items-center gap-4 pt-6 pb-12 sm:pt-12 md:pb-24">
             <Link href="/">
-                <Image src={netlifyLogo} alt="Netlify logo" />
+                <h1 className="text-2xl font-bold">FixNow</h1>
             </Link>
-            {!!navItems?.length && (
+            {user && !!navItems?.length && (
                 <ul className="flex flex-wrap gap-x-4 gap-y-1">
                     {navItems.map((item, index) => (
                         <li key={index}>
@@ -36,14 +38,28 @@ export function Header() {
                     ))}
                 </ul>
             )}
-            <Link
-                href="https://github.com/netlify-templates/next-platform-starter"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="ml-auto"
-            >
-                <Image src={githubLogo} alt="GitHub logo" className="w-7" />
-            </Link>
+            <div className="ml-auto flex items-center gap-4">
+                {user ? (
+                    <>
+                        <span className="text-sm opacity-70">{user.name}</span>
+                        <button
+                            onClick={handleLogout}
+                            className="px-3 py-2 bg-red-600/20 hover:bg-red-600/30 rounded text-sm transition"
+                        >
+                            התנתק
+                        </button>
+                    </>
+                ) : (
+                    <>
+                        <Link href="/login" className="px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 rounded text-sm transition">
+                            התחברות
+                        </Link>
+                        <Link href="/register" className="px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm transition">
+                            הרשמה
+                        </Link>
+                    </>
+                )}
+            </div>
         </nav>
     );
 }
