@@ -18,7 +18,7 @@ export default function Page() {
         return (
             <div dir="rtl" className="flex flex-col gap-12 py-12">
                 <section>
-                    <h1 className="mb-4 text-4xl font-bold">ברוכים הבאים, {user.name}!</h1>
+                    <h1 className="mb-4 text-4xl font-bold">ברוכים הבאים, {user.name}! 👋</h1>
                     <p className="mb-6 text-lg opacity-80">
                         אנחנו שמחים שאתה חלק מ-FixNow. בואו נתחיל!
                     </p>
@@ -31,69 +31,149 @@ export default function Page() {
     }
 
     return (
-        <div dir="rtl" className="flex flex-col gap-12 sm:gap-16 py-12">
-            <section>
-                <h1 className="mb-4 text-4xl font-bold">FixNow</h1>
-                <p className="mb-6 text-lg opacity-80">
-                    חיבור קל וחכם בין בעלי מקצוע ללקוחות שצריכים שירות
-                </p>
-                <p className="mb-6 text-lg opacity-70">
-                    בין אם אתה לקוח שצריך טכנאי, מדביר או בעל מקצוע אחר,
-                    או בעל מקצוע המחפש לקוחות חדשים — FixNow הוא המקום המושלם לך.
-                </p>
-                <div className="flex gap-4 flex-wrap">
-                    <Link href="/register" className="btn btn-lg">
-                        הרשם עכשיו
-                    </Link>
-                    <Link href="/login" className="btn btn-lg btn-outline">
-                        התחבר
-                    </Link>
-                </div>
-            </section>
+        <>
+            {/* Hero Section */}
+            <div dir="rtl" className="flex flex-col gap-16 py-16 sm:py-24">
+                <section className="text-center space-y-6">
+                    <div>
+                        <h1 className="text-6xl sm:text-7xl font-bold mb-4">FixNow</h1>
+                        <p className="text-2xl sm:text-3xl opacity-90 mb-4">
+                            חיבור קל וחכם בין לקוחות לבעלי מקצוע
+                        </p>
+                    </div>
 
-            <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="p-6 bg-white/5 border border-white/10 rounded-lg">
-                    <div className="text-4xl mb-3">👤</div>
-                    <h3 className="text-xl font-bold mb-2">עבור לקוחות</h3>
-                    <p className="opacity-70">
-                        תאר את הבעיה שלך בטקסט או תמונה. אנחנו נחבר אותך לבעלי מקצוע ממומלצים, ותוכל להשוות הצעות ולקרוא ביקורות.
+                    <p className="text-xl opacity-80 max-w-2xl mx-auto leading-relaxed">
+                        צריך טכנאי, מדביר או בעל מקצוע?
+                        <br />
+                        תאר את הבעיה שלך וקבל המלצות מיידיות!
                     </p>
-                </div>
 
-                <div className="p-6 bg-white/5 border border-white/10 rounded-lg">
-                    <div className="text-4xl mb-3">🔧</div>
-                    <h3 className="text-xl font-bold mb-2">עבור בעלי מקצוע</h3>
-                    <p className="opacity-70">
-                        הרשם כטכנאי ובנה את הפרופיל המקצועי שלך. קבל בקשות מלקוחות בעלי קשר וגדל את העסק שלך.
+                    <div className="flex gap-4 flex-wrap justify-center pt-4">
+                        <Link href="/register" className="btn btn-lg bg-blue-600 hover:bg-blue-700">
+                            🚀 התחל עכשיו
+                        </Link>
+                        <Link href="/login" className="btn btn-lg bg-white/10 hover:bg-white/20 border border-white/20">
+                            📱 התחבר
+                        </Link>
+                    </div>
+                </section>
+
+                {/* Benefits Section */}
+                <section className="space-y-8">
+                    <h2 className="text-4xl font-bold text-center">למה FixNow?</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <div className="p-8 bg-gradient-to-br from-blue-500/20 to-transparent border border-blue-500/30 rounded-lg hover:border-blue-500/60 transition">
+                            <div className="text-5xl mb-4">⚡</div>
+                            <h3 className="text-2xl font-bold mb-3">מהיר וקל</h3>
+                            <p className="opacity-80 text-lg">
+                                מ-תיאור בעיה להצעה בדקות ספורות. ללא סיבוכים.
+                            </p>
+                        </div>
+
+                        <div className="p-8 bg-gradient-to-br from-green-500/20 to-transparent border border-green-500/30 rounded-lg hover:border-green-500/60 transition">
+                            <div className="text-5xl mb-4">🎯</div>
+                            <h3 className="text-2xl font-bold mb-3">מומחים בתחום</h3>
+                            <p className="opacity-80 text-lg">
+                                AI חכם מחבר אותך לטכנאים המתאימים ביותר.
+                            </p>
+                        </div>
+
+                        <div className="p-8 bg-gradient-to-br from-purple-500/20 to-transparent border border-purple-500/30 rounded-lg hover:border-purple-500/60 transition">
+                            <div className="text-5xl mb-4">🛡️</div>
+                            <h3 className="text-2xl font-bold mb-3">בטוח ואמין</h3>
+                            <p className="opacity-80 text-lg">
+                                ביקורות אמיתיות ודירוגים שקופים. בטוח 100%.
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                {/* How It Works */}
+                <section className="space-y-8">
+                    <h2 className="text-4xl font-bold text-center">איך זה עובד?</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <div className="text-center space-y-4">
+                            <div className="text-6xl">📝</div>
+                            <h3 className="text-xl font-bold">1. תאר את הבעיה</h3>
+                            <p className="opacity-70 text-sm">
+                                כתוב או צלם תמונה של הבעיה שלך
+                            </p>
+                        </div>
+
+                        <div className="text-center space-y-4">
+                            <div className="text-6xl">🤖</div>
+                            <h3 className="text-xl font-bold">2. AI מנתח</h3>
+                            <p className="opacity-70 text-sm">
+                                הבעיה מנותחת אוטומטית לתחום המתאים
+                            </p>
+                        </div>
+
+                        <div className="text-center space-y-4">
+                            <div className="text-6xl">👥</div>
+                            <h3 className="text-xl font-bold">3. חיבור לטכנאים</h3>
+                            <p className="opacity-70 text-sm">
+                                קבל הצעות מטכנאים בעלי דירוג גבוה
+                            </p>
+                        </div>
+
+                        <div className="text-center space-y-4">
+                            <div className="text-6xl">✅</div>
+                            <h3 className="text-xl font-bold">4. בוצע!</h3>
+                            <p className="opacity-70 text-sm">
+                                בחר טכנאי וספרי ביקורת אחרי העבודה
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                {/* For Different Users */}
+                <section className="space-y-8">
+                    <h2 className="text-4xl font-bold text-center">לכל אחד יש משהו</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="p-10 bg-white/5 border border-white/10 rounded-lg hover:bg-white/8 transition">
+                            <h3 className="text-3xl font-bold mb-4">👤 לקוחות</h3>
+                            <ul className="space-y-3 opacity-85 text-lg">
+                                <li>✓ תאור חכם של בעיה</li>
+                                <li>✓ המלצות AI ממוקדות</li>
+                                <li>✓ השוואת מחירים וביקורות</li>
+                                <li>✓ רשימת בדיקה לפני קריאה</li>
+                            </ul>
+                        </div>
+
+                        <div className="p-10 bg-white/5 border border-white/10 rounded-lg hover:bg-white/8 transition">
+                            <h3 className="text-3xl font-bold mb-4">🔧 בעלי מקצוע</h3>
+                            <ul className="space-y-3 opacity-85 text-lg">
+                                <li>✓ בקשות של לקוחות בעלי קשר</li>
+                                <li>✓ קידום הפרופיל שלך</li>
+                                <li>✓ ניהול הצעות וזמנים</li>
+                                <li>✓ בנייה דירוג ייחודי</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                {/* CTA Section */}
+                <section className="text-center space-y-8 py-16 px-8 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-blue-500/20 border border-white/10 rounded-2xl">
+                    <h2 className="text-4xl font-bold">מוכן להתחיל?</h2>
+                    <p className="text-xl opacity-80 max-w-2xl mx-auto">
+                        הצטרף לאלפים שכבר משתמשים בFixNow למצוא טכנאים נאמנים
                     </p>
-                </div>
+                    <div className="flex gap-4 flex-wrap justify-center">
+                        <Link href="/register" className="btn btn-lg bg-blue-600 hover:bg-blue-700">
+                            🚀 הרשם בחינם
+                        </Link>
+                        <Link href="/login" className="btn btn-lg bg-white/10 hover:bg-white/20 border border-white/20">
+                            כבר יש לי חשבון
+                        </Link>
+                    </div>
+                </section>
 
-                <div className="p-6 bg-white/5 border border-white/10 rounded-lg">
-                    <div className="text-4xl mb-3">🤝</div>
-                    <h3 className="text-xl font-bold mb-2">בטוח ותומך</h3>
-                    <p className="opacity-70">
-                        בדיקות זהות, ביקורות אמיתיות, ומערכת דירוג שקופה. כולם מרוצים.
-                    </p>
-                </div>
-            </section>
-
-            <section className="p-8 bg-blue-900/50 border border-blue-500/30 rounded-lg">
-                <h2 className="text-2xl font-bold mb-4">איך זה עובד?</h2>
-                <ol className="space-y-3 opacity-80">
-                    <li>
-                        <span className="font-bold">1. הרשם:</span> בחר האם אתה לקוח או בעל מקצוע
-                    </li>
-                    <li>
-                        <span className="font-bold">2. תאר/חפש:</span> תאר את הבעיה או חפש בקשות
-                    </li>
-                    <li>
-                        <span className="font-bold">3. השוו/הציע:</span> קבל הצעות או הצע מחיר
-                    </li>
-                    <li>
-                        <span className="font-bold">4. ודאו את העבודה:</span> שמור ביקורות אמיתיות
-                    </li>
-                </ol>
-            </section>
-        </div>
+                {/* Footer Info */}
+                <section className="text-center text-sm opacity-70 space-y-2 pt-8">
+                    <p>✨ FixNow - החיבור הקל והחכם בעבודה</p>
+                    <p>🔒 כל הנתונים מוגנים ומוצפנים</p>
+                </section>
+            </div>
+        </>
     );
 }
