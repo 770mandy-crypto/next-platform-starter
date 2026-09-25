@@ -26,7 +26,7 @@ export default function DashboardPage() {
                         <>
                             <Link
                                 href="/problem"
-                                className="p-6 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition"
+                                className="p-6 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition cursor-pointer"
                             >
                                 <div className="text-3xl mb-3">🔧</div>
                                 <h3 className="text-xl font-bold mb-2">בקשה חדשה</h3>
