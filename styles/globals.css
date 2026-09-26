@@ -182,3 +182,37 @@
         @apply list-decimal;
     }
 }
+
+/* Replies in the agent chat: the same prose rhythm as .pilot-md, plus code,
+   which reads left-to-right even inside the Hebrew page. */
+.agents-md {
+    pre {
+        @apply my-3 p-3 overflow-x-auto text-[13px] leading-relaxed rounded-lg bg-slate-900 text-slate-100;
+        direction: ltr;
+        text-align: left;
+    }
+    code {
+        @apply font-mono text-[0.9em];
+        direction: ltr;
+        unicode-bidi: isolate;
+    }
+    :not(pre) > code {
+        @apply px-1 py-0.5 rounded bg-slate-100 text-slate-800;
+    }
+    pre code {
+        @apply p-0 bg-transparent text-inherit;
+    }
+    a {
+        @apply text-indigo-600 underline underline-offset-2;
+    }
+    blockquote {
+        @apply my-2 ps-3 border-s-2 border-slate-300 text-slate-600;
+    }
+    table {
+        @apply block my-3 overflow-x-auto text-sm border-collapse;
+    }
+    th,
+    td {
+        @apply px-2 py-1 border border-slate-200;
+    }
+}
