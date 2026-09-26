@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>צוות הסוכנים</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;600;700&family=Assistant:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #f4f6f9;
+    --surface: #ffffff;
+    --surface-2: #eef1f6;
+    --ink: #191c23;
+    --muted: #5d6675;
+    --faint: #8b93a3;
+    --border: #e3e7ee;
+    --border-strong: #d3d9e3;
+    --accent: #4f46e5;
+    --accent-soft: #ecebfb;
+    --on-accent: #ffffff;
+    --shadow: 0 1px 2px rgba(20,25,40,.04), 0 6px 20px rgba(20,25,40,.06);
+
+    --c-security: #e5484d;
+    --c-bug: #e8930c;
+    --c-research: #2f74e0;
+    --c-deep: #7c5cff;
+    --c-review: #0d9488;
+    --c-test: #16a34a;
+    --c-docs: #5b6472;
+
+    --sans: "Assistant", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --display: "Rubik", var(--sans);
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #0d1017;
+      --surface: #161b23;
+      --surface-2: #1d232d;
+      --ink: #e7eaf1;
+      --muted: #9aa3b2;
+      --faint: #6c7686;
+      --border: #262d38;
+      --border-strong: #333c49;
+      --accent: #9a9bff;
+      --accent-soft: #21223b;
+      --on-accent: #0d1017;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+
+      --c-security: #ff6b6f;
+      --c-bug: #f5a524;
+      --c-research: #5b9bff;
+      --c-deep: #a48bff;
+      --c-review: #2dd4bf;
+      --c-test: #4ade80;
+      --c-docs: #9aa3b2;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0d1017;
+    --surface: #161b23;
+    --surface-2: #1d232d;
+    --ink: #e7eaf1;
+    --muted: #9aa3b2;
+    --faint: #6c7686;
+    --border: #262d38;
+    --border-strong: #333c49;
+    --accent: #9a9bff;
+    --accent-soft: #21223b;
+    --on-accent: #0d1017;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+
+    --c-security: #ff6b6f;
+    --c-bug: #f5a524;
+    --c-research: #5b9bff;
+    --c-deep: #a48bff;
+    --c-review: #2dd4bf;
+    --c-test: #4ade80;
+    --c-docs: #9aa3b2;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    direction: rtl;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 1080px;
+    margin-inline: auto;
+    padding-inline: 20px;
+    padding-block: 48px 64px;
+  }
+
+  /* Header */
+  .masthead { margin-bottom: 40px; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: .8rem;
+    letter-spacing: .08em;
+    color: var(--accent);
+    text-transform: uppercase;
+    direction: ltr;
+    margin: 0 0 12px;
+  }
+  h1 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(2.1rem, 6vw, 3rem);
+    line-height: 1.05;
+    letter-spacing: -.01em;
+    margin: 0 0 14px;
+    text-wrap: balance;
+  }
+  .lede {
+    font-size: 1.08rem;
+    color: var(--muted);
+    max-width: 60ch;
+    margin: 0 0 24px;
+  }
+  .stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 12px;
+    align-items: center;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 13px;
+    font-size: .86rem;
+    color: var(--muted);
+  }
+  .chip b { color: var(--ink); font-family: var(--display); font-weight: 600; }
+  .chip .dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* Grid */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 18px;
+  }
+
+  .card {
+    --c: var(--accent);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px 22px 20px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    transition: transform .18s ease, border-color .18s ease;
+  }
+  .card:hover { transform: translateY(-3px); border-color: var(--border-strong); }
+
+  .card-top { display: flex; align-items: center; gap: 13px; }
+  .badge-icon {
+    flex: none;
+    width: 46px; height: 46px;
+    border-radius: 12px;
+    display: grid; place-items: center;
+    background: color-mix(in srgb, var(--c) 14%, transparent);
+    color: var(--c);
+    border: 1px solid color-mix(in srgb, var(--c) 30%, transparent);
+  }
+  .badge-icon svg { width: 24px; height: 24px; }
+  .name-block { min-width: 0; }
+  .agent-name {
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: 1.02rem;
+    color: var(--ink);
+    direction: ltr;
+    text-align: right;
+    word-break: break-word;
+  }
+  .model {
+    display: inline-block;
+    margin-top: 3px;
+    font-family: var(--mono);
+    font-size: .68rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 6px;
+    direction: ltr;
+  }
+  .model.opus { background: var(--accent-soft); color: var(--accent); }
+  .model.sonnet { background: var(--surface-2); color: var(--faint); }
+
+  .desc { color: var(--muted); font-size: .96rem; margin: 0; flex: 1; }
+
+  .tools { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tool {
+    font-family: var(--mono);
+    font-size: .72rem;
+    color: var(--faint);
+    background: var(--surface-2);
+    border-radius: 6px;
+    padding: 3px 7px;
+    direction: ltr;
+  }
+
+  .example {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: .9rem;
+  }
+  .example .caret { color: var(--c); font-family: var(--mono); font-weight: 500; flex: none; }
+  .example .q { color: var(--ink); }
+
+  /* Footer */
+  .foot {
+    margin-top: 44px;
+    padding-top: 28px;
+    border-top: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+  .foot h2 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 1.15rem;
+    margin: 0 0 10px;
+  }
+  .foot p { color: var(--muted); margin: 0 0 8px; font-size: .95rem; }
+  .foot code {
+    font-family: var(--mono);
+    font-size: .85em;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 1px 6px;
+    direction: ltr;
+    display: inline-block;
+  }
+  .links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: .9rem;
+    text-decoration: none;
+    padding: 9px 15px;
+    border-radius: 10px;
+    border: 1px solid var(--border-strong);
+    color: var(--ink);
+    background: var(--surface);
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  .btn svg { width: 16px; height: 16px; }
+
+  .sig { margin-top: 26px; color: var(--faint); font-size: .82rem; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card, .btn { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="masthead">
+    <p class="eyebrow">.claude / agents</p>
+    <h1>צוות הסוכנים שלי</h1>
+    <p class="lede">שבעה סוכני AI מתמחים, כל אחד מומחה בתחום אחד. בסשן על הריפו כותבים בקשה טבעית ו-Claude מנתב לסוכן המתאים — או קוראים לו בשם.</p>
+    <div class="stats">
+      <span class="chip"><b>7</b> סוכנים</span>
+      <span class="chip"><span class="dot" style="background:var(--c-security)"></span> אבטחה</span>
+      <span class="chip"><span class="dot" style="background:var(--c-bug)"></span> באגים</span>
+      <span class="chip"><span class="dot" style="background:var(--c-research)"></span> מחקר</span>
+      <span class="chip"><span class="dot" style="background:var(--c-test)"></span> טסטים</span>
+      <span class="chip"><span class="dot" style="background:var(--c-docs)"></span> תיעוד</span>
+    </div>
+  </header>
+
+  <main class="grid">
+
+    <!-- security-auditor -->
+    <article class="card" style="--c: var(--c-security)">
+      <div class="card-top">
+        <span class="badge-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9.2 12l1.9 1.9 3.7-3.9"/></svg>
+        </span>
+        <div class="name-block">
+          <div class="agent-name">security-auditor</div>
+          <span class="model opus">opus</span>
+        </div>
+      </div>
+      <p class="desc">מוצא חולשות ובעיות אבטחה בקוד ובאתר שלך ומסביר איך לתקן. בדיקה הגנתית בלבד — על נכסים שבבעלותך או שיש לך הרשאה לבדוק.</p>
+      <div class="tools"><span class="tool">Read</span><span class="tool">Grep</span><span class="tool">Glob</span><span class="tool">Bash</span><span class="tool">WebFetch</span><span class="tool">WebSearch</span></div>
+      <div class="example"><span class="caret">›</span><span class="q">תבדוק את האתר שלי לבעיות אבטחה</span></div>
+    </article>
+
+    <!-- bug-hunter -->
+    <article class="card" style="--c: var(--c-bug)">
+      <div class="card-top">
+        <span class="badge-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="7" width="8" height="11" rx="4"/><path d="M12 3v3M9 5l1.5 2M15 5l-1.5 2M8 11H4M20 11h-4M8 15H4M20 15h-4M8 18l-2 2M16 18l2 2"/></svg>
+        </span>
+        <div class="name-block">
+          <div class="agent-name">bug-hunter</div>
+          <span class="model opus">opus</span>
+        </div>
+      </div>
+      <p class="desc">סורק את הקוד ומוצא באגים אמיתיים, שגיאות לוגיקה ובעיות נכונות — עם תרחיש כשל קונקרטי ותיקון מינימלי לכל ממצא.</p>
+      <div class="tools"><span class="tool">Read</span><span class="tool">Grep</span><span class="tool">Glob</span><span class="tool">Bash</span></div>
+      <div class="example"><span class="caret">›</span><span class="q">תמצא באגים בפרויקט הזה</span></div>
+    </article>
+
+    <!-- researcher -->
+    <article class="card" style="--c: var(--c-research)">
+      <div class="card-top">
+        <span class="badge-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.4-4.4"/></svg>
+        </span>
+        <div class="name-block">
+          <div class="agent-name">researcher</div>
+          <span class="model sonnet">sonnet</span>
+        </div>
+      </div>
+      <p class="desc">חוקר נושא לרוחב מספר מקורות, משווה אפשרויות, ומחזיר סיכום מסונתז עם הפניות — לא רשימת קישורים.</p>
+      <div class="tools"><span class="tool">WebSearch</span><span class="tool">WebFetch</span><span class="tool">Read</span><span class="tool">Grep</span><span class="tool">Glob</span></div>
+      <div class="example"><span class="caret">›</span><span class="q">תחקור מה האפשרויות ל-X</span></div>
+    </article>
+
+    <!-- deep-analyst -->
+    <article class="card" style="--c: var(--c-deep)">
+      <div class="card-top">
+        <span class="badge-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5M3 17l9 5 9-5"/></svg>
+        </span>
+        <div class="name-block">
+          <div class="agent-name">deep-analyst</div>
+          <span class="model opus">opus</span>
+        </div>
+      </div>
+      <p class="desc">צולל לעומק בבעיה אחת מורכבת — עוקב אחרי זרימת נתונים, מאתר שורש של באג, ומסביר את המנגנון האמיתי לפרטים.</p>
+      <div class="tools"><span class="tool">Read</span><span class="tool">Grep</span><span class="tool">Glob</span><span class="tool">Bash</span><span class="tool">WebFetch</span></div>
+      <div class="example"><span class="caret">›</span><span class="q">תסביר לעומק איך X עובד</span></div>
+    </article>
+
+    <!-- code-reviewer -->
+    <article class="card" style="--c: var(--c-review)">
+      <div class="card-top">
+        <span class="badge-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6a1 1 0 011 1v1h1a2 2 0 012 2v10a2 2 0 01-2 2H7a2 2 0 01-2-2V8a2 2 0 012-2h1V5a1 1 0 011-1z"/><path d="M9.3 13.2l1.8 1.8 3.6-3.8"/></svg>
+        </span>
+        <div class="name-block">
+          <div class="agent-name">code-reviewer</div>
+          <span class="model sonnet">sonnet</span>
+        </div>
+      </div>
+      <p class="desc">סוקר שינויים או PR ונותן ביקורת ממוקדת ומדורגת: מה חובה לתקן, מה כדאי, ומה ליטוש אופציונלי.</p>
+      <div class="tools"><span class="tool">Read</span><span class="tool">Grep</span><span class="tool">Glob</span><span class="tool">Bash</span></div>
+      <div class="example"><span class="caret">›</span><span class="q">תעשה code review לשינויים שלי</span></div>
+    </article>
+
+    <!-- test-writer -->
+    <article class="card" style="--c: var(--c-test)">
+      <div class="card-top">
+        <span class="badge-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v6.5L5.6 17a2 2 0 001.8 3h9.2a2 2 0 001.8-3L14 9.5V3"/><path d="M8 14h8"/></svg>
+        </span>
+        <div class="name-block">
+          <div class="agent-name">test-writer</div>
+          <span class="model sonnet">sonnet</span>
+        </div>
+      </div>
+      <p class="desc">כותב טסטים אוטומטיים — מקרי קצה ורגרסיה — לפי ה-setup של הפרויקט, ותמיד מריץ אותם כדי לוודא שהם עוברים.</p>
+      <div class="tools"><span class="tool">Read</span><span class="tool">Grep</span><span class="tool">Glob</span><span class="tool">Bash</span><span class="tool">Edit</span><span class="tool">Write</span></div>
+      <div class="example"><span class="caret">›</span><span class="q">תכתוב טסטים לפונקציה הזו</span></div>
+    </article>
+
+    <!-- documenter -->
+    <article class="card" style="--c: var(--c-docs)">
+      <div class="card-top">
+        <span class="badge-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6M9 9h2"/></svg>
+        </span>
+        <div class="name-block">
+          <div class="agent-name">documenter</div>
+          <span class="model sonnet">sonnet</span>
+        </div>
+      </div>
+      <p class="desc">כותב ומשפר תיעוד — README, הערות ו-docstrings, מדריכי שימוש — מבוסס על הקוד האמיתי, בלי להמציא.</p>
+      <div class="tools"><span class="tool">Read</span><span class="tool">Grep</span><span class="tool">Glob</span><span class="tool">Bash</span><span class="tool">Edit</span><span class="tool">Write</span></div>
+      <div class="example"><span class="caret">›</span><span class="q">תתעד את המודול הזה</span></div>
+    </article>
+
+  </main>
+
+  <footer class="foot">
+    <div>
+      <h2>איך משתמשים</h2>
+      <p>בסשן Claude Code על הריפו, כותבים בקשה טבעית ו-Claude בוחר את הסוכן — או קוראים לו במפורש: <code>use bug-hunter</code>. אפשר להריץ כמה סוכנים במקביל על משימות בלתי-תלויות.</p>
+      <p>כל סוכן מוגדר בקובץ <code>.md</code> בתיקייה <code>.claude/agents/</code>. כדי להוסיף סוכן, מעתיקים קובץ קיים ומשנים את ה-<code>name</code>, ה-<code>description</code> וההוראות.</p>
+      <div class="links">
+        <a class="btn primary" href="https://github.com/770mandy-crypto/next-platform-starter/tree/main/.claude/agents" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.5 2 2 6.6 2 12.2c0 4.5 2.9 8.3 6.8 9.6.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.4-3.4-1.4-.5-1.1-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.6 2.4 1.1 3 .9.1-.7.3-1.1.6-1.4-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.7 1a9.3 9.3 0 015 0c1.9-1.3 2.7-1 2.7-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.3 4.7-4.6 5 .4.3.7.9.7 1.9v2.8c0 .3.2.6.7.5A10.2 10.2 0 0022 12.2C22 6.6 17.5 2 12 2z"/></svg>
+          לתיקיית הסוכנים
+        </a>
+        <a class="btn" href="https://github.com/770mandy-crypto/next-platform-starter/blob/main/.claude/agents/README.md" target="_blank" rel="noopener">קובץ ה-README</a>
+      </div>
+    </div>
+    <p class="sig">770mandy-crypto / next-platform-starter · .claude/agents</p>
+  </footer>
+</div>
+</body>
+</html>
