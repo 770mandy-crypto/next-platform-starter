@@ -53,7 +53,14 @@ async function request(url, { method = 'GET', body } = {}) {
     });
     const data = await response.json().catch(() => ({}));
     if (response.status === 401 && !url.includes('/auth/')) throw new SessionExpiredError(data.error);
-    if (!response.ok) throw new Error(data.error || `שגיאה ${response.status}`);
+    if (!response.ok) {
+        // 502/504 come from the host, not from our code, and carry no message.
+        const fallback =
+            response.status === 502 || response.status === 504
+                ? 'השרת לא הספיק לענות בזמן. נסו שוב בעוד רגע.'
+                : `שגיאה ${response.status}`;
+        throw new Error(data.error || fallback);
+    }
     return data;
 }
 
@@ -363,6 +370,7 @@ export function useMaslul() {
                         role: 'assistant',
                         content: result.reply,
                         source: result.source,
+                        fallbackReason: result.fallbackReason ?? null,
                         actionIds: actions.map((action) => action.id)
                     }
                 ],
