@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { MODULES } from 'lib/pilot/policy';
 
-// The MVP keeps each user's workspace in their own browser. Moving this to a
-// database is the first step of the roadmap; the shape below is what gets
-// persisted there, so nothing else has to change.
-const STORAGE_KEY = 'maslul:v1';
+// The workspace lives on the server, per account (see lib/pilot/workspace.js).
+// This hook loads it after sign-in and saves every change back, debounced.
+// `maslul:v1` is where the first, browser-only version kept it; anything found
+// there is offered to the server once, at sign-up, and then removed.
+const LEGACY_STORAGE_KEY = 'maslul:v1';
+const SAVE_DELAY_MS = 700;
 
 export const EMPTY_STATE = {
     user: null,
@@ -25,54 +27,103 @@ export function newId(prefix) {
     return `${prefix}_${Date.now().toString(36)}${counter.toString(36)}`;
 }
 
-function load() {
+function readLegacyWorkspace() {
     try {
-        const raw = window.localStorage.getItem(STORAGE_KEY);
-        return raw ? { ...EMPTY_STATE, ...JSON.parse(raw) } : EMPTY_STATE;
+        const raw = window.localStorage.getItem(LEGACY_STORAGE_KEY);
+        const data = raw ? JSON.parse(raw) : null;
+        return data?.project ? data : null;
     } catch {
-        return EMPTY_STATE;
+        return null;
     }
 }
 
-async function postJson(url, body) {
+function clearLegacyWorkspace() {
+    try {
+        window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+    } catch {}
+}
+
+export class SessionExpiredError extends Error {}
+
+async function request(url, { method = 'GET', body } = {}) {
     const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(body)
+        method,
+        headers: body ? { 'content-type': 'application/json' } : undefined,
+        body: body ? JSON.stringify(body) : undefined
     });
     const data = await response.json().catch(() => ({}));
+    if (response.status === 401 && !url.includes('/auth/')) throw new SessionExpiredError(data.error);
     if (!response.ok) throw new Error(data.error || `שגיאה ${response.status}`);
     return data;
 }
 
+const postJson = (url, body) => request(url, { method: 'POST', body });
+
 function logEntry(module, text) {
     return { id: newId('log'), module, text, at: new Date().toISOString() };
+}
+
+function workspaceOf(state) {
+    const { user, ...workspace } = state;
+    return workspace;
 }
 
 export function useMaslul() {
     const [state, setState] = useState(EMPTY_STATE);
     const [ready, setReady] = useState(false);
     const [mode, setMode] = useState(null);
+    const [saveStatus, setSaveStatus] = useState('saved');
     const stateRef = useRef(state);
     stateRef.current = state;
+    // Changes made before the workspace finished loading must not be saved
+    // over it, so saving only starts once a load (or sign-up) has completed.
+    const loadedFor = useRef(null);
+    const saveTimer = useRef(null);
+
+    const applySession = useCallback(async (user) => {
+        if (!user) {
+            loadedFor.current = null;
+            setState(EMPTY_STATE);
+            return;
+        }
+        const { workspace } = await request('/api/pilot/workspace');
+        setState({ ...EMPTY_STATE, ...(workspace ?? {}), user });
+        loadedFor.current = user.id;
+    }, []);
 
     useEffect(() => {
-        setState(load());
-        setReady(true);
+        request('/api/pilot/auth/me')
+            .then(({ user }) => applySession(user))
+            .catch(() => applySession(null))
+            .finally(() => setReady(true));
         fetch('/api/pilot/status')
             .then((response) => response.json())
             .then((data) => setMode(data.mode))
             .catch(() => setMode('demo'));
+    }, [applySession]);
+
+    const handleExpired = useCallback((error) => {
+        if (error instanceof SessionExpiredError) {
+            loadedFor.current = null;
+            setState(EMPTY_STATE);
+        }
+        throw error;
     }, []);
 
     useEffect(() => {
-        if (!ready) return;
-        try {
-            window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        } catch {
-            // Private windows can refuse storage; the session still works in memory.
-        }
-    }, [state, ready]);
+        if (!ready || !state.user || loadedFor.current !== state.user.id) return;
+        setSaveStatus('saving');
+        clearTimeout(saveTimer.current);
+        saveTimer.current = setTimeout(() => {
+            request('/api/pilot/workspace', { method: 'PUT', body: { workspace: workspaceOf(stateRef.current) } })
+                .then(() => setSaveStatus('saved'))
+                .catch((error) => {
+                    setSaveStatus('error');
+                    if (error instanceof SessionExpiredError) handleExpired(error);
+                });
+        }, SAVE_DELAY_MS);
+        return () => clearTimeout(saveTimer.current);
+    }, [state, ready, handleExpired]);
 
     const update = useCallback((recipe) => setState((current) => ({ ...current, ...recipe(current) })), []);
 
@@ -82,13 +133,48 @@ export function useMaslul() {
     );
 
     const signUp = useCallback(
-        (user) =>
-            update(() => ({
-                user: { ...user, id: newId('user'), createdAt: new Date().toISOString() },
-                activity: [logEntry('brain', `ברוך/ה הבא/ה, ${user.name}! החשבון נוצר.`)]
-            })),
-        [update]
+        async ({ name, email, password }) => {
+            const legacy = readLegacyWorkspace();
+            const importWorkspace = legacy ? workspaceOf(legacy) : null;
+            const { user } = await postJson('/api/pilot/auth/signup', { name, email, password, importWorkspace });
+            clearLegacyWorkspace();
+            const base = importWorkspace ? { ...EMPTY_STATE, ...importWorkspace } : EMPTY_STATE;
+            setState({
+                ...base,
+                user,
+                activity: [logEntry('brain', `ברוך/ה הבא/ה, ${user.name}! החשבון נוצר.`), ...base.activity]
+            });
+            loadedFor.current = user.id;
+        },
+        []
     );
+
+    const logIn = useCallback(
+        async ({ email, password }) => {
+            const { user } = await postJson('/api/pilot/auth/login', { email, password });
+            await applySession(user);
+        },
+        [applySession]
+    );
+
+    const logOut = useCallback(async () => {
+        clearTimeout(saveTimer.current);
+        // Flush the latest state before the session goes away.
+        if (stateRef.current.user && loadedFor.current === stateRef.current.user.id) {
+            await request('/api/pilot/workspace', { method: 'PUT', body: { workspace: workspaceOf(stateRef.current) } }).catch(() => {});
+        }
+        await postJson('/api/pilot/auth/logout', {}).catch(() => {});
+        loadedFor.current = null;
+        setState(EMPTY_STATE);
+    }, []);
+
+    const deleteAccount = useCallback(async () => {
+        clearTimeout(saveTimer.current);
+        loadedFor.current = null;
+        await request('/api/pilot/auth/me', { method: 'DELETE' });
+        clearLegacyWorkspace();
+        setState(EMPTY_STATE);
+    }, []);
 
     const addMemory = useCallback(
         (facts, source = 'chat') =>
@@ -139,7 +225,7 @@ export function useMaslul() {
 
     const createProject = useCallback(
         async ({ goal, context, weeks }) => {
-            const plan = await postJson('/api/pilot/plan', { goal, context, weeks });
+            const plan = await postJson('/api/pilot/plan', { goal, context, weeks }).catch(handleExpired);
             update((current) => {
                 const tasks = plan.milestones.flatMap((milestone, index) =>
                     milestone.tasks.map((task) => ({
@@ -179,7 +265,7 @@ export function useMaslul() {
             });
             return plan;
         },
-        [update]
+        [update, handleExpired]
     );
 
     const setTaskStatus = useCallback(
@@ -239,6 +325,9 @@ export function useMaslul() {
             } else {
                 patchAction(id, { approval, status: 'rejected' });
                 log('approval', `נדחה: ${action.title}`);
+                postJson('/api/pilot/audit', { event: 'rejected', type: action.type, actionId: action.id, title: action.title }).catch(
+                    () => {}
+                );
             }
         },
         [patchAction, log, execute]
@@ -256,7 +345,7 @@ export function useMaslul() {
                 project: current.project,
                 memory: current.memory,
                 tasks: current.tasks
-            });
+            }).catch(handleExpired);
 
             const actions = (result.actions ?? []).map((action) => ({
                 ...action,
@@ -292,15 +381,8 @@ export function useMaslul() {
             for (const action of actions.filter((item) => !item.requiresApproval)) execute(action);
             return result;
         },
-        [update, addMemory, addTasks, execute]
+        [update, addMemory, addTasks, execute, handleExpired]
     );
-
-    const reset = useCallback(() => {
-        try {
-            window.localStorage.removeItem(STORAGE_KEY);
-        } catch {}
-        setState(EMPTY_STATE);
-    }, []);
 
     const restartProject = useCallback(
         () => update(() => ({ project: null, plan: null, tasks: [], messages: [], actions: [] })),
@@ -311,7 +393,11 @@ export function useMaslul() {
         state,
         ready,
         mode,
+        saveStatus,
         signUp,
+        logIn,
+        logOut,
+        deleteAccount,
         createProject,
         send,
         decide,
@@ -319,7 +405,6 @@ export function useMaslul() {
         addTasks,
         addMemory,
         removeMemory,
-        reset,
         restartProject
     };
 }

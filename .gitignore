@@ -38,3 +38,6 @@ yarn-error.log*
 
 # Local Netlify folder
 .netlify
+
+# Maslul local data (MASLUL_STORE=file)
+/.data

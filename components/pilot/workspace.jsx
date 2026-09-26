@@ -426,6 +426,45 @@ function ResultView({ result }) {
     );
 }
 
+const AUDIT_LABEL = { approved: ['אושר ובוצע', 'green'], rejected: ['נדחה', 'red'] };
+
+function AuditLog({ refreshKey }) {
+    const [entries, setEntries] = useState(null);
+    useEffect(() => {
+        fetch('/api/pilot/audit')
+            .then((response) => response.json())
+            .then((data) => setEntries(data.entries ?? []))
+            .catch(() => setEntries([]));
+    }, [refreshKey]);
+
+    return (
+        <Card title="🧾 יומן ביקורת (נשמר בשרת)">
+            <p className="mb-3 text-xs text-slate-500">כל החלטה על פעולה חיצונית נרשמת עם הפרמטרים המדויקים, מי אישר ומתי. אי אפשר לערוך את הרשומות.</p>
+            {entries === null && <p className="text-sm text-slate-400">טוען…</p>}
+            {entries?.length === 0 && <p className="text-sm text-slate-500">עוד אין רשומות.</p>}
+            <ul className="space-y-2">
+                {entries?.map((entry) => {
+                    const [label, tone] = AUDIT_LABEL[entry.event] ?? [entry.event, 'slate'];
+                    return (
+                        <li key={entry.id} className="flex flex-wrap items-center gap-2 p-2.5 text-sm rounded-xl bg-slate-50">
+                            <Badge tone={tone}>{label}</Badge>
+                            <span className="font-semibold text-slate-800">{entry.title ?? ACTIONS[entry.type]?.label}</span>
+                            {entry.params?.to && (
+                                <span dir="ltr" className="text-xs text-slate-500">
+                                    {entry.params.to}
+                                </span>
+                            )}
+                            <span className="mr-auto text-xs text-slate-400">
+                                {new Date(entry.at).toLocaleString('he-IL')} · {entry.approvedBy ?? entry.rejectedBy}
+                            </span>
+                        </li>
+                    );
+                })}
+            </ul>
+        </Card>
+    );
+}
+
 function ApprovalsPanel({ state, decide }) {
     const external = state.actions.filter((action) => action.requiresApproval);
     const pending = external.filter((action) => action.status === 'pending');
@@ -452,6 +491,7 @@ function ApprovalsPanel({ state, decide }) {
                     ))}
                 </>
             )}
+            <AuditLog refreshKey={history.map((action) => `${action.id}:${action.status}`).join(',')} />
         </div>
     );
 }
@@ -641,6 +681,9 @@ export function Workspace({ app, initialTab = 'chat' }) {
                             <ProgressBar percent={progress.percent} />
                         </div>
                     </div>
+                    <span className="hidden text-xs text-slate-400 sm:inline" aria-live="polite">
+                        {app.saveStatus === 'saving' ? 'שומר…' : app.saveStatus === 'error' ? '⚠️ השמירה נכשלה' : '✓ נשמר'}
+                    </span>
                     <Badge tone={mode === 'claude' ? 'green' : 'amber'}>{mode === 'claude' ? '● Claude מחובר' : '● מצב הדגמה'}</Badge>
                     <div className="grid w-9 h-9 text-sm font-bold text-white rounded-full place-items-center bg-slate-800" title={state.user.email}>
                         {state.user.name.slice(0, 1)}
@@ -669,8 +712,16 @@ export function Workspace({ app, initialTab = 'chat' }) {
                         <button onClick={app.restartProject} className="w-full px-3 py-2 text-xs text-right rounded-lg text-slate-500 hover:bg-white">
                             ↺ מטרה חדשה
                         </button>
-                        <button onClick={app.reset} className="w-full px-3 py-2 text-xs text-right rounded-lg text-slate-400 hover:bg-white">
-                            התנתק ומחק נתונים
+                        <button onClick={app.logOut} className="w-full px-3 py-2 text-xs text-right rounded-lg text-slate-500 hover:bg-white">
+                            התנתקות
+                        </button>
+                        <button
+                            onClick={() => {
+                                if (window.confirm('למחוק את החשבון ואת כל הנתונים שלו? אי אפשר לבטל את זה.')) app.deleteAccount();
+                            }}
+                            className="w-full px-3 py-2 text-xs text-right rounded-lg text-slate-400 hover:bg-white hover:text-red-600"
+                        >
+                            מחיקת החשבון
                         </button>
                     </div>
                 </nav>

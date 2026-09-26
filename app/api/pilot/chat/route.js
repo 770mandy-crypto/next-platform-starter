@@ -1,17 +1,19 @@
 import { NextResponse } from 'next/server';
 import { chat } from 'lib/pilot/ai';
 import { requiresApproval, validateParams } from 'lib/pilot/policy';
-import { clip, readJson } from '../_input';
+import { clip, HttpError, readJson, requireUser, route } from 'lib/pilot/http';
+import { consumeAiQuota } from 'lib/pilot/workspace';
 
 export const dynamic = 'force-dynamic';
 
-export async function POST(request) {
-    const { body, error } = await readJson(request);
-    if (error) return error;
+export const POST = route(async (request) => {
+    const user = await requireUser(request);
+    const body = await readJson(request);
 
     const message = clip(body.message, 4000);
-    if (!message) return NextResponse.json({ error: 'ההודעה ריקה.' }, { status: 400 });
+    if (!message) throw new HttpError('ההודעה ריקה.', 400);
 
+    await consumeAiQuota(user.id);
     const result = await chat({
         message,
         history: Array.isArray(body.history) ? body.history : [],
@@ -29,4 +31,4 @@ export async function POST(request) {
     }));
 
     return NextResponse.json({ ...result, actions });
-}
+});

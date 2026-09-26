@@ -27,12 +27,129 @@ export function Logo({ size = 'md' }) {
     );
 }
 
-export function Landing({ onSignUp }) {
+const inputClass =
+    'w-full px-3 py-2.5 mt-1 border rounded-lg outline-none border-slate-300 text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100';
+
+function AuthCard({ onSignUp, onLogIn }) {
+    const [tab, setTab] = useState('signup');
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const [agreed, setAgreed] = useState(false);
-    const valid = name.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && agreed;
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState('');
 
+    const signup = tab === 'signup';
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+    const valid = signup ? name.trim() && emailOk && password.length >= 8 && agreed : emailOk && password;
+
+    async function submit(event) {
+        event.preventDefault();
+        if (!valid || busy) return;
+        setBusy(true);
+        setError('');
+        try {
+            if (signup) await onSignUp({ name: name.trim(), email: email.trim(), password });
+            else await onLogIn({ email: email.trim(), password });
+        } catch (failure) {
+            setError(failure.message);
+            setBusy(false);
+        }
+    }
+
+    return (
+        <section className="self-start p-6 bg-white border shadow-xl rounded-2xl border-slate-200 shadow-indigo-100 sm:p-8 lg:sticky lg:top-8">
+            <div className="grid grid-cols-2 p-1 mb-6 rounded-xl bg-slate-100">
+                {[
+                    ['signup', 'הרשמה'],
+                    ['login', 'התחברות']
+                ].map(([id, label]) => (
+                    <button
+                        key={id}
+                        type="button"
+                        onClick={() => {
+                            setTab(id);
+                            setError('');
+                        }}
+                        className={`py-2 text-sm font-bold rounded-lg transition ${tab === id ? 'bg-white shadow text-slate-900' : 'text-slate-500'}`}
+                    >
+                        {label}
+                    </button>
+                ))}
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900">{signup ? 'פתיחת חשבון' : 'ברוכים השבים'}</h2>
+            <p className="mt-1 text-sm text-slate-500">
+                {signup ? 'דקה אחת ואתם בפנים. בלי כרטיס אשראי.' : 'הפרויקט, התוכנית והזיכרון מחכים לכם.'}
+            </p>
+            <form className="mt-6 space-y-4" onSubmit={submit}>
+                {signup && (
+                    <label className="block">
+                        <span className="text-sm font-semibold text-slate-700">שם</span>
+                        <input
+                            name="name"
+                            autoComplete="name"
+                            value={name}
+                            onChange={(event) => setName(event.target.value)}
+                            className={inputClass}
+                            placeholder="איך לקרוא לך?"
+                        />
+                    </label>
+                )}
+                <label className="block">
+                    <span className="text-sm font-semibold text-slate-700">אימייל</span>
+                    <input
+                        name="email"
+                        type="email"
+                        dir="ltr"
+                        autoComplete="email"
+                        value={email}
+                        onChange={(event) => setEmail(event.target.value)}
+                        className={`${inputClass} text-left`}
+                        placeholder="you@example.com"
+                    />
+                </label>
+                <label className="block">
+                    <span className="text-sm font-semibold text-slate-700">סיסמה</span>
+                    <input
+                        name="password"
+                        type="password"
+                        dir="ltr"
+                        autoComplete={signup ? 'new-password' : 'current-password'}
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                        className={`${inputClass} text-left`}
+                        placeholder={signup ? 'לפחות 8 תווים' : ''}
+                    />
+                </label>
+                {signup && (
+                    <label className="flex items-start gap-2 text-sm text-slate-600">
+                        <input
+                            type="checkbox"
+                            name="agree"
+                            checked={agreed}
+                            onChange={(event) => setAgreed(event.target.checked)}
+                            className="mt-1 accent-indigo-600"
+                        />
+                        <span>אני מבין/ה שהסוכן לעולם לא מבצע פעולה חיצונית (מייל, יומן, פרסום) בלי אישור שלי.</span>
+                    </label>
+                )}
+                {error && <p className="p-3 text-sm text-red-700 rounded-lg bg-red-50">{error}</p>}
+                <button
+                    type="submit"
+                    disabled={!valid || busy}
+                    className="w-full py-3 font-bold text-white transition rounded-xl bg-gradient-to-l from-indigo-600 to-fuchsia-600 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                    {busy ? '…' : signup ? 'יוצאים לדרך ←' : 'התחברות ←'}
+                </button>
+            </form>
+            <p className="mt-4 text-xs text-slate-400">
+                הסיסמה נשמרת מוצפנת (scrypt), והפרויקט נשמר בחשבון שלך — מכל מכשיר.
+            </p>
+        </section>
+    );
+}
+
+export function Landing({ onSignUp, onLogIn }) {
     return (
         <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-white">
             <header className="flex items-center justify-between max-w-6xl px-4 py-5 mx-auto sm:px-6">
@@ -78,68 +195,13 @@ export function Landing({ onSignUp }) {
                     </div>
                 </section>
 
-                <section className="self-start p-6 bg-white border shadow-xl rounded-2xl border-slate-200 shadow-indigo-100 sm:p-8 lg:sticky lg:top-8">
-                    <h2 className="text-2xl font-bold text-slate-900">הרשמה</h2>
-                    <p className="mt-1 text-sm text-slate-500">דקה אחת ואתם בפנים. בלי כרטיס אשראי.</p>
-                    <form
-                        className="mt-6 space-y-4"
-                        onSubmit={(event) => {
-                            event.preventDefault();
-                            if (valid) onSignUp({ name: name.trim(), email: email.trim() });
-                        }}
-                    >
-                        <label className="block">
-                            <span className="text-sm font-semibold text-slate-700">שם</span>
-                            <input
-                                name="name"
-                                value={name}
-                                onChange={(event) => setName(event.target.value)}
-                                className="w-full px-3 py-2.5 mt-1 border rounded-lg outline-none border-slate-300 text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                                placeholder="איך לקרוא לך?"
-                            />
-                        </label>
-                        <label className="block">
-                            <span className="text-sm font-semibold text-slate-700">אימייל</span>
-                            <input
-                                name="email"
-                                type="email"
-                                dir="ltr"
-                                value={email}
-                                onChange={(event) => setEmail(event.target.value)}
-                                className="w-full px-3 py-2.5 mt-1 text-left border rounded-lg outline-none border-slate-300 text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                                placeholder="you@example.com"
-                            />
-                        </label>
-                        <label className="flex items-start gap-2 text-sm text-slate-600">
-                            <input
-                                type="checkbox"
-                                name="agree"
-                                checked={agreed}
-                                onChange={(event) => setAgreed(event.target.checked)}
-                                className="mt-1 accent-indigo-600"
-                            />
-                            <span>
-                                אני מבין/ה שהסוכן לעולם לא מבצע פעולה חיצונית (מייל, יומן, פרסום) בלי אישור שלי.
-                            </span>
-                        </label>
-                        <button
-                            type="submit"
-                            disabled={!valid}
-                            className="w-full py-3 font-bold text-white transition rounded-xl bg-gradient-to-l from-indigo-600 to-fuchsia-600 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                            יוצאים לדרך ←
-                        </button>
-                    </form>
-                    <p className="mt-4 text-xs text-slate-400">
-                        בגרסת ה-MVP הנתונים נשמרים בדפדפן שלך בלבד.
-                    </p>
-                </section>
+                <AuthCard onSignUp={onSignUp} onLogIn={onLogIn} />
             </main>
         </div>
     );
 }
 
-export function GoalSetup({ user, onCreate }) {
+export function GoalSetup({ user, onCreate, onLogOut }) {
     const [goal, setGoal] = useState('');
     const [context, setContext] = useState('');
     const [weeks, setWeeks] = useState(6);
@@ -163,7 +225,12 @@ export function GoalSetup({ user, onCreate }) {
         <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-white">
             <header className="flex items-center justify-between max-w-3xl px-4 py-5 mx-auto sm:px-6">
                 <Logo />
-                <span className="text-sm text-slate-500">שלום, {user.name} 👋</span>
+                <div className="flex items-center gap-3 text-sm text-slate-500">
+                    <span>שלום, {user.name} 👋</span>
+                    <button onClick={onLogOut} className="text-xs underline text-slate-400 hover:text-slate-600">
+                        התנתקות
+                    </button>
+                </div>
             </header>
             <main className="max-w-3xl px-4 pt-4 pb-16 mx-auto sm:px-6">
                 <div className="text-sm font-bold text-indigo-600">שלב 1 מתוך 4 · מטרה</div>
