@@ -1,3 +1,5 @@
+> **🧭 Maslul AI (מסלול)** — an MVP of an AI that leads a user from goal → plan → execution → result, with approval before any external action. Open `/pilot`. Full Hebrew guide, screenshots and roadmap: [docs/MASLUL.md](docs/MASLUL.md).
+
 # Next.js on Netlify Platform Starter
 
 [Live Demo](https://nextjs-platform-starter.netlify.app/)
