@@ -11,7 +11,7 @@ export default function PilotPage() {
     const { state, ready } = app;
 
     if (!ready) return <div className="min-h-screen bg-slate-50" />;
-    if (!state.user) return <Landing onSignUp={app.signUp} />;
-    if (!state.project) return <GoalSetup user={state.user} onCreate={app.createProject} />;
+    if (!state.user) return <Landing onSignUp={app.signUp} onLogIn={app.logIn} />;
+    if (!state.project) return <GoalSetup user={state.user} onCreate={app.createProject} onLogOut={app.logOut} />;
     return <Workspace app={app} />;
 }
