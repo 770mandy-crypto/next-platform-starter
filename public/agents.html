@@ -126,6 +126,7 @@
     max-width: 60ch;
     margin: 0 0 24px;
   }
+  .cta-row { margin: 0 0 22px; }
   .stats {
     display: flex;
     flex-wrap: wrap;
@@ -287,7 +288,8 @@
   <header class="masthead">
     <p class="eyebrow">.claude / agents</p>
     <h1>צוות הסוכנים שלי</h1>
-    <p class="lede">שבעה סוכני AI מתמחים, כל אחד מומחה בתחום אחד. בסשן על הריפו כותבים בקשה טבעית ו-Claude מנתב לסוכן המתאים — או קוראים לו בשם.</p>
+    <p class="lede">שבעה סוכני AI מתמחים, כל אחד מומחה בתחום אחד. אפשר לדבר איתם כאן באתר, או בסשן Claude Code על הריפו.</p>
+    <p class="cta-row"><a class="btn primary" href="/agents/chat">לצ׳אט עם הסוכנים</a></p>
     <div class="stats">
       <span class="chip"><b>7</b> סוכנים</span>
       <span class="chip"><span class="dot" style="background:var(--c-security)"></span> אבטחה</span>
@@ -417,7 +419,8 @@
   <footer class="foot">
     <div>
       <h2>איך משתמשים</h2>
-      <p>בסשן Claude Code על הריפו, כותבים בקשה טבעית ו-Claude בוחר את הסוכן — או קוראים לו במפורש: <code>use bug-hunter</code>. אפשר להריץ כמה סוכנים במקביל על משימות בלתי-תלויות.</p>
+      <p><strong>באתר:</strong> בצ׳אט עם הסוכנים בוחרים סוכן ומדביקים את הקוד או השאלה. שם הסוכנים עובדים רק עם מה שמדביקים להם, וצריך להיות מחוברים.</p>
+      <p><strong>ב-Claude Code:</strong> בסשן על הריפו כותבים בקשה טבעית ו-Claude בוחר את הסוכן, או קוראים לו במפורש: <code>use bug-hunter</code>. שם הסוכנים גם קוראים קבצים, מריצים פקודות, ואפשר להריץ כמה במקביל.</p>
       <p>כל סוכן מוגדר בקובץ <code>.md</code> בתיקייה <code>.claude/agents/</code>. כדי להוסיף סוכן, מעתיקים קובץ קיים ומשנים את ה-<code>name</code>, ה-<code>description</code> וההוראות.</p>
       <div class="links">
         <a class="btn primary" href="https://github.com/770mandy-crypto/next-platform-starter/tree/main/.claude/agents" target="_blank" rel="noopener">
