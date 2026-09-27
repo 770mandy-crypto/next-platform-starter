@@ -24,27 +24,60 @@ async function streamReply({ agent, history, message, signal, onEvent }) {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
-    for (;;) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        let newline;
-        while ((newline = buffer.indexOf('\n')) >= 0) {
-            const line = buffer.slice(0, newline).trim();
-            buffer = buffer.slice(newline + 1);
-            if (line) onEvent(JSON.parse(line));
+    try {
+        for (;;) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            let newline;
+            while ((newline = buffer.indexOf('\n')) >= 0) {
+                const line = buffer.slice(0, newline).trim();
+                buffer = buffer.slice(newline + 1);
+                if (line) onEvent(parseEvent(line));
+            }
         }
+    } finally {
+        // However the loop ends, close the connection so the server stops
+        // generating a reply nobody is reading.
+        reader.cancel().catch(() => {});
     }
 }
 
-// Only finished text goes back to the server as context: a refused or failed
-// reply is left out so the agent does not build on it.
-function historyOf(thread) {
-    return thread
-        .filter((turn) => turn.role === 'user' || ['done', 'truncated', 'stopped'].includes(turn.state))
-        .filter((turn) => turn.content)
-        .map(({ role, content }) => ({ role, content }));
+function parseEvent(line) {
+    try {
+        return JSON.parse(line);
+    } catch {
+        throw new Error('התקבלה מהשרת תשובה לא תקינה. נסו שוב.');
+    }
 }
+
+// Only answered exchanges go back to the server as context. A reply that was
+// refused, failed or stopped before any text is dropped together with the
+// question it did not answer, so a rephrased question is not sent alongside it.
+function historyOf(thread) {
+    const history = [];
+    for (const turn of thread) {
+        if (turn.role === 'user') {
+            history.push({ role: 'user', content: turn.content });
+        } else if (['done', 'truncated', 'stopped'].includes(turn.state) && turn.content) {
+            history.push({ role: 'assistant', content: turn.content });
+        } else if (history.at(-1)?.role === 'user') {
+            history.pop();
+        }
+    }
+    return history;
+}
+
+// Replies can echo whatever was pasted into the chat, including text written
+// to steer the model. So raw HTML in a reply is shown as text, never rendered
+// (no forms, styles or frames), and images are not loaded: a remote image URL
+// could carry conversation text to another server. The alt text is shown.
+const MARKDOWN_OPTIONS = {
+    disableParsingRawHTML: true,
+    overrides: {
+        img: ({ alt }) => (alt ? <span className="text-slate-500">[{alt}]</span> : null)
+    }
+};
 
 let counter = 0;
 const newId = () => `m${Date.now().toString(36)}${(counter += 1)}`;
@@ -137,10 +170,10 @@ export default function AgentChatPage() {
         } catch (failure) {
             if (failure.name === 'AbortError') {
                 patchTurn(forAgent, replyId, { state: 'stopped', note: 'עצרת את התשובה.' });
-            } else if (failure instanceof SignedOutError) {
-                setUser(null);
             } else {
+                controller.abort();
                 patchTurn(forAgent, replyId, { state: 'error', note: failure.message });
+                if (failure instanceof SignedOutError) setUser(null);
             }
         } finally {
             controllerRef.current = null;
@@ -282,7 +315,10 @@ function Turn({ turn }) {
         <li className="w-full">
             {waiting && <p className="text-sm text-slate-400 animate-pulse">הסוכן חושב…</p>}
             {turn.content && (
-                <MarkdownToJsx className="text-[15px] leading-relaxed pilot-md agents-md text-slate-800 break-words">
+                <MarkdownToJsx
+                    className="text-[15px] leading-relaxed pilot-md agents-md text-slate-800 break-words"
+                    options={MARKDOWN_OPTIONS}
+                >
                     {turn.content}
                 </MarkdownToJsx>
             )}
