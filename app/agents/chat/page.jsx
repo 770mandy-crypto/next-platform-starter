@@ -3,6 +3,7 @@
 import MarkdownToJsx from 'markdown-to-jsx';
 import { useEffect, useRef, useState } from 'react';
 import { AGENTS, getAgent } from 'lib/agents/catalog';
+import { loadChats, saveChats } from 'lib/agents/saved-chats';
 
 class SignedOutError extends Error {}
 
@@ -88,8 +89,11 @@ export default function AgentChatPage() {
     const [threads, setThreads] = useState({});
     const [drafts, setDrafts] = useState({});
     const [busy, setBusy] = useState(null); // id of the agent currently answering
+    const [restoredFor, setRestoredFor] = useState(null); // user whose saved chats are loaded
     const controllerRef = useRef(null);
     const listRef = useRef(null);
+    const saveTimerRef = useRef(null);
+    const unsavedRef = useRef(null);
 
     const agent = getAgent(agentId);
     const thread = threads[agentId] ?? [];
@@ -98,9 +102,44 @@ export default function AgentChatPage() {
     useEffect(() => {
         fetch('/api/pilot/auth/me')
             .then((response) => response.json())
-            .then((data) => setUser(data.user ?? null))
+            .then((data) => {
+                const signedIn = data.user ?? null;
+                if (signedIn) {
+                    const saved = loadChats(signedIn.id);
+                    if (saved) {
+                        setThreads(saved.threads);
+                        if (saved.agentId) setAgentId(saved.agentId);
+                    }
+                    setRestoredFor(signedIn.id);
+                }
+                setUser(signedIn);
+            })
             .catch(() => setUser(null));
     }, []);
+
+    // Save the chats in this browser so a reload keeps them. While a reply
+    // streams, state changes on every word, so saving happens at most every
+    // 800ms, and once more when the page is closed or reloaded. Nothing is
+    // saved until the user's earlier chats are loaded, so they are never
+    // overwritten by an empty page.
+    useEffect(() => {
+        if (!user || restoredFor !== user.id) return;
+        unsavedRef.current = { agentId, threads };
+        if (saveTimerRef.current) return;
+        saveTimerRef.current = setTimeout(() => {
+            saveTimerRef.current = null;
+            if (unsavedRef.current) saveChats(user.id, unsavedRef.current);
+        }, 800);
+    }, [user, restoredFor, agentId, threads]);
+
+    useEffect(() => {
+        if (!user) return;
+        const flush = () => {
+            if (unsavedRef.current) saveChats(user.id, unsavedRef.current);
+        };
+        window.addEventListener('pagehide', flush);
+        return () => window.removeEventListener('pagehide', flush);
+    }, [user]);
 
     // Follow the reply as it grows, unless the reader has scrolled up to read.
     const last = thread[thread.length - 1];
@@ -300,6 +339,7 @@ function EmptyState({ agent, onPick }) {
                 {agent.example}
             </button>
             <p className="mt-6 text-xs text-slate-400">בצ׳אט הסוכנים לא רואים את הקבצים שלך. הדביקו את הקוד או הפרטים הרלוונטיים.</p>
+            <p className="mt-1 text-xs text-slate-400">השיחות נשמרות בדפדפן הזה בלבד.</p>
         </div>
     );
 }
