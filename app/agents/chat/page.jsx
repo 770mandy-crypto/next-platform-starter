@@ -147,7 +147,11 @@ export default function AgentChatPage() {
                 signal: controller.signal,
                 onEvent(event) {
                     if (event.type === 'text') {
-                        patchTurn(forAgent, replyId, (turn) => ({ content: turn.content + event.text }));
+                        patchTurn(forAgent, replyId, (turn) => ({ content: turn.content + event.text, searching: false }));
+                    } else if (event.type === 'searching') {
+                        patchTurn(forAgent, replyId, { searching: true });
+                    } else if (event.type === 'source') {
+                        patchTurn(forAgent, replyId, (turn) => ({ sources: addSource(turn.sources, event) }));
                     } else if (event.type === 'refused') {
                         patchTurn(forAgent, replyId, {
                             content: '',
@@ -309,11 +313,14 @@ function Turn({ turn }) {
         );
     }
 
-    const waiting = turn.state === 'streaming' && !turn.content;
+    const streaming = turn.state === 'streaming';
+    const status = streaming && turn.searching ? 'מחפש ברשת…' : streaming && !turn.content ? 'הסוכן חושב…' : null;
     const noteTone = turn.state === 'error' || turn.state === 'refused' ? 'text-rose-700 bg-rose-50' : 'text-slate-600 bg-slate-100';
+    // A refused reply's text is discarded, and so are the pages it cited.
+    const sources = turn.state === 'refused' ? [] : turn.sources ?? [];
     return (
         <li className="w-full">
-            {waiting && <p className="text-sm text-slate-400 animate-pulse">הסוכן חושב…</p>}
+            {status && !turn.content && <p className="text-sm text-slate-400 animate-pulse">{status}</p>}
             {turn.content && (
                 <MarkdownToJsx
                     className="text-[15px] leading-relaxed pilot-md agents-md text-slate-800 break-words"
@@ -322,9 +329,47 @@ function Turn({ turn }) {
                     {turn.content}
                 </MarkdownToJsx>
             )}
+            {status && turn.content && <p className="mt-2 text-sm text-slate-400 animate-pulse">{status}</p>}
+            {sources.length > 0 && (
+                <div className="pt-3 mt-3 border-t border-slate-200">
+                    <p className="mb-1.5 text-xs font-bold tracking-wide text-slate-500">מקורות</p>
+                    <ol className="space-y-1 text-sm list-decimal list-inside text-slate-500">
+                        {sources.map((source) => (
+                            <li key={source.url} className="break-words">
+                                <a
+                                    href={source.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-indigo-600 underline-offset-2 hover:underline"
+                                >
+                                    {source.title || source.host}
+                                </a>{' '}
+                                <span dir="ltr" className="text-xs text-slate-400">
+                                    {source.host}
+                                </span>
+                            </li>
+                        ))}
+                    </ol>
+                </div>
+            )}
             {turn.note && <p className={`mt-2 text-sm px-3 py-2 rounded-lg ${noteTone}`}>{turn.note}</p>}
         </li>
     );
+}
+
+// Keeps each cited page once, in first-cited order. Only http(s) links are
+// shown: the URL comes from search results, not from this site.
+function addSource(sources = [], { url, title }) {
+    let host;
+    try {
+        const parsed = new URL(url);
+        if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return sources;
+        host = parsed.hostname.replace(/^www\./, '');
+    } catch {
+        return sources;
+    }
+    if (sources.some((source) => source.url === url)) return sources;
+    return [...sources, { url, title: title?.trim() || null, host }];
 }
 
 function Composer({ value, onChange, onSend, onStop, answering, blocked, agentLabel }) {
