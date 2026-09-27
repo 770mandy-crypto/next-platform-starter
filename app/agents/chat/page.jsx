@@ -3,7 +3,7 @@
 import MarkdownToJsx from 'markdown-to-jsx';
 import { useEffect, useRef, useState } from 'react';
 import { AGENTS, getAgent } from 'lib/agents/catalog';
-import { loadChats, saveChats } from 'lib/agents/saved-chats';
+import { cleanThread } from 'lib/agents/saved-chats';
 
 class SignedOutError extends Error {}
 
@@ -80,6 +80,37 @@ const MARKDOWN_OPTIONS = {
     }
 };
 
+const NO_TURNS = [];
+const ACTIVITY = { searching: 'מחפש ברשת…', reading: 'קורא את הדף…' };
+const SELECTED_AGENT_KEY = 'agents-chat:selected-agent';
+
+async function fetchSavedChats() {
+    try {
+        const response = await fetch('/api/agents/chats');
+        if (!response.ok) return null;
+        const data = await response.json();
+        return data.threads && typeof data.threads === 'object' ? data.threads : null;
+    } catch {
+        return null;
+    }
+}
+
+// Which agent was open is a per-device preference, kept in this browser.
+function readSelectedAgent() {
+    try {
+        const id = window.localStorage.getItem(SELECTED_AGENT_KEY);
+        return getAgent(id) ? id : null;
+    } catch {
+        return null;
+    }
+}
+
+function writeSelectedAgent(id) {
+    try {
+        window.localStorage.setItem(SELECTED_AGENT_KEY, id);
+    } catch {}
+}
+
 let counter = 0;
 const newId = () => `m${Date.now().toString(36)}${(counter += 1)}`;
 
@@ -90,10 +121,14 @@ export default function AgentChatPage() {
     const [drafts, setDrafts] = useState({});
     const [busy, setBusy] = useState(null); // id of the agent currently answering
     const [restoredFor, setRestoredFor] = useState(null); // user whose saved chats are loaded
+    const [syncProblem, setSyncProblem] = useState(null); // 'load' | 'save' | null
     const controllerRef = useRef(null);
     const listRef = useRef(null);
+    const threadsRef = useRef(threads); // latest chats, for timers and page exit
+    const sentRef = useRef({}); // each agent's chat as last sent to (or loaded from) the server
+    const busyRef = useRef(null);
     const saveTimerRef = useRef(null);
-    const unsavedRef = useRef(null);
+    const savingRef = useRef(Promise.resolve());
 
     const agent = getAgent(agentId);
     const thread = threads[agentId] ?? [];
@@ -102,44 +137,107 @@ export default function AgentChatPage() {
     useEffect(() => {
         fetch('/api/pilot/auth/me')
             .then((response) => response.json())
-            .then((data) => {
+            .then(async (data) => {
                 const signedIn = data.user ?? null;
                 if (signedIn) {
-                    const saved = loadChats(signedIn.id);
+                    const selected = readSelectedAgent();
+                    if (selected) setAgentId(selected);
+                    const saved = await fetchSavedChats();
                     if (saved) {
-                        setThreads(saved.threads);
-                        if (saved.agentId) setAgentId(saved.agentId);
+                        sentRef.current = saved;
+                        setThreads(saved);
+                        setRestoredFor(signedIn.id);
+                    } else {
+                        // Without the saved chats, saving now could overwrite them.
+                        setSyncProblem('load');
                     }
-                    setRestoredFor(signedIn.id);
                 }
                 setUser(signedIn);
             })
             .catch(() => setUser(null));
     }, []);
 
-    // Save the chats in this browser so a reload keeps them. While a reply
-    // streams, state changes on every word, so saving happens at most every
-    // 800ms, and once more when the page is closed or reloaded. Nothing is
-    // saved until the user's earlier chats are loaded, so they are never
-    // overwritten by an empty page.
     useEffect(() => {
-        if (!user || restoredFor !== user.id) return;
-        unsavedRef.current = { agentId, threads };
+        busyRef.current = busy;
+    }, [busy]);
+
+    useEffect(() => {
+        writeSelectedAgent(agentId);
+    }, [agentId]);
+
+    // Chats are saved to the account so they follow the user to any device.
+    // Only agents whose chat changed are sent, at most every 1.5s while a reply
+    // streams, one request at a time so an older version never lands last.
+    function unsavedAgents() {
+        return AGENTS.map((item) => item.id).filter((id) => {
+            const now = threadsRef.current[id] ?? NO_TURNS;
+            const sent = sentRef.current[id] ?? NO_TURNS;
+            return now !== sent && (now.length > 0 || sent.length > 0);
+        });
+    }
+
+    async function saveChanged({ keepalive = false } = {}) {
+        let failed = false;
+        for (const id of unsavedAgents()) {
+            const turns = threadsRef.current[id] ?? NO_TURNS;
+            const previous = sentRef.current[id];
+            sentRef.current = { ...sentRef.current, [id]: turns };
+            const body = JSON.stringify({ agent: id, turns: cleanThread(turns) });
+            // A request sent while the page closes must be small (a browser limit).
+            if (keepalive && body.length > 60_000) continue;
+            try {
+                const response = await fetch('/api/agents/chats', {
+                    method: 'PUT',
+                    headers: { 'content-type': 'application/json' },
+                    body,
+                    keepalive
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            } catch {
+                sentRef.current = { ...sentRef.current, [id]: previous };
+                failed = true;
+            }
+        }
+        if (!keepalive) setSyncProblem(failed ? 'save' : null);
+        return failed;
+    }
+
+    function scheduleSave(delay = 1500) {
         if (saveTimerRef.current) return;
         saveTimerRef.current = setTimeout(() => {
             saveTimerRef.current = null;
-            if (unsavedRef.current) saveChats(user.id, unsavedRef.current);
-        }, 800);
-    }, [user, restoredFor, agentId, threads]);
+            savingRef.current = savingRef.current.then(async () => {
+                if (await saveChanged()) scheduleSave(5000);
+            });
+        }, delay);
+    }
 
     useEffect(() => {
-        if (!user) return;
-        const flush = () => {
-            if (unsavedRef.current) saveChats(user.id, unsavedRef.current);
+        threadsRef.current = threads;
+        if (user && restoredFor === user.id && unsavedAgents().length) scheduleSave();
+    }, [threads, user, restoredFor]);
+
+    useEffect(() => {
+        if (!user || restoredFor !== user.id) return;
+        const onExit = () => {
+            saveChanged({ keepalive: true });
         };
-        window.addEventListener('pagehide', flush);
-        return () => window.removeEventListener('pagehide', flush);
-    }, [user]);
+        // Coming back to the tab picks up what was written on another device,
+        // unless this one has changes of its own still to save.
+        const onReturn = async () => {
+            if (document.visibilityState !== 'visible' || busyRef.current || unsavedAgents().length) return;
+            const saved = await fetchSavedChats();
+            if (!saved || busyRef.current || unsavedAgents().length) return;
+            sentRef.current = saved;
+            setThreads(saved);
+        };
+        window.addEventListener('pagehide', onExit);
+        document.addEventListener('visibilitychange', onReturn);
+        return () => {
+            window.removeEventListener('pagehide', onExit);
+            document.removeEventListener('visibilitychange', onReturn);
+        };
+    }, [user, restoredFor]);
 
     // Follow the reply as it grows, unless the reader has scrolled up to read.
     const last = thread[thread.length - 1];
@@ -186,9 +284,9 @@ export default function AgentChatPage() {
                 signal: controller.signal,
                 onEvent(event) {
                     if (event.type === 'text') {
-                        patchTurn(forAgent, replyId, (turn) => ({ content: turn.content + event.text, searching: false }));
-                    } else if (event.type === 'searching') {
-                        patchTurn(forAgent, replyId, { searching: true });
+                        patchTurn(forAgent, replyId, (turn) => ({ content: turn.content + event.text, activity: null }));
+                    } else if (event.type === 'searching' || event.type === 'reading') {
+                        patchTurn(forAgent, replyId, { activity: event.type });
                     } else if (event.type === 'source') {
                         patchTurn(forAgent, replyId, (turn) => ({ sources: addSource(turn.sources, event) }));
                     } else if (event.type === 'refused') {
@@ -238,6 +336,10 @@ export default function AgentChatPage() {
                 <div className="min-w-0">
                     <h1 className="text-lg font-extrabold leading-tight">צ׳אט עם הסוכנים</h1>
                     <p className="text-xs truncate text-slate-500">מחובר/ת בתור {user.name}</p>
+                    {syncProblem === 'load' && (
+                        <p className="text-xs text-rose-700">לא הצלחנו לטעון את השיחות השמורות, ולכן שיחות חדשות לא יישמרו. רעננו את הדף.</p>
+                    )}
+                    {syncProblem === 'save' && <p className="text-xs text-amber-700">השיחה עוד לא נשמרה בחשבון. ננסה שוב בעוד רגע.</p>}
                 </div>
                 <a href="/agents.html" className="text-sm font-semibold text-indigo-600 shrink-0 hover:text-indigo-800">
                     כל הסוכנים
@@ -338,8 +440,8 @@ function EmptyState({ agent, onPick }) {
             >
                 {agent.example}
             </button>
-            <p className="mt-6 text-xs text-slate-400">בצ׳אט הסוכנים לא רואים את הקבצים שלך. הדביקו את הקוד או הפרטים הרלוונטיים.</p>
-            <p className="mt-1 text-xs text-slate-400">השיחות נשמרות בדפדפן הזה בלבד.</p>
+            <p className="mt-6 text-xs text-slate-400">בצ׳אט הסוכנים לא רואים את הקבצים שלך, אז הדביקו את הקוד או הפרטים הרלוונטיים. הם כן יכולים לחפש ברשת ולקרוא קישורים שתדביקו.</p>
+            <p className="mt-1 text-xs text-slate-400">השיחות נשמרות בחשבון שלך ומופיעות בכל מכשיר שתתחברו ממנו.</p>
         </div>
     );
 }
@@ -354,7 +456,7 @@ function Turn({ turn }) {
     }
 
     const streaming = turn.state === 'streaming';
-    const status = streaming && turn.searching ? 'מחפש ברשת…' : streaming && !turn.content ? 'הסוכן חושב…' : null;
+    const status = !streaming ? null : ACTIVITY[turn.activity] ?? (turn.content ? null : 'הסוכן חושב…');
     const noteTone = turn.state === 'error' || turn.state === 'refused' ? 'text-rose-700 bg-rose-50' : 'text-slate-600 bg-slate-100';
     // A refused reply's text is discarded, and so are the pages it cited.
     const sources = turn.state === 'refused' ? [] : turn.sources ?? [];
