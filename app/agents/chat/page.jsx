@@ -128,6 +128,24 @@ async function fetchSavedChats() {
     }
 }
 
+// How often an open chat checks for changes made on another device.
+const LIVE_CHECK_MS = 8000;
+
+async function fetchVersions() {
+    try {
+        const response = await fetch('/api/agents/chats?versions=1');
+        if (!response.ok) return null;
+        const data = await response.json();
+        return data.versions && typeof data.versions === 'object' ? data.versions : null;
+    } catch {
+        return null;
+    }
+}
+
+function sameVersions(a, b) {
+    return AGENT_ID_LIST.every((id) => (a[id] ?? 0) === (b[id] ?? 0));
+}
+
 // Which agent was open is a per-device preference, kept in this browser.
 function readSelectedAgent() {
     try {
@@ -317,13 +335,21 @@ export default function AgentChatPage() {
                 fetch('/api/agents/chats', request).catch(() => {});
             }
         };
-        // Coming back to the tab picks up what was written on another device,
-        // but only when every change here is confirmed and no save is on its
-        // way: otherwise the server copy could be older than this page's.
-        const onReturn = async () => {
-            if (document.visibilityState !== 'visible' || busyRef.current) return;
-            if (unconfirmedAgents().length || saveInFlight()) return;
+        // Picks up what was written on another device: when coming back to the
+        // tab, and every few seconds while the tab is open (a cheap versions
+        // check first, the chats only if one moved). Only when every change
+        // here is confirmed and no save is on its way: otherwise the server
+        // copy could be older than this page's.
+        const quiet = () =>
+            document.visibilityState === 'visible' && !busyRef.current && !unconfirmedAgents().length && !saveInFlight();
+        const onReturn = async ({ onlyIfChanged = false } = {}) => {
+            if (!quiet()) return;
             const savesBefore = saveCountRef.current;
+            if (onlyIfChanged) {
+                const versions = await fetchVersions();
+                if (!versions || sameVersions(versions, versionsRef.current)) return;
+                if (!quiet() || saveCountRef.current !== savesBefore) return;
+            }
             const saved = await fetchSavedChats();
             if (!saved || busyRef.current || unconfirmedAgents().length || saveInFlight()) return;
             if (saveCountRef.current !== savesBefore) return;
@@ -331,11 +357,14 @@ export default function AgentChatPage() {
             versionsRef.current = saved.versions;
             setThreads(saved.threads);
         };
+        const onVisibility = () => onReturn();
+        const poll = setInterval(() => onReturn({ onlyIfChanged: true }), LIVE_CHECK_MS);
         window.addEventListener('pagehide', onExit);
-        document.addEventListener('visibilitychange', onReturn);
+        document.addEventListener('visibilitychange', onVisibility);
         return () => {
+            clearInterval(poll);
             window.removeEventListener('pagehide', onExit);
-            document.removeEventListener('visibilitychange', onReturn);
+            document.removeEventListener('visibilitychange', onVisibility);
         };
     }, [user, restoredFor]);
 

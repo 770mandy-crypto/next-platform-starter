@@ -7,9 +7,13 @@ import { HttpError, readJson, requireUser, route } from 'lib/pilot/http';
 export const dynamic = 'force-dynamic';
 
 // The signed-in user's saved agent chats, one per agent, with their versions.
+// `?versions=1` returns only the versions, for an open page to check cheaply
+// whether another device changed anything.
 export const GET = route(async (request) => {
     const user = await requireUser(request);
-    return NextResponse.json(await loadThreads(user.id));
+    const { threads, versions } = await loadThreads(user.id);
+    if (new URL(request.url).searchParams.get('versions') === '1') return NextResponse.json({ versions });
+    return NextResponse.json({ threads, versions });
 });
 
 // Saves one agent's chat. The browser sends the whole chat each time, with the
