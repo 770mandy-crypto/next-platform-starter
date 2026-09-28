@@ -3,7 +3,7 @@
 import MarkdownToJsx from 'markdown-to-jsx';
 import { useEffect, useRef, useState } from 'react';
 import { AGENTS, getAgent } from 'lib/agents/catalog';
-import { cleanThread } from 'lib/agents/saved-chats';
+import { cleanThread, mergeThreads } from 'lib/agents/saved-chats';
 
 class SignedOutError extends Error {}
 
@@ -121,7 +121,8 @@ async function fetchSavedChats() {
         const response = await fetch('/api/agents/chats');
         if (!response.ok) return null;
         const data = await response.json();
-        return data.threads && typeof data.threads === 'object' ? data.threads : null;
+        if (!data.threads || typeof data.threads !== 'object') return null;
+        return { threads: data.threads, versions: data.versions && typeof data.versions === 'object' ? data.versions : {} };
     } catch {
         return null;
     }
@@ -158,6 +159,7 @@ export default function AgentChatPage() {
     const listRef = useRef(null);
     const threadsRef = useRef(threads); // latest chats, for timers and page exit
     const confirmedRef = useRef({}); // each agent's chat as the server last confirmed it
+    const versionsRef = useRef({}); // the server's version of each agent's chat, which saves build on
     const inFlightRef = useRef({}); // agent -> the version a save request is carrying now
     const saveCountRef = useRef(0); // saves started so far, to spot one that raced a reload
     const writerRef = useRef(null); // this page's identity, so the server can order its saves
@@ -179,8 +181,9 @@ export default function AgentChatPage() {
                     if (selected) setAgentId(selected);
                     const saved = await fetchSavedChats();
                     if (saved) {
-                        confirmedRef.current = saved;
-                        setThreads(saved);
+                        confirmedRef.current = saved.threads;
+                        versionsRef.current = saved.versions;
+                        setThreads(saved.threads);
                         setRestoredFor(signedIn.id);
                     } else {
                         // Without the saved chats, saving now could overwrite them.
@@ -230,7 +233,15 @@ export default function AgentChatPage() {
         return {
             method: 'PUT',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ agent: id, turns: cleanThread(turns), writer: { ...writerRef.current } }),
+            body: JSON.stringify({
+                agent: id,
+                turns: cleanThread(turns),
+                writer: { ...writerRef.current },
+                // What this copy was built on, so the server can merge in
+                // changes made meanwhile on another device.
+                base: versionsRef.current[id] ?? 0,
+                seen: (confirmedRef.current[id] ?? NO_TURNS).map((turn) => turn.id)
+            }),
             keepalive
         };
     }
@@ -250,7 +261,18 @@ export default function AgentChatPage() {
                     return false;
                 }
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                confirmedRef.current = { ...confirmedRef.current, [id]: turns };
+                const result = await response.json();
+                if (!result.stale) versionsRef.current = { ...versionsRef.current, [id]: result.version };
+                if (result.merged && Array.isArray(result.turns)) {
+                    // Another device changed this chat meanwhile and the server
+                    // merged both. Show the merged chat, keeping anything added
+                    // here since this save was sent.
+                    confirmedRef.current = { ...confirmedRef.current, [id]: result.turns };
+                    const sentIds = turns.map((turn) => turn.id);
+                    setThreads((all) => ({ ...all, [id]: mergeThreads(result.turns, all[id] ?? NO_TURNS, sentIds) }));
+                } else {
+                    confirmedRef.current = { ...confirmedRef.current, [id]: turns };
+                }
             } catch {
                 failed = true;
             } finally {
@@ -305,8 +327,9 @@ export default function AgentChatPage() {
             const saved = await fetchSavedChats();
             if (!saved || busyRef.current || unconfirmedAgents().length || saveInFlight()) return;
             if (saveCountRef.current !== savesBefore) return;
-            confirmedRef.current = saved;
-            setThreads(saved);
+            confirmedRef.current = saved.threads;
+            versionsRef.current = saved.versions;
+            setThreads(saved.threads);
         };
         window.addEventListener('pagehide', onExit);
         document.addEventListener('visibilitychange', onReturn);
