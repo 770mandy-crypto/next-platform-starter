@@ -27,13 +27,12 @@ export const POST = route(async (request) => {
 
     // The lock comes before the quota, so a request turned away for being
     // concurrent does not spend quota.
-    if (!(await acquireReplyLock(user.id))) {
-        throw new HttpError('יש כבר תשובה בדרך. אפשר לשלוח שוב כשהיא תסתיים.', 429);
-    }
+    const lock = await acquireReplyLock(user.id);
+    if (!lock) throw new HttpError('יש כבר תשובה בדרך. אפשר לשלוח שוב כשהיא תסתיים.', 429);
     try {
         await consumeAiQuota(user.id);
     } catch (error) {
-        await releaseReplyLock(user.id);
+        await releaseReplyLock(user.id, lock);
         throw error;
     }
 
@@ -74,7 +73,7 @@ export const POST = route(async (request) => {
                 try {
                     controller.close();
                 } catch {}
-                await releaseReplyLock(user.id).catch((error) => console.error('Agent chat lock release failed:', error));
+                await releaseReplyLock(user.id, lock).catch((error) => console.error('Agent chat lock release failed:', error));
             }
         },
         cancel() {

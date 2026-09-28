@@ -22,6 +22,10 @@ export const PUT = route(async (request) => {
     if (!agent) throw new HttpError('הסוכן לא נמצא.', 400);
     if (!Array.isArray(body.turns)) throw new HttpError('השיחה חסרה.', 400);
 
-    const turns = await saveThread(user.id, agent.id, body.turns);
-    return NextResponse.json({ saved: turns.length });
+    const writer =
+        typeof body.writer?.id === 'string' && Number.isSafeInteger(body.writer?.seq)
+            ? { id: body.writer.id.slice(0, 64), seq: body.writer.seq }
+            : null;
+    const { turns, stale } = await saveThread(user.id, agent.id, body.turns, writer);
+    return NextResponse.json({ saved: turns.length, stale });
 });

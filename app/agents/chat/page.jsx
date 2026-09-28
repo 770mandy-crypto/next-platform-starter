@@ -76,11 +76,43 @@ function historyOf(thread) {
 const MARKDOWN_OPTIONS = {
     disableParsingRawHTML: true,
     overrides: {
-        img: ({ alt }) => (alt ? <span className="text-slate-500">[{alt}]</span> : null)
+        img: ({ alt }) => (alt ? <span className="text-slate-500">[{alt}]</span> : null),
+        a: ReplyLink
     }
 };
 
+// Links in replies open in a new tab and show where they go, so a link whose
+// text hides its real address (say, one a web page steered the agent into
+// writing) is visible for what it is. Only http(s) links are clickable.
+function ReplyLink({ href, title, children }) {
+    let host = null;
+    try {
+        const url = new URL(href);
+        if (url.protocol === 'https:' || url.protocol === 'http:') host = url.hostname.replace(/^www\./, '');
+    } catch {}
+    if (!host) return <span>{children}</span>;
+    const text = typeof children === 'string' ? children : Array.isArray(children) ? children.join('') : '';
+    return (
+        <>
+            <a href={href} title={title} target="_blank" rel="noopener noreferrer nofollow">
+                {children}
+            </a>
+            {!text.includes(host) && (
+                <span dir="ltr" className="text-xs text-slate-400">
+                    {' '}
+                    ({host})
+                </span>
+            )}
+        </>
+    );
+}
+
 const NO_TURNS = [];
+const AGENT_ID_LIST = AGENTS.map((item) => item.id);
+
+function newWriterId() {
+    return globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
 const ACTIVITY = { searching: 'מחפש ברשת…', reading: 'קורא את הדף…' };
 const SELECTED_AGENT_KEY = 'agents-chat:selected-agent';
 
@@ -125,7 +157,10 @@ export default function AgentChatPage() {
     const controllerRef = useRef(null);
     const listRef = useRef(null);
     const threadsRef = useRef(threads); // latest chats, for timers and page exit
-    const sentRef = useRef({}); // each agent's chat as last sent to (or loaded from) the server
+    const confirmedRef = useRef({}); // each agent's chat as the server last confirmed it
+    const inFlightRef = useRef({}); // agent -> the version a save request is carrying now
+    const saveCountRef = useRef(0); // saves started so far, to spot one that raced a reload
+    const writerRef = useRef(null); // this page's identity, so the server can order its saves
     const busyRef = useRef(null);
     const saveTimerRef = useRef(null);
     const savingRef = useRef(Promise.resolve());
@@ -144,7 +179,7 @@ export default function AgentChatPage() {
                     if (selected) setAgentId(selected);
                     const saved = await fetchSavedChats();
                     if (saved) {
-                        sentRef.current = saved;
+                        confirmedRef.current = saved;
                         setThreads(saved);
                         setRestoredFor(signedIn.id);
                     } else {
@@ -159,50 +194,76 @@ export default function AgentChatPage() {
 
     useEffect(() => {
         busyRef.current = busy;
+        // A finished reply is saved right away rather than on the slower
+        // while-streaming timer that was set when the question was sent.
+        if (!busy && user && restoredFor === user.id && unconfirmedAgents().length) {
+            clearTimeout(saveTimerRef.current);
+            saveTimerRef.current = null;
+            scheduleSave(300);
+        }
     }, [busy]);
 
+    // The open agent is remembered per device, but only once the remembered
+    // choice has been read: writing the default first would overwrite it.
     useEffect(() => {
-        writeSelectedAgent(agentId);
-    }, [agentId]);
+        if (user) writeSelectedAgent(agentId);
+    }, [agentId, user]);
 
     // Chats are saved to the account so they follow the user to any device.
-    // Only agents whose chat changed are sent, at most every 1.5s while a reply
-    // streams, one request at a time so an older version never lands last.
-    function unsavedAgents() {
-        return AGENTS.map((item) => item.id).filter((id) => {
+    // A chat counts as saved only once the server confirms it. Changed chats go
+    // out every 1.5s (4s while a reply streams), one request at a time.
+    function unconfirmedAgents() {
+        return AGENT_ID_LIST.filter((id) => {
             const now = threadsRef.current[id] ?? NO_TURNS;
-            const sent = sentRef.current[id] ?? NO_TURNS;
-            return now !== sent && (now.length > 0 || sent.length > 0);
+            const confirmed = confirmedRef.current[id] ?? NO_TURNS;
+            return now !== confirmed && (now.length > 0 || confirmed.length > 0);
         });
     }
 
-    async function saveChanged({ keepalive = false } = {}) {
+    function saveInFlight() {
+        return Object.keys(inFlightRef.current).length > 0;
+    }
+
+    function saveRequest(id, turns, keepalive = false) {
+        writerRef.current ??= { id: newWriterId(), seq: 0 };
+        writerRef.current.seq += 1;
+        return {
+            method: 'PUT',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ agent: id, turns: cleanThread(turns), writer: { ...writerRef.current } }),
+            keepalive
+        };
+    }
+
+    async function saveChanged() {
         let failed = false;
-        for (const id of unsavedAgents()) {
+        for (const id of unconfirmedAgents()) {
             const turns = threadsRef.current[id] ?? NO_TURNS;
-            const previous = sentRef.current[id];
-            sentRef.current = { ...sentRef.current, [id]: turns };
-            const body = JSON.stringify({ agent: id, turns: cleanThread(turns) });
-            // A request sent while the page closes must be small (a browser limit).
-            if (keepalive && body.length > 60_000) continue;
+            inFlightRef.current = { ...inFlightRef.current, [id]: turns };
+            saveCountRef.current += 1;
             try {
-                const response = await fetch('/api/agents/chats', {
-                    method: 'PUT',
-                    headers: { 'content-type': 'application/json' },
-                    body,
-                    keepalive
-                });
+                const response = await fetch('/api/agents/chats', saveRequest(id, turns));
+                if (response.status === 401) {
+                    // Signed out elsewhere or the session expired: stop and ask
+                    // to sign in, rather than retrying forever.
+                    setUser(null);
+                    return false;
+                }
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                confirmedRef.current = { ...confirmedRef.current, [id]: turns };
             } catch {
-                sentRef.current = { ...sentRef.current, [id]: previous };
                 failed = true;
+            } finally {
+                const stillInFlight = { ...inFlightRef.current };
+                delete stillInFlight[id];
+                inFlightRef.current = stillInFlight;
             }
         }
-        if (!keepalive) setSyncProblem(failed ? 'save' : null);
+        setSyncProblem(failed ? 'save' : null);
         return failed;
     }
 
-    function scheduleSave(delay = 1500) {
+    function scheduleSave(delay = busyRef.current ? 4000 : 1500) {
         if (saveTimerRef.current) return;
         saveTimerRef.current = setTimeout(() => {
             saveTimerRef.current = null;
@@ -214,21 +275,37 @@ export default function AgentChatPage() {
 
     useEffect(() => {
         threadsRef.current = threads;
-        if (user && restoredFor === user.id && unsavedAgents().length) scheduleSave();
+        if (user && restoredFor === user.id && unconfirmedAgents().length) scheduleSave();
     }, [threads, user, restoredFor]);
 
     useEffect(() => {
         if (!user || restoredFor !== user.id) return;
+        // As the page closes, send every chat the server has not confirmed, all
+        // at once (there is no time to wait between them). Browsers cap such
+        // requests at 64 KB in total, so larger chats rely on the regular save.
+        // Nothing is marked as saved here: if the page comes back (the back
+        // button), those chats are still unconfirmed and are saved normally.
         const onExit = () => {
-            saveChanged({ keepalive: true });
+            let budget = 60_000;
+            for (const id of unconfirmedAgents()) {
+                const request = saveRequest(id, threadsRef.current[id] ?? NO_TURNS, true);
+                const bytes = new TextEncoder().encode(request.body).length;
+                if (bytes > budget) continue;
+                budget -= bytes;
+                fetch('/api/agents/chats', request).catch(() => {});
+            }
         };
         // Coming back to the tab picks up what was written on another device,
-        // unless this one has changes of its own still to save.
+        // but only when every change here is confirmed and no save is on its
+        // way: otherwise the server copy could be older than this page's.
         const onReturn = async () => {
-            if (document.visibilityState !== 'visible' || busyRef.current || unsavedAgents().length) return;
+            if (document.visibilityState !== 'visible' || busyRef.current) return;
+            if (unconfirmedAgents().length || saveInFlight()) return;
+            const savesBefore = saveCountRef.current;
             const saved = await fetchSavedChats();
-            if (!saved || busyRef.current || unsavedAgents().length) return;
-            sentRef.current = saved;
+            if (!saved || busyRef.current || unconfirmedAgents().length || saveInFlight()) return;
+            if (saveCountRef.current !== savesBefore) return;
+            confirmedRef.current = saved;
             setThreads(saved);
         };
         window.addEventListener('pagehide', onExit);
