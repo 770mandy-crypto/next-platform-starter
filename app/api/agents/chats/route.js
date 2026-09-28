@@ -34,7 +34,7 @@ export const PUT = route(async (request) => {
             : null;
     const base = Number.isSafeInteger(body.base) && body.base >= 0 ? body.base : null;
     const seen = Array.isArray(body.seen)
-        ? body.seen.filter((id) => typeof id === 'string').slice(0, MAX_SAVED_TURNS * 2).map((id) => id.slice(0, 64))
+        ? body.seen.filter((id) => typeof id === 'string').slice(-MAX_SAVED_TURNS * 2).map((id) => id.slice(0, 64))
         : [];
 
     const { turns, version, stale, merged } = await saveThread(user.id, agent.id, body.turns, { writer, base, seen });

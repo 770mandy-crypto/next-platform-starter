@@ -204,7 +204,8 @@ export default function AgentChatPage() {
                         setThreads(saved.threads);
                         setRestoredFor(signedIn.id);
                     } else {
-                        // Without the saved chats, saving now could overwrite them.
+                        // Without the saved chats, saving now could overwrite
+                        // them; loading is retried below until it works.
                         setSyncProblem('load');
                     }
                 }
@@ -213,16 +214,32 @@ export default function AgentChatPage() {
             .catch(() => setUser(null));
     }, []);
 
+    // If the saved chats could not be loaded, keep trying. Once they arrive,
+    // anything written here meanwhile is added to them and then saved.
     useEffect(() => {
-        busyRef.current = busy;
-        // A finished reply is saved right away rather than on the slower
-        // while-streaming timer that was set when the question was sent.
-        if (!busy && user && restoredFor === user.id && unconfirmedAgents().length) {
-            clearTimeout(saveTimerRef.current);
-            saveTimerRef.current = null;
-            scheduleSave(300);
-        }
-    }, [busy]);
+        if (!user || restoredFor === user.id || syncProblem !== 'load') return;
+        let cancelled = false;
+        const retry = setInterval(async () => {
+            const saved = await fetchSavedChats();
+            if (!saved || cancelled) return;
+            clearInterval(retry);
+            confirmedRef.current = saved.threads;
+            versionsRef.current = saved.versions;
+            setThreads((local) => {
+                const combined = { ...saved.threads };
+                for (const id of AGENT_ID_LIST) {
+                    if (local[id]?.length) combined[id] = mergeThreads(saved.threads[id] ?? NO_TURNS, local[id], []);
+                }
+                return combined;
+            });
+            setSyncProblem(null);
+            setRestoredFor(user.id);
+        }, LIVE_CHECK_MS);
+        return () => {
+            cancelled = true;
+            clearInterval(retry);
+        };
+    }, [user, restoredFor, syncProblem]);
 
     // The open agent is remembered per device, but only once the remembered
     // choice has been read: writing the default first would overwrite it.
@@ -258,14 +275,20 @@ export default function AgentChatPage() {
                 // What this copy was built on, so the server can merge in
                 // changes made meanwhile on another device.
                 base: versionsRef.current[id] ?? 0,
-                seen: (confirmedRef.current[id] ?? NO_TURNS).map((turn) => turn.id)
+                // The turns of that version: the confirmed copy, trimmed the
+                // way the server stored it.
+                seen: cleanThread(confirmedRef.current[id] ?? NO_TURNS).map((turn) => turn.id)
             }),
             keepalive
         };
     }
 
+    // Returns 'retry' when a save failed in a way worth retrying soon, 'stop'
+    // when every failure was a request the server will keep refusing (retrying
+    // those every few seconds would never succeed; the next change tries again).
     async function saveChanged() {
         let failed = false;
+        let retry = false;
         for (const id of unconfirmedAgents()) {
             const turns = threadsRef.current[id] ?? NO_TURNS;
             inFlightRef.current = { ...inFlightRef.current, [id]: turns };
@@ -276,9 +299,12 @@ export default function AgentChatPage() {
                     // Signed out elsewhere or the session expired: stop and ask
                     // to sign in, rather than retrying forever.
                     setUser(null);
-                    return false;
+                    return null;
                 }
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                if (!response.ok) {
+                    const permanent = response.status >= 400 && response.status < 500 && ![408, 409, 429].includes(response.status);
+                    throw Object.assign(new Error(`HTTP ${response.status}`), { permanent });
+                }
                 const result = await response.json();
                 if (!result.stale) versionsRef.current = { ...versionsRef.current, [id]: result.version };
                 if (result.merged && Array.isArray(result.turns)) {
@@ -291,8 +317,9 @@ export default function AgentChatPage() {
                 } else {
                     confirmedRef.current = { ...confirmedRef.current, [id]: turns };
                 }
-            } catch {
+            } catch (error) {
                 failed = true;
+                if (!error.permanent) retry = true;
             } finally {
                 const stillInFlight = { ...inFlightRef.current };
                 delete stillInFlight[id];
@@ -300,7 +327,7 @@ export default function AgentChatPage() {
             }
         }
         setSyncProblem(failed ? 'save' : null);
-        return failed;
+        return retry ? 'retry' : failed ? 'stop' : null;
     }
 
     function scheduleSave(delay = busyRef.current ? 4000 : 1500) {
@@ -308,7 +335,7 @@ export default function AgentChatPage() {
         saveTimerRef.current = setTimeout(() => {
             saveTimerRef.current = null;
             savingRef.current = savingRef.current.then(async () => {
-                if (await saveChanged()) scheduleSave(5000);
+                if ((await saveChanged()) === 'retry') scheduleSave(5000);
             });
         }, delay);
     }
@@ -317,6 +344,18 @@ export default function AgentChatPage() {
         threadsRef.current = threads;
         if (user && restoredFor === user.id && unconfirmedAgents().length) scheduleSave();
     }, [threads, user, restoredFor]);
+
+    // Declared after the effect above so it sees the latest chats.
+    useEffect(() => {
+        busyRef.current = busy;
+        // A finished reply is saved right away rather than on the slower
+        // while-streaming timer that was set when the question was sent.
+        if (!busy && user && restoredFor === user.id && unconfirmedAgents().length) {
+            clearTimeout(saveTimerRef.current);
+            saveTimerRef.current = null;
+            scheduleSave(300);
+        }
+    }, [busy]);
 
     useEffect(() => {
         if (!user || restoredFor !== user.id) return;
@@ -466,7 +505,7 @@ export default function AgentChatPage() {
                     <h1 className="text-lg font-extrabold leading-tight">צ׳אט עם הסוכנים</h1>
                     <p className="text-xs truncate text-slate-500">מחובר/ת בתור {user.name}</p>
                     {syncProblem === 'load' && (
-                        <p className="text-xs text-rose-700">לא הצלחנו לטעון את השיחות השמורות, ולכן שיחות חדשות לא יישמרו. רעננו את הדף.</p>
+                        <p className="text-xs text-rose-700">לא הצלחנו לטעון את השיחות השמורות. מנסים שוב; שיחות חדשות יישמרו כשזה יצליח.</p>
                     )}
                     {syncProblem === 'save' && <p className="text-xs text-amber-700">השיחה עוד לא נשמרה בחשבון. ננסה שוב בעוד רגע.</p>}
                 </div>
