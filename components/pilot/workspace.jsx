@@ -67,6 +67,18 @@ function ProgressBar({ percent }) {
 
 // --- Chat ------------------------------------------------------------------
 
+// Shown when Claude is connected but this answer came from the built-in demo
+// engine instead, so the user knows why it reads generic.
+function FallbackNote({ reason }) {
+    return (
+        <div className="px-2.5 py-1.5 mt-2 text-xs rounded-lg bg-amber-50 text-amber-800">
+            {reason === 'timeout'
+                ? '⏱ Claude לא הספיק לענות בזמן, אז זו תשובה בסיסית. אפשר לנסות שוב.'
+                : '⚠️ Claude לא היה זמין, אז זו תשובה בסיסית. אפשר לנסות שוב.'}
+        </div>
+    );
+}
+
 function ChatPanel({ state, send, onOpenApprovals }) {
     const [text, setText] = useState('');
     const [busy, setBusy] = useState(false);
@@ -107,6 +119,7 @@ function ChatPanel({ state, send, onOpenApprovals }) {
                             }`}
                         >
                             {message.content}
+                            {message.fallbackReason && <FallbackNote reason={message.fallbackReason} />}
                             {message.actionIds?.map((id) => {
                                 const action = actionsById[id];
                                 if (!action) return null;
@@ -184,6 +197,7 @@ function PlanPanel({ state, setTaskStatus }) {
         <div className="space-y-4">
             <Card title="📋 התוכנית">
                 <p className="leading-relaxed text-slate-700">{plan.summary}</p>
+                {plan.fallbackReason && <FallbackNote reason={plan.fallbackReason} />}
                 <div className="p-3 mt-4 text-sm border rounded-xl bg-amber-50 border-amber-200 text-amber-900">
                     <b>הצעד הראשון:</b> {plan.firstStep}
                 </div>
