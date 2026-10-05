@@ -63,6 +63,38 @@
   .stat strong{font-size:24px;direction:ltr;display:inline-block}
   h2{font-size:34px;margin-bottom:6px}
   #newBest{color:var(--accent);font-weight:900;font-size:20px;animation:pulse .5s infinite alternate;margin-bottom:6px}
+  /* shop */
+  .shopCard{max-width:560px;max-height:calc(100vh - 32px);display:flex;flex-direction:column}
+  .shopHead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
+  .shopHead h2{margin:0;font-size:28px}
+  .bankChip{font-size:22px;direction:ltr}
+  .shopGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;overflow-y:auto;touch-action:pan-y;
+    padding:4px;margin-bottom:14px;min-height:0}
+  .char{background:rgba(255,255,255,.07);border:2px solid transparent;border-radius:18px;padding:10px 6px 10px;
+    display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;transition:transform .15s}
+  .char:hover{transform:translateY(-2px)}
+  .char.sel{border-color:var(--accent);background:rgba(255,190,11,.14)}
+  .char.locked .fig{filter:grayscale(.85) brightness(.75)}
+  .char .nm{font-weight:900;font-size:17px}
+  .char .ds{font-size:12px;opacity:.7;min-height:15px}
+  .char .act{margin-top:4px;border:0;border-radius:12px;padding:6px 10px;font-family:inherit;font-weight:900;font-size:14px;
+    background:rgba(255,255,255,.14);color:#fff;cursor:pointer;width:100%;direction:ltr}
+  .char .act.buy{background:linear-gradient(180deg,#ffe066,#ffbe0b);color:#2b1600}
+  .char .act.poor{background:rgba(255,255,255,.08);color:rgba(255,255,255,.5)}
+  .char .act.on{background:var(--accent2)}
+  .shake{animation:shake .35s}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  /* tiny CSS character preview */
+  .fig{position:relative;width:52px;height:86px;margin:2px auto 0}
+  .fig div{position:absolute;left:50%;transform:translateX(-50%)}
+  .fig .cap{top:0;width:30px;height:9px;border-radius:4px 4px 0 0}
+  .fig .crown{top:-4px;width:30px;height:12px;background:#ffd60a;
+    clip-path:polygon(0 100%,0 20%,20% 60%,35% 0,50% 60%,65% 0,80% 60%,100% 20%,100% 100%)}
+  .fig .head{top:9px;width:28px;height:24px;border-radius:3px}
+  .fig .torso{top:33px;width:40px;height:26px;border-radius:4px}
+  .fig .legs{top:59px;width:28px;height:20px;background-image:linear-gradient(90deg,transparent 45%,rgba(0,0,0,.35) 45%,rgba(0,0,0,.35) 55%,transparent 55%)}
+  .fig .shoes{top:78px;width:32px;height:7px;border-radius:2px}
+  @media (max-width:420px){.shopGrid{grid-template-columns:repeat(2,1fr)}.shopHead h2{font-size:21px;white-space:nowrap}.bankChip{font-size:18px}}
   .mobileOnly{display:none}
   @media (hover:none){.mobileOnly{display:block}.deskOnly{display:none}}
   @media (max-width:420px){#score{font-size:28px}.logo{font-size:44px}}
@@ -104,6 +136,8 @@
       <div class="stat"><span>סה״כ מטבעות</span><strong id="bankMenu">0</strong></div>
     </div>
     <button class="btn" id="playBtn">▶ התחל לרוץ!</button><br>
+    <button class="btn ghost" id="shopBtn">🛒 חנות דמויות</button>
+    <button class="btn ghost" id="musicBtn">🎵 מוזיקה</button>
     <button class="btn ghost" id="muteBtn">🔊 צליל</button>
   </div>
 </div>
@@ -113,7 +147,20 @@
     <h2>⏸ הפסקה</h2>
     <p class="sub">קח נשימה... השומר מחכה 😅</p>
     <button class="btn" id="resumeBtn">▶ המשך</button><br>
+    <button class="btn ghost" id="musicBtn2">🎵 מוזיקה</button>
     <button class="btn ghost" id="quitBtn">🏠 לתפריט</button>
+  </div>
+</div>
+
+<div id="shopScreen" class="screen hidden">
+  <div class="card shopCard">
+    <div class="shopHead">
+      <h2>🛒 חנות דמויות</h2>
+      <div class="chip bankChip">🪙 <span id="shopBank">0</span></div>
+    </div>
+    <p class="sub">אסוף מטבעות בריצות וקנה דמויות חדשות!</p>
+    <div id="shopGrid" class="shopGrid"></div>
+    <button class="btn" id="shopBack">← חזרה</button>
   </div>
 </div>
 
@@ -127,6 +174,7 @@
       <div class="stat"><span>שיא</span><strong id="finalBest">0</strong></div>
     </div>
     <button class="btn" id="againBtn">↻ שחק שוב</button><br>
+    <button class="btn ghost" id="overShopBtn">🛒 חנות</button>
     <button class="btn ghost" id="menuBtn">🏠 לתפריט</button>
   </div>
 </div>
@@ -202,6 +250,88 @@ const SFX = {
   stumble: () => tone(190, 70, 0.25, 'sawtooth', 0.09),
   crash: () => { tone(240, 30, 0.6, 'sawtooth', 0.14); tone(90, 30, 0.7, 'square', 0.08); },
   breakBoard: () => tone(900, 80, 0.35, 'sawtooth', 0.09)
+};
+
+// ================= background music (procedural chiptune loop) =================
+const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+const Music = {
+  on: store.get('sr_music', true), playing: false, out: null, noise: null,
+  step: 0, nextTime: 0, timer: null, bpm: 120,
+  // Am - F - C - G, one bar (16 steps) each
+  chords: [[69, 72, 76], [65, 69, 72], [64, 67, 72], [67, 71, 74]],
+  bass: [45, 41, 48, 43],
+  lead: [0, -1, 1, 2, -1, 1, 0, -1, 2, -1, 1, 2, 3, -1, 2, 1],
+  lead2: [3, -1, 2, -1, 1, -1, 2, 3, -1, 2, -1, 1, 0, -1, 1, -1],
+  init(a) {
+    if (this.out) return;
+    this.out = a.createGain(); this.out.gain.value = 0; this.out.connect(a.destination);
+    const len = a.sampleRate * 0.3, buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    this.noise = buf;
+  },
+  start() {
+    if (!this.on || this.playing) return;
+    const a = audio(); if (!a) return;
+    this.init(a);
+    this.playing = true;
+    const g = this.out.gain; g.cancelScheduledValues(a.currentTime);
+    g.setValueAtTime(g.value, a.currentTime); g.linearRampToValueAtTime(0.55, a.currentTime + 0.6);
+    this.nextTime = a.currentTime + 0.08;
+    clearInterval(this.timer);
+    this.timer = setInterval(() => this.tick(), 25);
+  },
+  stop() {
+    if (!this.playing) return;
+    this.playing = false; clearInterval(this.timer);
+    const a = AC, g = this.out.gain;
+    g.cancelScheduledValues(a.currentTime); g.setValueAtTime(g.value, a.currentTime); g.linearRampToValueAtTime(0, a.currentTime + 0.35);
+  },
+  toggle() { this.on = !this.on; store.set('sr_music', this.on); this.on ? this.start() : this.stop(); },
+  tick() {
+    const a = AC; if (!a) return;
+    if (this.nextTime < a.currentTime - 0.2) this.nextTime = a.currentTime + 0.05; // resync after tab sleep
+    while (this.nextTime < a.currentTime + 0.12) {
+      this.playStep(this.step, this.nextTime);
+      this.nextTime += 60 / this.bpm / 4;
+      this.step = (this.step + 1) % 128;
+    }
+  },
+  voice(freq, t, dur, type, vol) {
+    const a = AC, o = a.createOscillator(), g = a.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(this.out); o.start(t); o.stop(t + dur + 0.02);
+  },
+  hit(t, dur, freq, vol) {
+    const a = AC, s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+    s.buffer = this.noise; f.type = 'highpass'; f.frequency.value = freq;
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(f).connect(g).connect(this.out); s.start(t); s.stop(t + dur + 0.02);
+  },
+  kick(t) {
+    const a = AC, o = a.createOscillator(), g = a.createGain();
+    o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(40, t + 0.14);
+    g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+    o.connect(g).connect(this.out); o.start(t); o.stop(t + 0.2);
+  },
+  playStep(step, t) {
+    const s = step % 16, bar = Math.floor(step / 16) % 4, half = step >= 64;
+    const chord = this.chords[bar], sl = 60 / this.bpm / 4;
+    // drums
+    if (s % 4 === 0 || s === 10) this.kick(t);
+    if (s === 4 || s === 12) this.hit(t, 0.12, 1500, 0.22);
+    if (s % 2 === 0) this.hit(t, 0.03, 7000, 0.06);
+    // bass
+    if (s % 2 === 0) this.voice(mtof(this.bass[bar] + (s % 8 === 6 ? 12 : 0)), t, sl * 1.8, 'triangle', 0.22);
+    // lead arpeggio / melody
+    const pat = half ? this.lead2 : this.lead, n = pat[s];
+    if (n >= 0) {
+      const note = n === 3 ? chord[0] + 12 : chord[n];
+      this.voice(mtof(note + 12), t, sl * 1.6, 'square', 0.035);
+    }
+    // soft pad on the bar's first beat
+    if (s === 0) for (const m of chord) this.voice(mtof(m), t, sl * 14, 'sine', 0.035);
+  }
 };
 
 // ================= renderer / scene =================
@@ -442,23 +572,32 @@ function makeHuman(c) {
   const body = new THREE.Group(); body.position.y = 1.1; g.add(body);
   const inner = new THREE.Group(); inner.position.y = -1.1; body.add(inner);
   const add = (m, x, y, z) => { m.position.set(x, y, z); inner.add(m); return m; };
-  add(box(0.8, 0.85, 0.46, M(c.shirt)), 0, 1.33, 0);
-  add(box(0.56, 0.56, 0.5, M(c.skin)), 0, 2.02, 0);
-  add(box(0.6, 0.18, 0.56, M(c.cap)), 0, 2.34, 0);
-  add(box(0.56, 0.06, 0.34, M(c.cap)), 0, 2.27, c.visor);
-  if (c.pack) add(box(0.6, 0.62, 0.26, M(c.pack)), 0, 1.38, 0.34);
-  const shoeMat = M(c.shoes);
+  const mats = { shirt: M(c.shirt), skin: M(c.skin), cap: M(c.cap), pants: M(c.pants), shoes: M(c.shoes), pack: M(c.pack || 0) };
+  add(box(0.8, 0.85, 0.46, mats.shirt), 0, 1.33, 0);
+  add(box(0.56, 0.56, 0.5, mats.skin), 0, 2.02, 0);
+  const caps = [add(box(0.6, 0.18, 0.56, mats.cap), 0, 2.34, 0), add(box(0.56, 0.06, 0.34, mats.cap), 0, 2.27, c.visor)];
+  if (c.pack) add(box(0.6, 0.62, 0.26, mats.pack), 0, 1.38, 0.34);
+  // optional crown (unlockable in the shop)
+  const crown = new THREE.Group();
+  {
+    const gold = new THREE.MeshLambertMaterial({ color: 0xffd60a, emissive: 0x6a4a00 });
+    const ring = box(0.62, 0.16, 0.56, gold); ring.position.y = 0.08; crown.add(ring);
+    for (const [x, z] of [[-.24, -.2], [.24, -.2], [-.24, .2], [.24, .2], [0, -.2], [0, .2]]) {
+      const s = box(0.12, 0.2, 0.12, gold); s.position.set(x, 0.24, z); crown.add(s);
+    }
+    const gem = box(0.12, 0.12, 0.06, new THREE.MeshBasicMaterial({ color: 0xff006e }), false); gem.position.set(0, 0.08, -0.3); crown.add(gem);
+    crown.position.y = 2.3; crown.visible = false; inner.add(crown);
+  }
   const limb = (x, y, w, h, mat, foot) => {
     const p = new THREE.Group(); p.position.set(x, y, 0); inner.add(p);
     const l = box(w, h, w, mat); l.position.y = -h / 2; p.add(l);
-    if (foot) { const f = box(w + 0.06, 0.16, w + 0.28, shoeMat); f.position.set(0, -h + 0.04, -0.1); p.add(f); }
+    if (foot) { const f = box(w + 0.06, 0.16, w + 0.28, mats.shoes); f.position.set(0, -h + 0.04, -0.1); p.add(f); }
     return p;
   };
-  const pants = M(c.pants), skin = M(c.shirt);
-  const legL = limb(-0.2, 0.92, 0.3, 0.86, pants, true), legR = limb(0.2, 0.92, 0.3, 0.86, pants, true);
-  const armL = limb(-0.52, 1.72, 0.22, 0.76, skin), armR = limb(0.52, 1.72, 0.22, 0.76, skin);
+  const legL = limb(-0.2, 0.92, 0.3, 0.86, mats.pants, true), legR = limb(0.2, 0.92, 0.3, 0.86, mats.pants, true);
+  const armL = limb(-0.52, 1.72, 0.22, 0.76, mats.shirt), armR = limb(0.52, 1.72, 0.22, 0.76, mats.shirt);
   scene.add(g);
-  return { g, body, inner, legL, legR, armL, armR, shoeMat, baseShoe: c.shoes };
+  return { g, body, inner, legL, legR, armL, armR, mats, caps, crown, shoeMat: mats.shoes, baseShoe: c.shoes };
 }
 function animateRun(h, t, grounded, k = 1) {
   if (grounded) {
@@ -472,7 +611,27 @@ function animateRun(h, t, grounded, k = 1) {
   }
 }
 
-const hero = makeHuman({ shirt: 0x3a86ff, skin: 0xf1c27d, cap: 0xff006e, pants: 0x22223b, shoes: 0xffbe0b, pack: 0xfb5607, visor: 0.36 });
+// characters for the shop
+const CHARS = [
+  { id: 'dani',  name: 'דני',      price: 0,    desc: 'הגרפיטר המקורי',   shirt: 0x3a86ff, skin: 0xf1c27d, cap: 0xff006e, pants: 0x22223b, shoes: 0xffbe0b, pack: 0xfb5607 },
+  { id: 'maya',  name: 'מאיה',     price: 150,  desc: 'מהירה כמו הרוח',   shirt: 0x8338ec, skin: 0xc68642, cap: 0x06d6a0, pants: 0x3d405b, shoes: 0xffffff, pack: 0xffbe0b },
+  { id: 'tony',  name: 'טוני',     price: 400,  desc: 'מלך הסקייטבורד',   shirt: 0xe63946, skin: 0x8d5524, cap: 0x111111, pants: 0x1d3557, shoes: 0xf1faee, pack: 0x457b9d },
+  { id: 'ninja', name: 'נינג׳ה',   price: 800,  desc: 'שקט ומהיר',        shirt: 0x222222, skin: 0xf1c27d, cap: 0x222222, pants: 0x151515, shoes: 0xd00000, pack: 0xd00000 },
+  { id: 'robo',  name: 'רובו',     price: 1500, desc: 'מכונת ריצה',       shirt: 0xb0b8c4, skin: 0x9aa5b1, cap: 0x3a86ff, pants: 0x6c757d, shoes: 0x00f5d4, pack: 0xff006e },
+  { id: 'king',  name: 'המלך',     price: 3000, desc: 'עם כתר זהב!',      shirt: 0xffd60a, skin: 0xf1c27d, cap: 0x7b2cbf, pants: 0x5a189a, shoes: 0xffd60a, pack: 0x7b2cbf, crown: true }
+];
+let owned = store.get('sr_owned', ['dani']), selected = store.get('sr_char', 'dani');
+if (!CHARS.some(c => c.id === selected) || !owned.includes(selected)) selected = 'dani';
+
+const hero = makeHuman({ ...CHARS[0], visor: 0.36 });
+function applySkin(id) {
+  const ch = CHARS.find(c => c.id === id) || CHARS[0];
+  for (const k of ['shirt', 'skin', 'cap', 'pants', 'shoes', 'pack']) hero.mats[k].color.setHex(ch[k]);
+  hero.baseShoe = ch.shoes;
+  hero.crown.visible = !!ch.crown;
+  hero.caps.forEach(m => m.visible = !ch.crown);
+}
+applySkin(selected);
 // hoverboard
 const boardMesh = new THREE.Group();
 {
@@ -735,7 +894,7 @@ function hit(o) {
 function die(reason) {
   if (state !== 'play') return;
   state = 'dying'; dyingT = 0; deathReason = reason; shake = 0.6; guardChase = 99;
-  SFX.crash();
+  SFX.crash(); Music.stop();
 }
 function activate(kind) {
   PU[kind] = PU_DEF[kind].dur;
@@ -762,14 +921,59 @@ function updateHUD() {
     if (on) pupEls[k].querySelector('i').style.width = (PU[k] / PU_DEF[k].dur * 100) + '%';
   }
 }
-function refreshMenu() { $('bestMenu').textContent = best.toLocaleString('en-US'); $('bankMenu').textContent = bank.toLocaleString('en-US'); $('muteBtn').textContent = muted ? '🔇 צליל כבוי' : '🔊 צליל'; }
+function refreshMenu() {
+  $('bestMenu').textContent = best.toLocaleString('en-US'); $('bankMenu').textContent = bank.toLocaleString('en-US');
+  $('muteBtn').textContent = muted ? '🔇 צליל כבוי' : '🔊 צליל';
+  $('musicBtn').textContent = $('musicBtn2').textContent = Music.on ? '🎵 מוזיקה' : '🎵 מוזיקה כבויה';
+  $('musicBtn').style.opacity = $('musicBtn2').style.opacity = Music.on ? 1 : .55;
+}
+
+// ================= shop =================
+const css = hex => '#' + hex.toString(16).padStart(6, '0');
+function figHTML(c) {
+  return `<div class="fig">
+    <div class="${c.crown ? 'crown' : 'cap'}" style="${c.crown ? '' : 'background:' + css(c.cap)}"></div>
+    <div class="head" style="background:${css(c.skin)}"></div>
+    <div class="torso" style="background:${css(c.shirt)};box-shadow:inset 0 -6px 0 rgba(0,0,0,.12)"></div>
+    <div class="legs" style="background-color:${css(c.pants)}"></div>
+    <div class="shoes" style="background:${css(c.shoes)}"></div></div>`;
+}
+function renderShop() {
+  $('shopBank').textContent = bank.toLocaleString('en-US');
+  $('shopGrid').innerHTML = CHARS.map(c => {
+    const have = owned.includes(c.id), sel = c.id === selected;
+    let cls = 'act', label;
+    if (sel) { cls += ' on'; label = '✓ נבחר'; }
+    else if (have) label = 'בחר';
+    else { cls += bank >= c.price ? ' buy' : ' poor'; label = '🪙 ' + c.price.toLocaleString('en-US'); }
+    return `<div class="char${sel ? ' sel' : ''}${have ? '' : ' locked'}" data-id="${c.id}">
+      ${figHTML(c)}<div class="nm">${c.name}</div><div class="ds">${c.desc}</div>
+      <button class="${cls}" data-id="${c.id}">${label}</button></div>`;
+  }).join('');
+}
+function shopAction(id, el) {
+  const c = CHARS.find(x => x.id === id); if (!c) return;
+  if (!owned.includes(id)) {
+    if (bank < c.price) { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); SFX.stumble(); return; }
+    bank -= c.price; owned.push(id);
+    store.set('sr_bank', bank); store.set('sr_owned', owned);
+    SFX.power();
+  } else SFX.lane();
+  selected = id; store.set('sr_char', selected);
+  applySkin(selected);
+  renderShop(); refreshMenu();
+}
+$('shopGrid').addEventListener('click', e => {
+  const card = e.target.closest('.char'); if (card) shopAction(card.dataset.id, card);
+});
+function openShop() { if (state === 'over') toMenu(); renderShop(); show('shopScreen'); }
 
 // ================= flow =================
 function clearWorld() {
   for (const a of [obstacles, coins, pickups]) { for (const o of a) scene.remove(o.mesh); a.length = 0; }
 }
 function reset() {
-  clearWorld();
+  clearWorld(); Music.bpm = 120;
   Object.assign(P, { lane: 1, x: 0, y: 0, vy: 0, z: 0, prevZ: 0, roll: 0, grounded: true, inv: 0, anim: 0 });
   for (const k in PU) PU[k] = 0;
   elapsed = 0; speed = START_SPEED; score = 0; runCoins = 0; boards = 3;
@@ -779,11 +983,11 @@ function reset() {
   resetScenery(0);
   genAhead();
 }
-function show(id) { for (const s of ['startScreen', 'pauseScreen', 'overScreen']) $(s).classList.toggle('hidden', s !== id); $('hud').classList.toggle('hidden', id !== null && id !== 'pauseScreen'); }
-function startGame() { audio(); reset(); state = 'play'; show(null); updateHUD(); }
-function toMenu() { reset(); state = 'menu'; refreshMenu(); show('startScreen'); }
-function pause() { if (state === 'play') { state = 'pause'; show('pauseScreen'); } }
-function resume() { if (state === 'pause') { state = 'play'; show(null); last = performance.now(); } }
+function show(id) { for (const s of ['startScreen', 'pauseScreen', 'overScreen', 'shopScreen']) $(s).classList.toggle('hidden', s !== id); $('hud').classList.toggle('hidden', id !== null && id !== 'pauseScreen'); }
+function startGame() { audio(); reset(); state = 'play'; show(null); updateHUD(); Music.start(); }
+function toMenu() { reset(); state = 'menu'; refreshMenu(); show('startScreen'); Music.start(); }
+function pause() { if (state === 'play') { state = 'pause'; show('pauseScreen'); Music.stop(); } }
+function resume() { if (state === 'pause') { state = 'play'; show(null); last = performance.now(); Music.start(); } }
 function gameOver() {
   state = 'over';
   const final = Math.floor(score), isBest = final > best;
@@ -801,6 +1005,7 @@ function gameOver() {
 function update(dt) {
   elapsed += dt;
   speed = START_SPEED + (MAX_SPEED - START_SPEED) * (1 - Math.exp(-elapsed / 90));
+  Music.bpm = 120 + (speed - START_SPEED) * 1.6;
   P.prevZ = P.z; P.z -= speed * dt;
   score += speed * dt * 0.6 * (PU.x2 > 0 ? 2 : 1);
 
@@ -980,7 +1185,7 @@ function frame(now) {
 // ================= input =================
 addEventListener('keydown', e => {
   const k = e.key;
-  if (state === 'menu' && (k === 'Enter' || k === ' ')) { e.preventDefault(); startGame(); return; }
+  if (state === 'menu' && (k === 'Enter' || k === ' ') && $('shopScreen').classList.contains('hidden')) { e.preventDefault(); startGame(); return; }
   if (state === 'over' && (k === 'Enter' || k === ' ')) { e.preventDefault(); startGame(); return; }
   if (state === 'pause' && (k === 'p' || k === 'P' || k === 'Escape')) { resume(); return; }
   if (state !== 'play') return;
@@ -1034,6 +1239,13 @@ $('resumeBtn').onclick = resume;
 $('pauseBtn').onclick = () => state === 'pause' ? resume() : pause();
 $('boardBtn').onclick = useBoard;
 $('muteBtn').onclick = () => { muted = !muted; store.set('sr_muted', muted); refreshMenu(); };
+$('musicBtn').onclick = $('musicBtn2').onclick = () => { Music.toggle(); if (state === 'pause') Music.stop(); refreshMenu(); };
+$('shopBtn').onclick = openShop;
+$('overShopBtn').onclick = openShop;
+$('shopBack').onclick = () => { show('startScreen'); refreshMenu(); };
+// browsers only allow audio after a user gesture: start menu music on the first interaction
+const unlock = () => { if (state === 'menu') Music.start(); removeEventListener('pointerdown', unlock); removeEventListener('keydown', unlock); };
+addEventListener('pointerdown', unlock); addEventListener('keydown', unlock);
 document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
 
 // ================= boot =================
