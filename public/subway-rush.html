@@ -63,6 +63,26 @@
   .stat strong{font-size:24px;direction:ltr;display:inline-block}
   h2{font-size:34px;margin-bottom:6px}
   #newBest{color:var(--accent);font-weight:900;font-size:20px;animation:pulse .5s infinite alternate;margin-bottom:6px}
+  /* missions */
+  .missionList{display:flex;flex-direction:column;gap:8px;margin:10px 0 16px;text-align:right}
+  .mission{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.07);border-radius:14px;padding:10px 12px}
+  .mission.done{background:rgba(6,214,160,.16)}
+  .mission.compact{padding:6px 10px}
+  .mIcon{font-size:24px;width:30px;text-align:center}
+  .mission.compact .mIcon{font-size:18px}
+  .mBody{flex:1;min-width:0}
+  .mText{font-weight:700;font-size:15px;margin-bottom:5px}
+  .mission.compact .mText{font-size:13px;margin-bottom:3px}
+  .mBar{height:8px;border-radius:5px;background:rgba(255,255,255,.15);overflow:hidden}
+  .mBar i{display:block;height:100%;background:linear-gradient(90deg,#ffbe0b,#ff006e);border-radius:5px}
+  .mission.done .mBar i{background:#06d6a0}
+  .mNum{font-weight:900;font-size:13px;direction:ltr;opacity:.85;white-space:nowrap}
+  .levelChip{display:inline-block;background:rgba(255,190,11,.18);border-radius:14px;padding:6px 16px;margin:4px 0 10px;font-size:18px}
+  .levelChip b{color:var(--accent);font-size:24px;direction:ltr;display:inline-block}
+  .overMissionsHead{font-weight:700;opacity:.9;margin-top:-4px}
+  .overMissionsHead b{color:var(--accent)}
+  .badge{background:var(--accent2);border-radius:10px;padding:1px 7px;font-size:13px;margin-right:4px;direction:ltr;display:inline-block}
+  #overScreen .card{max-height:calc(100vh - 32px);overflow-y:auto;touch-action:pan-y}
   /* shop */
   .shopCard{max-width:560px;max-height:calc(100vh - 32px);display:flex;flex-direction:column}
   .shopHead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
@@ -134,8 +154,10 @@
     <div class="stats">
       <div class="stat"><span>שיא</span><strong id="bestMenu">0</strong></div>
       <div class="stat"><span>סה״כ מטבעות</span><strong id="bankMenu">0</strong></div>
+      <div class="stat"><span>מכפיל ניקוד</span><strong id="multMenu">x1</strong></div>
     </div>
     <button class="btn" id="playBtn">▶ התחל לרוץ!</button><br>
+    <button class="btn ghost" id="missionBtn">🎯 משימות <span id="missionBadge" class="badge">0/3</span></button>
     <button class="btn ghost" id="shopBtn">🛒 חנות דמויות</button>
     <button class="btn ghost" id="musicBtn">🎵 מוזיקה</button>
     <button class="btn ghost" id="muteBtn">🔊 צליל</button>
@@ -149,6 +171,16 @@
     <button class="btn" id="resumeBtn">▶ המשך</button><br>
     <button class="btn ghost" id="musicBtn2">🎵 מוזיקה</button>
     <button class="btn ghost" id="quitBtn">🏠 לתפריט</button>
+  </div>
+</div>
+
+<div id="missionScreen" class="screen hidden">
+  <div class="card">
+    <h2>🎯 משימות</h2>
+    <div class="levelChip">מכפיל ניקוד <b>x<span id="missionLevel">1</span></b></div>
+    <p class="sub" id="missionInfo"></p>
+    <div id="missionList" class="missionList"></div>
+    <button class="btn" id="missionBack">← חזרה</button>
   </div>
 </div>
 
@@ -173,6 +205,8 @@
       <div class="stat"><span>מטבעות</span><strong id="finalCoins">0</strong></div>
       <div class="stat"><span>שיא</span><strong id="finalBest">0</strong></div>
     </div>
+    <div class="overMissionsHead">🎯 משימות · מכפיל <b id="overLevel">x1</b></div>
+    <div id="overMissions" class="missionList"></div>
     <button class="btn" id="againBtn">↻ שחק שוב</button><br>
     <button class="btn ghost" id="overShopBtn">🛒 חנות</button>
     <button class="btn ghost" id="menuBtn">🏠 לתפריט</button>
@@ -858,22 +892,22 @@ function moveLane(dir) {
   const t = P.lane + dir;
   if (t < 0 || t > 2) { stumble(); return; }
   if (PU.jet <= 0 && P.inv <= 0 && sideBlocked(t)) { stumble(); return; }
-  P.lane = t; SFX.lane();
+  P.lane = t; SFX.lane(); track('lanes');
 }
 function jump() {
   if (state !== 'play' || PU.jet > 0 || !P.grounded) return;
   P.vy = PU.sneakers > 0 ? SNEAK_V : JUMP_V; P.grounded = false; P.roll = 0;
-  SFX.jump();
+  SFX.jump(); track('jumps');
 }
 function roll() {
   if (state !== 'play' || PU.jet > 0) return;
   P.roll = 0.7;
   if (!P.grounded) P.vy = -28;
-  SFX.roll();
+  SFX.roll(); track('rolls');
 }
 function useBoard() {
   if (state !== 'play' || PU.board > 0 || boards <= 0) return;
-  boards--; PU.board = PU_DEF.board.dur;
+  boards--; PU.board = PU_DEF.board.dur; track('board');
   SFX.board(); toast('🛹 סקייטבורד פעיל!');
 }
 function stumble() {
@@ -900,6 +934,76 @@ function activate(kind) {
   PU[kind] = PU_DEF[kind].dur;
   if (kind === 'jet') { spawnJetCoins(); P.roll = 0; }
   SFX.power(); toast(PU_DEF[kind].icon + ' ' + PU_DEF[kind].name);
+  track('powerups'); if (kind === 'jet') track('jet');
+}
+
+// ================= missions =================
+// 3 active missions; finishing all of them raises the permanent score multiplier.
+const MISSION_TYPES = {
+  coins:      { icon: '🪙', run: true,  text: n => `אסוף ${n} מטבעות בריצה אחת`,        target: L => 40 + L * 20 },
+  coinsTotal: { icon: '💰', run: false, text: n => `אסוף ${n} מטבעות בסך הכל`,           target: L => 150 + L * 100 },
+  jumps:      { icon: '🦘', run: true,  text: n => `קפוץ ${n} פעמים בריצה אחת`,          target: L => 10 + L * 5 },
+  rolls:      { icon: '🌀', run: true,  text: n => `התגלגל ${n} פעמים בריצה אחת`,        target: L => 6 + L * 4 },
+  score:      { icon: '⭐', run: true,  text: n => `השג ${n.toLocaleString('en-US')} נקודות בריצה אחת`, target: L => 600 + L * 500 },
+  lanes:      { icon: '↔️', run: true,  text: n => `החלף מסילה ${n} פעמים בריצה אחת`,   target: L => 20 + L * 10 },
+  survive:    { icon: '⏱️', run: true,  text: n => `רוץ ${n} שניות בריצה אחת`,           target: L => 30 + L * 12 },
+  trainTop:   { icon: '🚃', run: true,  text: n => `נחת על גג רכבת ${n} פעמים בריצה אחת`, target: L => 1 + L },
+  powerups:   { icon: '⚡', run: true,  text: n => `אסוף ${n} חיזוקים בריצה אחת`,        target: L => 1 + Math.floor(L / 2) },
+  jet:        { icon: '🚀', run: false, text: n => `אסוף ג׳טפק ${n} פעמים`,              target: L => 1 + Math.floor(L / 2) },
+  board:      { icon: '🛹', run: false, text: n => `השתמש בסקייטבורד ${n} פעמים`,        target: L => 1 + Math.floor(L / 3) }
+};
+const MAX_LEVEL = 30;
+const setBonus = L => 50 * L;
+function newMissionSet(level) {
+  const types = Object.keys(MISSION_TYPES).sort(() => Math.random() - .5).slice(0, 3);
+  return { level, list: types.map(type => ({ type, target: MISSION_TYPES[type].target(level), progress: 0, done: false })) };
+}
+let missions = store.get('sr_missions', null);
+if (!missions || !Array.isArray(missions.list) || missions.list.some(m => !MISSION_TYPES[m.type])) missions = newMissionSet(1);
+const saveMissions = () => store.set('sr_missions', missions);
+const scoreMult = () => Math.min(MAX_LEVEL, missions.level) * (PU.x2 > 0 ? 2 : 1);
+
+function resetRunMissions() {
+  for (const m of missions.list) if (!m.done && MISSION_TYPES[m.type].run) m.progress = 0;
+}
+function track(type, amount = 1, absolute = false) {
+  if (state !== 'play') return;
+  for (const m of missions.list) {
+    if (m.done || m.type !== type) continue;
+    m.progress = absolute ? Math.max(m.progress, Math.floor(amount)) : m.progress + amount;
+    if (m.progress >= m.target) {
+      m.progress = m.target; m.done = true;
+      SFX.power(); toast('🎯 משימה הושלמה!');
+      if (missions.list.every(x => x.done)) completeSet();
+      saveMissions();
+    }
+  }
+}
+function completeSet() {
+  const L = missions.level, bonus = setBonus(L);
+  bank += bonus; store.set('sr_bank', bank);
+  missions = newMissionSet(Math.min(MAX_LEVEL, L + 1));
+  saveMissions();
+  setTimeout(() => { if (state === 'play') { SFX.board(); toast(`🏆 מכפיל x${missions.level}! +${bonus} 🪙`); } }, 1500);
+}
+function missionsHTML(compact) {
+  return missions.list.map(m => {
+    const d = MISSION_TYPES[m.type], pct = Math.min(100, m.progress / m.target * 100);
+    return `<div class="mission${m.done ? ' done' : ''}${compact ? ' compact' : ''}">
+      <div class="mIcon">${m.done ? '✅' : d.icon}</div>
+      <div class="mBody"><div class="mText">${d.text(m.target)}</div>
+        <div class="mBar"><i style="width:${pct}%"></i></div></div>
+      <div class="mNum">${m.done ? '✓' : `${Math.floor(m.progress).toLocaleString('en-US')}/${m.target.toLocaleString('en-US')}`}</div></div>`;
+  }).join('');
+}
+function openMissions() {
+  const L = missions.level;
+  $('missionLevel').textContent = L;
+  $('missionInfo').textContent = L >= MAX_LEVEL
+    ? `הגעת למכפיל המקסימלי x${MAX_LEVEL}! השלם משימות כדי לקבל 🪙 ${setBonus(L)}`
+    : `השלם את כל 3 המשימות כדי להעלות את מכפיל הניקוד ל־x${L + 1} ולקבל 🪙 ${setBonus(L)}`;
+  $('missionList').innerHTML = missionsHTML(false);
+  show('missionScreen');
 }
 
 // ================= HUD =================
@@ -914,7 +1018,7 @@ for (const k of Object.keys(PU_DEF)) {
 function updateHUD() {
   $('score').textContent = Math.floor(score).toLocaleString('en-US');
   $('coins').textContent = runCoins;
-  const m = $('mult'); m.textContent = PU.x2 > 0 ? 'x2' : 'x1'; m.classList.toggle('on', PU.x2 > 0);
+  const m = $('mult'); m.textContent = 'x' + scoreMult(); m.classList.toggle('on', PU.x2 > 0);
   $('boards').textContent = boards; $('boardBtn').classList.toggle('active', PU.board > 0);
   for (const k in pupEls) {
     const on = PU[k] > 0; pupEls[k].classList.toggle('hidden', !on);
@@ -923,6 +1027,8 @@ function updateHUD() {
 }
 function refreshMenu() {
   $('bestMenu').textContent = best.toLocaleString('en-US'); $('bankMenu').textContent = bank.toLocaleString('en-US');
+  $('multMenu').textContent = 'x' + missions.level;
+  $('missionBadge').textContent = missions.list.filter(m => m.done).length + '/3';
   $('muteBtn').textContent = muted ? '🔇 צליל כבוי' : '🔊 צליל';
   $('musicBtn').textContent = $('musicBtn2').textContent = Music.on ? '🎵 מוזיקה' : '🎵 מוזיקה כבויה';
   $('musicBtn').style.opacity = $('musicBtn2').style.opacity = Music.on ? 1 : .55;
@@ -983,8 +1089,8 @@ function reset() {
   resetScenery(0);
   genAhead();
 }
-function show(id) { for (const s of ['startScreen', 'pauseScreen', 'overScreen', 'shopScreen']) $(s).classList.toggle('hidden', s !== id); $('hud').classList.toggle('hidden', id !== null && id !== 'pauseScreen'); }
-function startGame() { audio(); reset(); state = 'play'; show(null); updateHUD(); Music.start(); }
+function show(id) { for (const s of ['startScreen', 'pauseScreen', 'overScreen', 'shopScreen', 'missionScreen']) $(s).classList.toggle('hidden', s !== id); $('hud').classList.toggle('hidden', id !== null && id !== 'pauseScreen'); }
+function startGame() { audio(); reset(); resetRunMissions(); state = 'play'; show(null); updateHUD(); Music.start(); }
 function toMenu() { reset(); state = 'menu'; refreshMenu(); show('startScreen'); Music.start(); }
 function pause() { if (state === 'play') { state = 'pause'; show('pauseScreen'); Music.stop(); } }
 function resume() { if (state === 'pause') { state = 'play'; show(null); last = performance.now(); Music.start(); } }
@@ -998,6 +1104,9 @@ function gameOver() {
   $('finalScore').textContent = final.toLocaleString('en-US');
   $('finalCoins').textContent = runCoins;
   $('finalBest').textContent = best.toLocaleString('en-US');
+  saveMissions();
+  $('overMissions').innerHTML = missionsHTML(true);
+  $('overLevel').textContent = 'x' + missions.level;
   show('overScreen');
 }
 
@@ -1007,7 +1116,8 @@ function update(dt) {
   speed = START_SPEED + (MAX_SPEED - START_SPEED) * (1 - Math.exp(-elapsed / 90));
   Music.bpm = 120 + (speed - START_SPEED) * 1.6;
   P.prevZ = P.z; P.z -= speed * dt;
-  score += speed * dt * 0.6 * (PU.x2 > 0 ? 2 : 1);
+  score += speed * dt * 0.6 * scoreMult();
+  track('score', score, true); track('survive', elapsed, true);
 
   const wasJet = PU.jet > 0;
   for (const k in PU) PU[k] = Math.max(0, PU[k] - dt);
@@ -1020,8 +1130,11 @@ function update(dt) {
     P.y = lerp(P.y, JET_Y, Math.min(1, dt * 2.5)); P.vy = 0; P.grounded = false;
   } else {
     P.vy -= GRAVITY * dt; P.y += P.vy * dt;
-    const g = groundHeight();
-    if (P.y <= g) { P.y = g; if (P.vy < 0) P.vy = 0; P.grounded = true; }
+    const g = groundHeight(), wasGrounded = P.grounded;
+    if (P.y <= g) {
+      P.y = g; if (P.vy < 0) P.vy = 0; P.grounded = true;
+      if (!wasGrounded && g >= TRAIN_H - 0.01) track('trainTop');
+    }
     else P.grounded = false;
   }
 
@@ -1054,7 +1167,7 @@ function update(dt) {
       }
     }
     if (Math.abs(c.x - P.x) < 1.0 && c.z > P.z - 0.9 && c.z < P.prevZ + 0.9 && Math.abs(c.y - cy) < 1.4) {
-      c.taken = true; scene.remove(c.mesh); runCoins++; score += 10 * (PU.x2 > 0 ? 2 : 1); SFX.coin();
+      c.taken = true; scene.remove(c.mesh); runCoins++; score += 10 * scoreMult(); SFX.coin(); track('coins'); track('coinsTotal');
     }
   }
   for (const p of pickups) {
@@ -1185,7 +1298,7 @@ function frame(now) {
 // ================= input =================
 addEventListener('keydown', e => {
   const k = e.key;
-  if (state === 'menu' && (k === 'Enter' || k === ' ') && $('shopScreen').classList.contains('hidden')) { e.preventDefault(); startGame(); return; }
+  if (state === 'menu' && (k === 'Enter' || k === ' ') && !$('startScreen').classList.contains('hidden')) { e.preventDefault(); startGame(); return; }
   if (state === 'over' && (k === 'Enter' || k === ' ')) { e.preventDefault(); startGame(); return; }
   if (state === 'pause' && (k === 'p' || k === 'P' || k === 'Escape')) { resume(); return; }
   if (state !== 'play') return;
@@ -1241,6 +1354,8 @@ $('boardBtn').onclick = useBoard;
 $('muteBtn').onclick = () => { muted = !muted; store.set('sr_muted', muted); refreshMenu(); };
 $('musicBtn').onclick = $('musicBtn2').onclick = () => { Music.toggle(); if (state === 'pause') Music.stop(); refreshMenu(); };
 $('shopBtn').onclick = openShop;
+$('missionBtn').onclick = openMissions;
+$('missionBack').onclick = () => { show('startScreen'); refreshMenu(); };
 $('overShopBtn').onclick = openShop;
 $('shopBack').onclick = () => { show('startScreen'); refreshMenu(); };
 // browsers only allow audio after a user gesture: start menu music on the first interaction
