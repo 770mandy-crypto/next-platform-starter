@@ -601,58 +601,152 @@ function dressSeg(g) {
 function resetScenery(z0) { segs.forEach((g, i) => { g.position.z = z0 + 20 - i * SEG; dressSeg(g); }); }
 
 // ================= characters =================
+// Detailed, smooth character: rounded body, face, hair, hoodie, jeans,
+// two-joint arms and legs (knees / elbows), hands and sneakers.
+const SM = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.75, metalness: 0, ...o });
+const GEO = {
+  sphere: new THREE.SphereGeometry(1, 24, 18),
+  hemi: new THREE.SphereGeometry(1, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2),
+  hair: new THREE.SphereGeometry(1, 24, 14, 0, Math.PI * 2, 0, Math.PI * 0.6),
+  cyl: new THREE.CylinderGeometry(1, 1, 1, 20),
+  torso: new THREE.CylinderGeometry(0.34, 0.29, 0.64, 24),
+  thigh: new THREE.CylinderGeometry(0.15, 0.12, 0.46, 16),
+  shin: new THREE.CylinderGeometry(0.12, 0.095, 0.44, 16),
+  upper: new THREE.CylinderGeometry(0.095, 0.08, 0.36, 14),
+  fore: new THREE.CylinderGeometry(0.08, 0.07, 0.32, 14),
+  rbox: (() => { const g = new THREE.BoxGeometry(1, 1, 1, 4, 4, 4); const v = g.attributes.position, t = new THREE.Vector3();
+    for (let i = 0; i < v.count; i++) { t.fromBufferAttribute(v, i); const n = t.clone().normalize().multiplyScalar(0.5);
+      t.lerp(n.multiplyScalar(1.3), 0.35); v.setXYZ(i, t.x, t.y, t.z); } g.computeVertexNormals(); return g; })()
+};
+function part(geo, mat, sx, sy, sz, x, y, z, parent, shadow = true) {
+  const m = new THREE.Mesh(geo, mat); m.scale.set(sx, sy, sz); m.position.set(x, y, z);
+  m.castShadow = shadow; parent.add(m); return m;
+}
 function makeHuman(c) {
   const g = new THREE.Group();
   const body = new THREE.Group(); body.position.y = 1.1; g.add(body);
   const inner = new THREE.Group(); inner.position.y = -1.1; body.add(inner);
-  const add = (m, x, y, z) => { m.position.set(x, y, z); inner.add(m); return m; };
-  const mats = { shirt: M(c.shirt), skin: M(c.skin), cap: M(c.cap), pants: M(c.pants), shoes: M(c.shoes), pack: M(c.pack || 0) };
-  add(box(0.8, 0.85, 0.46, mats.shirt), 0, 1.33, 0);
-  add(box(0.56, 0.56, 0.5, mats.skin), 0, 2.02, 0);
-  const caps = [add(box(0.6, 0.18, 0.56, mats.cap), 0, 2.34, 0), add(box(0.56, 0.06, 0.34, mats.cap), 0, 2.27, c.visor)];
-  if (c.pack) add(box(0.6, 0.62, 0.26, mats.pack), 0, 1.38, 0.34);
+  const mats = {
+    shirt: SM(c.shirt), skin: SM(c.skin, { roughness: 0.6 }), cap: SM(c.cap), pants: SM(c.pants, { roughness: 0.9 }),
+    shoes: SM(c.shoes, { roughness: 0.5 }), pack: SM(c.pack || 0x333333), hair: SM(c.hair || 0x3b2416, { roughness: 0.9 })
+  };
+  const white = SM(0xffffff, { roughness: 0.4 }), dark = SM(0x1a1a1a, { roughness: 0.3 }), sole = SM(0xf2f2f2);
+  const brow = mats.hair;
+
+  // --- hips & torso (hoodie) ---
+  part(GEO.cyl, mats.pants, 0.28, 0.24, 0.2, 0, 1.0, 0, inner);
+  part(GEO.torso, mats.shirt, 1, 1, 0.68, 0, 1.43, 0, inner);
+  part(GEO.rbox, mats.shirt, 0.36, 0.16, 0.06, 0, 1.24, -0.2, inner, false);           // front pocket
+  part(GEO.rbox, SM(0x000000, { transparent: true, opacity: .15 }), 0.62, 0.05, 0.42, 0, 1.13, 0, inner, false); // hem
+  for (const s of [-1, 1]) part(GEO.sphere, mats.shirt, 0.15, 0.14, 0.15, s * 0.3, 1.68, 0, inner);           // shoulders
+  part(GEO.sphere, mats.shirt, 0.3, 0.13, 0.17, 0, 1.76, 0.12, inner);                                         // hood
+  if (!c.guard) for (const s of [-1, 1]) part(GEO.cyl, white, 0.012, 0.22, 0.012, s * 0.07, 1.62, -0.215, inner, false); // drawstrings
+  if (c.guard) {
+    part(GEO.rbox, SM(0xffd166, { metalness: .6, roughness: .3 }), 0.1, 0.12, 0.03, -0.14, 1.58, -0.215, inner, false); // badge
+    part(GEO.cyl, dark, 0.31, 0.06, 0.22, 0, 1.13, 0, inner, false);                                                    // belt
+  }
+
+  // --- neck & head ---
+  part(GEO.cyl, mats.skin, 0.085, 0.14, 0.085, 0, 1.79, 0, inner);
+  const head = new THREE.Group(); head.position.set(0, 2.04, 0); inner.add(head);
+  part(GEO.sphere, mats.skin, 0.25, 0.28, 0.25, 0, 0, 0, head);
+  part(GEO.sphere, mats.skin, 0.17, 0.12, 0.15, 0, -0.13, -0.06, head, false);         // jaw / chin
+  for (const s of [-1, 1]) {
+    part(GEO.sphere, mats.skin, 0.035, 0.065, 0.05, s * 0.25, 0, 0.01, head, false);    // ears
+    part(GEO.sphere, white, 0.055, 0.06, 0.03, s * 0.09, 0.03, -0.225, head, false);    // eye whites
+    part(GEO.sphere, dark, 0.032, 0.036, 0.02, s * 0.09, 0.025, -0.245, head, false);   // pupils
+    part(GEO.sphere, white, 0.009, 0.009, 0.005, s * 0.09 + 0.012, 0.04, -0.262, head, false); // eye shine
+    const b = part(GEO.rbox, brow, 0.09, 0.022, 0.02, s * 0.09, 0.11, -0.235, head, false); b.rotation.z = s * -0.12;
+  }
+  part(GEO.sphere, mats.skin, 0.035, 0.05, 0.045, 0, -0.04, -0.25, head, false);         // nose
+  const mouth = part(GEO.rbox, SM(0x8a3b3b), 0.085, 0.018, 0.015, 0, -0.13, -0.225, head, false);
+  if (c.guard) part(GEO.rbox, brow, 0.13, 0.03, 0.02, 0, -0.095, -0.24, head, false);    // moustache
+  const hair = part(GEO.hair, mats.hair, 0.265, 0.29, 0.265, 0, 0.02, 0.012, head);
+  hair.rotation.x = 0.85;                                                              // hairline above the brows, longer at the back
+  // cap (dome + visor)
+  const capDome = part(GEO.hemi, mats.cap, 0.27, 0.2, 0.27, 0, 0.1, 0, head);
+  const visor = part(GEO.cyl, mats.cap, 0.17, 0.025, 0.2, 0, 0.11, c.visor > 0 ? 0.28 : -0.28, head);
+  visor.rotation.x = c.visor > 0 ? -0.15 : 0.15;
+  const caps = [capDome, visor];
+
   // optional crown (unlockable in the shop)
   const crown = new THREE.Group();
   {
-    const gold = new THREE.MeshLambertMaterial({ color: 0xffd60a, emissive: 0x6a4a00 });
-    const ring = box(0.62, 0.16, 0.56, gold); ring.position.y = 0.08; crown.add(ring);
-    for (const [x, z] of [[-.24, -.2], [.24, -.2], [-.24, .2], [.24, .2], [0, -.2], [0, .2]]) {
-      const s = box(0.12, 0.2, 0.12, gold); s.position.set(x, 0.24, z); crown.add(s);
+    const gold = SM(0xffd60a, { metalness: 0.8, roughness: 0.25, emissive: 0x3a2800 });
+    const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.23, 0.13, 24, 1, true), gold);
+    ring.material.side = THREE.DoubleSide; ring.position.y = 0.06; crown.add(ring);
+    for (let i = 0; i < 8; i++) {
+      const a = i / 8 * Math.PI * 2;
+      const s = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.14, 8), gold);
+      s.position.set(Math.sin(a) * 0.235, 0.19, Math.cos(a) * 0.235); crown.add(s);
+      part(GEO.sphere, gold, 0.022, 0.022, 0.022, Math.sin(a) * 0.235, 0.27, Math.cos(a) * 0.235, crown, false);
     }
-    const gem = box(0.12, 0.12, 0.06, new THREE.MeshBasicMaterial({ color: 0xff006e }), false); gem.position.set(0, 0.08, -0.3); crown.add(gem);
-    crown.position.y = 2.3; crown.visible = false; inner.add(crown);
+    part(GEO.sphere, SM(0xff006e, { roughness: .2, emissive: 0x440018 }), 0.04, 0.04, 0.02, 0, 0.06, -0.25, crown, false);
+    crown.position.y = 0.2; crown.visible = false; head.add(crown);
   }
-  const limb = (x, y, w, h, mat, foot) => {
-    const p = new THREE.Group(); p.position.set(x, y, 0); inner.add(p);
-    const l = box(w, h, w, mat); l.position.y = -h / 2; p.add(l);
-    if (foot) { const f = box(w + 0.06, 0.16, w + 0.28, mats.shoes); f.position.set(0, -h + 0.04, -0.1); p.add(f); }
-    return p;
+
+  // --- backpack ---
+  if (c.pack) {
+    part(GEO.rbox, mats.pack, 0.5, 0.56, 0.24, 0, 1.43, 0.3, inner);
+    part(GEO.rbox, mats.pack, 0.36, 0.2, 0.08, 0, 1.3, 0.43, inner, false);            // front pocket
+    for (const s of [-1, 1]) part(GEO.rbox, dark, 0.06, 0.5, 0.05, s * 0.17, 1.47, -0.2, inner, false); // straps
+  }
+
+  // --- limbs: pivot at hip/shoulder, child pivot at knee/elbow ---
+  const leg = x => {
+    const hip = new THREE.Group(); hip.position.set(x, 0.95, 0); inner.add(hip);
+    part(GEO.thigh, mats.pants, 1, 1, 1, 0, -0.23, 0, hip);
+    const knee = new THREE.Group(); knee.position.y = -0.46; hip.add(knee);
+    part(GEO.sphere, mats.pants, 0.12, 0.12, 0.12, 0, 0, 0, knee);
+    part(GEO.shin, mats.pants, 1, 1, 1, 0, -0.22, 0, knee);
+    part(GEO.sphere, mats.shoes, 0.13, 0.11, 0.24, 0, -0.43, -0.07, knee);              // sneaker
+    part(GEO.rbox, sole, 0.24, 0.06, 0.46, 0, -0.5, -0.07, knee);                      // sole
+    part(GEO.rbox, white, 0.2, 0.02, 0.1, 0, -0.38, -0.17, knee, false);               // laces
+    hip.userData.knee = knee; return hip;
   };
-  const legL = limb(-0.2, 0.92, 0.3, 0.86, mats.pants, true), legR = limb(0.2, 0.92, 0.3, 0.86, mats.pants, true);
-  const armL = limb(-0.52, 1.72, 0.22, 0.76, mats.shirt), armR = limb(0.52, 1.72, 0.22, 0.76, mats.shirt);
+  const arm = x => {
+    const sh = new THREE.Group(); sh.position.set(x, 1.66, 0); sh.rotation.z = Math.sign(x) * 0.12; inner.add(sh);
+    part(GEO.upper, mats.shirt, 1, 1, 1, 0, -0.17, 0, sh);
+    const el = new THREE.Group(); el.position.y = -0.35; sh.add(el);
+    part(GEO.sphere, mats.shirt, 0.085, 0.085, 0.085, 0, 0, 0, el);
+    part(GEO.fore, mats.shirt, 1, 1, 1, 0, -0.15, 0, el);
+    part(GEO.cyl, mats.shirt, 0.085, 0.05, 0.085, 0, -0.3, 0, el, false);              // cuff
+    part(GEO.sphere, mats.skin, 0.075, 0.09, 0.065, 0, -0.38, 0, el);                  // hand
+    sh.userData.elbow = el; return sh;
+  };
+  const legL = leg(-0.15), legR = leg(0.15), armL = arm(-0.39), armR = arm(0.39);
   scene.add(g);
-  return { g, body, inner, legL, legR, armL, armR, mats, caps, crown, shoeMat: mats.shoes, baseShoe: c.shoes };
+  return { g, body, inner, head, legL, legR, armL, armR, kneeL: legL.userData.knee, kneeR: legR.userData.knee,
+    elbowL: armL.userData.elbow, elbowR: armR.userData.elbow, mats, caps, crown, mouth, shoeMat: mats.shoes, baseShoe: c.shoes };
 }
+// knees bend backwards (negative x), elbows bend forwards (positive x)
+function bend(h, kl, kr, el, er = el) { h.kneeL.rotation.x = -kl; h.kneeR.rotation.x = -kr; h.elbowL.rotation.x = el; h.elbowR.rotation.x = er; }
 function animateRun(h, t, grounded, k = 1) {
   if (grounded) {
     const s = Math.sin(t);
-    h.legL.rotation.x = s * 0.95 * k; h.legR.rotation.x = -s * 0.95 * k;
-    h.armL.rotation.x = -s * 0.85 * k; h.armR.rotation.x = s * 0.85 * k;
+    h.legL.rotation.x = s * 0.9 * k; h.legR.rotation.x = -s * 0.9 * k;
+    h.armL.rotation.x = -s * 0.8 * k; h.armR.rotation.x = s * 0.8 * k;
+    // the trailing leg kicks up behind, the leading one stays almost straight
+    bend(h, 0.25 + Math.max(0, -s) * 1.5 * k, 0.25 + Math.max(0, s) * 1.5 * k, 1.3);
     h.body.position.y = 1.1 + Math.abs(Math.cos(t)) * 0.08;
+    h.body.rotation.x = -0.12 * k;                    // lean into the run
+    h.head.rotation.x = 0.1 * k;
   } else {
-    h.legL.rotation.x = 0.9; h.legR.rotation.x = -0.5;
-    h.armL.rotation.x = -2.4; h.armR.rotation.x = -2.0;
+    h.legL.rotation.x = 1.0; h.legR.rotation.x = -0.3;
+    h.armL.rotation.x = -2.3; h.armR.rotation.x = -1.9;
+    bend(h, 1.4, 0.5, 0.4);
+    h.body.rotation.x = 0; h.head.rotation.x = 0;
   }
 }
 
 // characters for the shop
 const CHARS = [
-  { id: 'dani',  name: 'דני',      price: 0,    desc: 'הגרפיטר המקורי',   shirt: 0x3a86ff, skin: 0xf1c27d, cap: 0xff006e, pants: 0x22223b, shoes: 0xffbe0b, pack: 0xfb5607 },
-  { id: 'maya',  name: 'מאיה',     price: 150,  desc: 'מהירה כמו הרוח',   shirt: 0x8338ec, skin: 0xc68642, cap: 0x06d6a0, pants: 0x3d405b, shoes: 0xffffff, pack: 0xffbe0b },
-  { id: 'tony',  name: 'טוני',     price: 400,  desc: 'מלך הסקייטבורד',   shirt: 0xe63946, skin: 0x8d5524, cap: 0x111111, pants: 0x1d3557, shoes: 0xf1faee, pack: 0x457b9d },
-  { id: 'ninja', name: 'נינג׳ה',   price: 800,  desc: 'שקט ומהיר',        shirt: 0x222222, skin: 0xf1c27d, cap: 0x222222, pants: 0x151515, shoes: 0xd00000, pack: 0xd00000 },
-  { id: 'robo',  name: 'רובו',     price: 1500, desc: 'מכונת ריצה',       shirt: 0xb0b8c4, skin: 0x9aa5b1, cap: 0x3a86ff, pants: 0x6c757d, shoes: 0x00f5d4, pack: 0xff006e },
-  { id: 'king',  name: 'המלך',     price: 3000, desc: 'עם כתר זהב!',      shirt: 0xffd60a, skin: 0xf1c27d, cap: 0x7b2cbf, pants: 0x5a189a, shoes: 0xffd60a, pack: 0x7b2cbf, crown: true }
+  { id: 'dani',  name: 'דני',      price: 0,    desc: 'הגרפיטר המקורי',   shirt: 0x3a86ff, skin: 0xf1c27d, cap: 0xff006e, pants: 0x22223b, shoes: 0xffbe0b, pack: 0xfb5607, hair: 0x3b2416 },
+  { id: 'maya',  name: 'מאיה',     price: 150,  desc: 'מהירה כמו הרוח',   shirt: 0x8338ec, skin: 0xc68642, cap: 0x06d6a0, pants: 0x3d405b, shoes: 0xffffff, pack: 0xffbe0b, hair: 0x1b1b1b },
+  { id: 'tony',  name: 'טוני',     price: 400,  desc: 'מלך הסקייטבורד',   shirt: 0xe63946, skin: 0x8d5524, cap: 0x111111, pants: 0x1d3557, shoes: 0xf1faee, pack: 0x457b9d, hair: 0x111111 },
+  { id: 'ninja', name: 'נינג׳ה',   price: 800,  desc: 'שקט ומהיר',        shirt: 0x222222, skin: 0xf1c27d, cap: 0x222222, pants: 0x151515, shoes: 0xd00000, pack: 0xd00000, hair: 0x0d0d0d },
+  { id: 'robo',  name: 'רובו',     price: 1500, desc: 'מכונת ריצה',       shirt: 0xb0b8c4, skin: 0x9aa5b1, cap: 0x3a86ff, pants: 0x6c757d, shoes: 0x00f5d4, pack: 0xff006e, hair: 0x5c677d },
+  { id: 'king',  name: 'המלך',     price: 3000, desc: 'עם כתר זהב!',      shirt: 0xffd60a, skin: 0xf1c27d, cap: 0x7b2cbf, pants: 0x5a189a, shoes: 0xffd60a, pack: 0x7b2cbf, hair: 0xb5651d, crown: true }
 ];
 let owned = store.get('sr_owned', ['dani']), selected = store.get('sr_char', 'dani');
 if (!CHARS.some(c => c.id === selected) || !owned.includes(selected)) selected = 'dani';
@@ -660,7 +754,7 @@ if (!CHARS.some(c => c.id === selected) || !owned.includes(selected)) selected =
 const hero = makeHuman({ ...CHARS[0], visor: 0.36 });
 function applySkin(id) {
   const ch = CHARS.find(c => c.id === id) || CHARS[0];
-  for (const k of ['shirt', 'skin', 'cap', 'pants', 'shoes', 'pack']) hero.mats[k].color.setHex(ch[k]);
+  for (const k of ['shirt', 'skin', 'cap', 'pants', 'shoes', 'pack', 'hair']) hero.mats[k].color.setHex(ch[k]);
   hero.baseShoe = ch.shoes;
   hero.crown.visible = !!ch.crown;
   hero.caps.forEach(m => m.visible = !ch.crown);
@@ -683,14 +777,14 @@ const flames = [];
 {
   for (const x of [-0.18, 0.18]) {
     const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.7, 12), M(0xc0c4cc));
-    tank.position.set(x, 1.45, 0.52); jetMesh.add(tank);
+    tank.position.set(x, 1.45, 0.47); jetMesh.add(tank);
     const fl = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.6, 10), new THREE.MeshBasicMaterial({ color: 0xff8c00 }));
-    fl.rotation.x = Math.PI; fl.position.set(x, 0.85, 0.52); jetMesh.add(fl); flames.push(fl);
+    fl.rotation.x = Math.PI; fl.position.set(x, 0.85, 0.47); jetMesh.add(fl); flames.push(fl);
   }
   hero.inner.add(jetMesh);
 }
 
-const guard = makeHuman({ shirt: 0x2c3e75, skin: 0xe0ac69, cap: 0x14213d, pants: 0x1d2340, shoes: 0x111111, visor: -0.36 });
+const guard = makeHuman({ shirt: 0x2c3e75, skin: 0xe0ac69, cap: 0x14213d, pants: 0x1d2340, shoes: 0x111111, hair: 0x2b1d14, visor: -0.36, guard: true });
 guard.g.scale.setScalar(1.12);
 const dog = new THREE.Group();
 {
@@ -1212,20 +1306,25 @@ function render(dt, now) {
     hero.body.position.y = lerp(hero.body.position.y, 0.35, Math.min(1, dt * 6));
   } else if (playing && P.roll > 0) {
     hero.body.scale.setScalar(0.62); hero.body.position.y = 0.62;
-    hero.body.rotation.x -= dt * 16;
+    const spin = hero.body.rotation.x - dt * 16;
     animateRun(hero, 0, false);
-    hero.legL.rotation.x = hero.legR.rotation.x = 1.6; hero.armL.rotation.x = hero.armR.rotation.x = 1.2;
+    hero.body.rotation.x = spin;
+    hero.legL.rotation.x = hero.legR.rotation.x = 1.7; hero.armL.rotation.x = hero.armR.rotation.x = 1.0;
+    bend(hero, 2.2, 2.2, 1.6);
   } else {
-    hero.body.scale.setScalar(1); hero.body.rotation.x = 0;
+    hero.body.scale.setScalar(1); hero.body.rotation.x = 0; hero.head.rotation.x = 0;
     if (state === 'menu') {
       hero.legL.rotation.x = hero.legR.rotation.x = 0;
-      hero.armL.rotation.x = Math.sin(t * 2) * 0.1; hero.armR.rotation.x = -2.6 + Math.sin(t * 6) * 0.4;
+      hero.armL.rotation.x = Math.sin(t * 2) * 0.1; hero.armR.rotation.x = -2.5;
+      bend(hero, 0, 0, 0.15, 0.5 + Math.sin(t * 7) * 0.45);   // waving hello
+      hero.head.rotation.y = Math.sin(t * 0.8) * 0.2;
       hero.body.position.y = 1.1 + Math.sin(t * 2) * 0.03;
     } else if (PU.jet > 0) {
       animateRun(hero, 0, false); hero.legL.rotation.x = 0.3; hero.legR.rotation.x = 0.1;
-      hero.armL.rotation.x = hero.armR.rotation.x = -0.4;
+      hero.armL.rotation.x = hero.armR.rotation.x = -0.4; bend(hero, 0.4, 0.2, 0.3);
     } else if (PU.board > 0 && P.grounded) {
-      hero.legL.rotation.x = 0.35; hero.legR.rotation.x = -0.35; hero.armL.rotation.x = -0.4; hero.armR.rotation.x = 0.4;
+      hero.legL.rotation.x = 0.45; hero.legR.rotation.x = -0.25; hero.armL.rotation.x = -0.4; hero.armR.rotation.x = 0.4;
+      bend(hero, 0.7, 0.5, 0.5);
       hero.body.position.y = 1.0 + Math.sin(t * 8) * 0.04;
     } else if (playing) {
       P.anim += dt * speed * 0.62;
@@ -1234,6 +1333,7 @@ function render(dt, now) {
   }
   hero.g.rotation.z = playing ? (LANES[P.lane] - P.x) * -0.09 : 0;
   hero.g.rotation.y = state === 'menu' ? Math.PI * 0.15 : 0;
+  if (state !== 'menu') hero.head.rotation.y = 0;
   hero.g.visible = !(P.inv > 0 && PU.jet <= 0 && playing && Math.floor(t * 14) % 2 === 0);
   boardMesh.visible = PU.board > 0 && state !== 'menu';
   jetMesh.visible = PU.jet > 0 || (P.inv > 0 && PU.jet === 0 && P.y > 0.5 && playing);
@@ -1249,6 +1349,7 @@ function render(dt, now) {
   dog.position.set(guard.g.position.x + 1.25, 0, gz - 0.6);
   if (state === 'dying' || state === 'over') {
     guard.legL.rotation.x = guard.legR.rotation.x = 0; guard.armL.rotation.x = guard.armR.rotation.x = -1.4;
+    bend(guard, 0, 0, 0.3); guard.body.rotation.x = 0;
   } else animateRun(guard, P.anim * 0.95, true);
   dog.userData.legs.forEach((l, i) => l.rotation.x = Math.sin(P.anim * 1.4 + i * 1.6) * 0.7);
   dog.children[4].position.y = 0.55 + Math.abs(Math.sin(P.anim * 1.4)) * 0.08;
@@ -1256,8 +1357,10 @@ function render(dt, now) {
   // camera
   let tp, tl;
   if (state === 'menu') {
-    tp = new THREE.Vector3(P.x + 3.4, 2.6, P.z - 5.5);
-    tl = new THREE.Vector3(P.x, 1.4, P.z);
+    // close-up of the character; on wide screens frame it beside the menu card
+    const side = camera.aspect > 1.2 ? 1.9 * camera.aspect : 0;
+    tp = new THREE.Vector3(P.x + 1.3, 2.15, P.z - 3.9);
+    tl = new THREE.Vector3(P.x - side, 1.45, P.z);
   } else {
     const jy = Math.max(0, P.y);
     tp = new THREE.Vector3(P.x * 0.75, 4.3 + jy * 0.75, P.z + 7.8);
