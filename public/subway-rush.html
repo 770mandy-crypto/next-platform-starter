@@ -114,6 +114,18 @@
   .fig .torso{top:33px;width:40px;height:26px;border-radius:4px}
   .fig .legs{top:59px;width:28px;height:20px;background-image:linear-gradient(90deg,transparent 45%,rgba(0,0,0,.35) 45%,rgba(0,0,0,.35) 55%,transparent 55%)}
   .fig .shoes{top:78px;width:32px;height:7px;border-radius:2px}
+  .fig .hairtop{top:7px;width:30px;height:9px;border-radius:12px 12px 2px 2px}
+  .fig .beanie{top:-1px;width:32px;height:15px;border-radius:15px 15px 3px 3px;box-shadow:inset 0 -4px 0 rgba(0,0,0,.18)}
+  .fig .pom{top:-7px;width:9px;height:9px;border-radius:50%;background:#fff}
+  .fig .tail{top:11px;margin-left:16px;width:9px;height:20px;border-radius:6px}
+  .fig .glasses{top:16px;width:26px;height:6px;border-radius:2px}
+  .fig .mask{top:22px;width:28px;height:11px;border-radius:0 0 3px 3px}
+  .fig .cup{top:15px;width:7px;height:11px;border-radius:3px}
+  .fig .cupL{margin-left:-16px}.fig .cupR{margin-left:16px}
+  .fig .band{top:2px;width:34px;height:20px;border:3px solid;border-bottom:0;border-radius:17px 17px 0 0;background:none}
+  .fig .antenna{top:-9px;width:3px;height:11px;background:#b8bcc6}
+  .fig .ball{top:-14px;width:7px;height:7px;border-radius:50%;background:#ff2d55}
+  .fig .cape{top:33px;width:48px;height:44px;border-radius:3px 3px 8px 8px;filter:brightness(.8)}
   @media (max-width:420px){.shopGrid{grid-template-columns:repeat(2,1fr)}.shopHead h2{font-size:21px;white-space:nowrap}.bankChip{font-size:18px}}
   .mobileOnly{display:none}
   @media (hover:none){.mobileOnly{display:block}.deskOnly{display:none}}
@@ -686,10 +698,62 @@ function makeHuman(c) {
   }
 
   // --- backpack ---
+  const packParts = [];
   if (c.pack) {
-    part(GEO.rbox, mats.pack, 0.5, 0.56, 0.24, 0, 1.43, 0.3, inner);
-    part(GEO.rbox, mats.pack, 0.36, 0.2, 0.08, 0, 1.3, 0.43, inner, false);            // front pocket
-    for (const s of [-1, 1]) part(GEO.rbox, dark, 0.06, 0.5, 0.05, s * 0.17, 1.47, -0.2, inner, false); // straps
+    packParts.push(part(GEO.rbox, mats.pack, 0.5, 0.56, 0.24, 0, 1.43, 0.3, inner));
+    packParts.push(part(GEO.rbox, mats.pack, 0.36, 0.2, 0.08, 0, 1.3, 0.43, inner, false));            // front pocket
+    for (const s of [-1, 1]) packParts.push(part(GEO.rbox, dark, 0.06, 0.5, 0.05, s * 0.17, 1.47, -0.2, inner, false)); // straps
+  }
+
+  // --- optional accessories (toggled per shop character) ---
+  const acc = {};
+  if (c.acc) {
+    mats.glasses = SM(0x111111, { roughness: 0.15, metalness: 0.5 });
+    mats.phones = SM(0x111111, { roughness: 0.4 });
+    mats.mask = SM(0x222222);
+    mats.cape = SM(0xd00000, { side: THREE.DoubleSide });
+    const grp = parent => { const gr = new THREE.Group(); gr.visible = false; parent.add(gr); return gr; };
+    // sunglasses
+    acc.glasses = grp(head);
+    for (const s of [-1, 1]) {
+      part(GEO.rbox, mats.glasses, 0.11, 0.075, 0.025, s * 0.09, 0.03, -0.26, acc.glasses, false);
+      part(GEO.rbox, mats.glasses, 0.012, 0.012, 0.22, s * 0.155, 0.05, -0.15, acc.glasses, false);
+    }
+    part(GEO.rbox, mats.glasses, 0.07, 0.015, 0.02, 0, 0.05, -0.265, acc.glasses, false);
+    // headphones
+    acc.phones = grp(head);
+    const band = new THREE.Mesh(new THREE.TorusGeometry(0.29, 0.028, 8, 28, Math.PI), mats.phones);
+    band.position.y = 0.02; acc.phones.add(band);
+    for (const s of [-1, 1]) {
+      const cup = part(GEO.cyl, mats.phones, 0.095, 0.07, 0.095, s * 0.27, 0.01, 0, acc.phones);
+      cup.rotation.z = Math.PI / 2;
+      part(GEO.cyl, SM(0x00f5d4, { emissive: 0x00594d }), 0.06, 0.075, 0.06, s * 0.275, 0.01, 0, acc.phones, false).rotation.z = Math.PI / 2;
+    }
+    // ponytail
+    acc.ponytail = grp(head);
+    part(GEO.sphere, mats.hair, 0.11, 0.1, 0.1, 0, 0.08, 0.26, acc.ponytail);
+    part(GEO.sphere, SM(0xff006e), 0.06, 0.05, 0.05, 0, 0.04, 0.34, acc.ponytail, false);
+    const tail = part(GEO.sphere, mats.hair, 0.085, 0.2, 0.08, 0, -0.12, 0.37, acc.ponytail);
+    tail.rotation.x = 0.35; acc.tail = tail;
+    // beanie with pom-pom
+    acc.beanie = grp(head);
+    part(GEO.hemi, mats.cap, 0.275, 0.3, 0.275, 0, 0.07, 0, acc.beanie);
+    part(GEO.cyl, mats.cap, 0.28, 0.08, 0.28, 0, 0.09, 0, acc.beanie);
+    part(GEO.sphere, white, 0.07, 0.07, 0.07, 0, 0.39, 0, acc.beanie);
+    // ninja mask over nose and mouth + headband
+    acc.mask = grp(head);
+    part(GEO.cyl, mats.mask, 0.262, 0.16, 0.262, 0, -0.1, 0, acc.mask);
+    part(GEO.sphere, mats.mask, 0.18, 0.12, 0.17, 0, -0.14, -0.06, acc.mask);
+    part(GEO.cyl, SM(0xd00000), 0.268, 0.06, 0.268, 0, 0.14, 0, acc.mask);
+    for (const s of [-1, 1]) part(GEO.rbox, SM(0xd00000), 0.04, 0.2, 0.03, s * 0.05, 0.05, 0.3, acc.mask, false).rotation.z = s * 0.4;
+    // robot antenna
+    acc.antenna = grp(head);
+    part(GEO.cyl, metalMat, 0.015, 0.22, 0.015, 0, 0.36, 0, acc.antenna);
+    part(GEO.sphere, new THREE.MeshBasicMaterial({ color: 0xff2d55 }), 0.05, 0.05, 0.05, 0, 0.49, 0, acc.antenna, false);
+    // cape hanging from the shoulders
+    acc.cape = grp(inner);
+    acc.cape.position.set(0, 1.74, 0.17);
+    part(GEO.rbox, mats.cape, 0.66, 1.0, 0.03, 0, -0.5, 0, acc.cape);
   }
 
   // --- limbs: pivot at hip/shoulder, child pivot at knee/elbow ---
@@ -716,7 +780,7 @@ function makeHuman(c) {
   };
   const legL = leg(-0.15), legR = leg(0.15), armL = arm(-0.39), armR = arm(0.39);
   scene.add(g);
-  return { g, body, inner, head, legL, legR, armL, armR, kneeL: legL.userData.knee, kneeR: legR.userData.knee,
+  return { g, body, inner, head, acc, packParts, legL, legR, armL, armR, kneeL: legL.userData.knee, kneeR: legR.userData.knee,
     elbowL: armL.userData.elbow, elbowR: armR.userData.elbow, mats, caps, crown, mouth, shoeMat: mats.shoes, baseShoe: c.shoes };
 }
 // knees bend backwards (negative x), elbows bend forwards (positive x)
@@ -741,23 +805,39 @@ function animateRun(h, t, grounded, k = 1) {
 
 // characters for the shop
 const CHARS = [
-  { id: 'dani',  name: 'דני',      price: 0,    desc: 'הגרפיטר המקורי',   shirt: 0x3a86ff, skin: 0xf1c27d, cap: 0xff006e, pants: 0x22223b, shoes: 0xffbe0b, pack: 0xfb5607, hair: 0x3b2416 },
-  { id: 'maya',  name: 'מאיה',     price: 150,  desc: 'מהירה כמו הרוח',   shirt: 0x8338ec, skin: 0xc68642, cap: 0x06d6a0, pants: 0x3d405b, shoes: 0xffffff, pack: 0xffbe0b, hair: 0x1b1b1b },
-  { id: 'tony',  name: 'טוני',     price: 400,  desc: 'מלך הסקייטבורד',   shirt: 0xe63946, skin: 0x8d5524, cap: 0x111111, pants: 0x1d3557, shoes: 0xf1faee, pack: 0x457b9d, hair: 0x111111 },
-  { id: 'ninja', name: 'נינג׳ה',   price: 800,  desc: 'שקט ומהיר',        shirt: 0x222222, skin: 0xf1c27d, cap: 0x222222, pants: 0x151515, shoes: 0xd00000, pack: 0xd00000, hair: 0x0d0d0d },
-  { id: 'robo',  name: 'רובו',     price: 1500, desc: 'מכונת ריצה',       shirt: 0xb0b8c4, skin: 0x9aa5b1, cap: 0x3a86ff, pants: 0x6c757d, shoes: 0x00f5d4, pack: 0xff006e, hair: 0x5c677d },
-  { id: 'king',  name: 'המלך',     price: 3000, desc: 'עם כתר זהב!',      shirt: 0xffd60a, skin: 0xf1c27d, cap: 0x7b2cbf, pants: 0x5a189a, shoes: 0xffd60a, pack: 0x7b2cbf, hair: 0xb5651d, crown: true }
+  { id: 'dani',   name: 'דני',       price: 0,    desc: 'הגרפיטר המקורי',  shirt: 0x3a86ff, skin: 0xf1c27d, cap: 0xff006e, pants: 0x22223b, shoes: 0xffbe0b, pack: 0xfb5607, hair: 0x3b2416 },
+  { id: 'maya',   name: 'מאיה',      price: 150,  desc: 'מהירה כמו הרוח',  shirt: 0x8338ec, skin: 0xc68642, cap: 0x06d6a0, pants: 0x3d405b, shoes: 0xffffff, pack: 0xffbe0b, hair: 0x1b1b1b },
+  { id: 'noa',    name: 'נועה',      price: 250,  desc: 'קוקו וסאונד',      shirt: 0xff70a6, skin: 0xf1c27d, cap: 0xff70a6, pants: 0x3a86ff, shoes: 0xffffff, pack: 0x70d6ff, hair: 0x6b3e26, hat: 'none', ponytail: true, phones: 0xffffff },
+  { id: 'tony',   name: 'טוני',      price: 400,  desc: 'מלך הסקייטבורד',  shirt: 0xe63946, skin: 0x8d5524, cap: 0x111111, pants: 0x1d3557, shoes: 0xf1faee, pack: 0x457b9d, hair: 0x111111 },
+  { id: 'avi',    name: 'אבי',       price: 600,  desc: 'חורף כל השנה',     shirt: 0x2a9d8f, skin: 0xe0ac69, cap: 0xfb5607, pants: 0x264653, shoes: 0xe9c46a, pack: 0xe76f51, hair: 0x4a2c17, hat: 'beanie', glasses: 0x222222 },
+  { id: 'ninja',  name: 'נינג׳ה',    price: 800,  desc: 'שקט ומהיר',        shirt: 0x222222, skin: 0xf1c27d, cap: 0x222222, pants: 0x151515, shoes: 0xd00000, pack: null,     hair: 0x0d0d0d, hat: 'none', mask: true },
+  { id: 'zoe',    name: 'זואי',      price: 1000, desc: 'כוכבת הרחוב',      shirt: 0x06d6a0, skin: 0xffdbac, cap: 0xffffff, pants: 0x073b4c, shoes: 0xff006e, pack: 0xff006e, hair: 0xf4d35e, ponytail: true, glasses: 0xff006e },
+  { id: 'robo',   name: 'רובו',      price: 1500, desc: 'מכונת ריצה',       shirt: 0xb0b8c4, skin: 0x9aa5b1, cap: 0x3a86ff, pants: 0x6c757d, shoes: 0x00f5d4, pack: 0xff006e, hair: 0x9aa5b1, hat: 'none', antenna: true, glasses: 0x00f5d4 },
+  { id: 'dj',     name: 'די־ג׳יי',   price: 2000, desc: 'רץ לפי הביט',      shirt: 0x3c096c, skin: 0x8d5524, cap: 0x111111, pants: 0x10002b, shoes: 0x00f5d4, pack: 0x7b2cbf, hair: 0x111111, phones: 0x111111, glasses: 0x111111 },
+  { id: 'zombie', name: 'זומבי',     price: 2500, desc: 'רץ גם בלי מוח',    shirt: 0x5c4d7d, skin: 0x7fb069, cap: 0x3d3d3d, pants: 0x3d3d3d, shoes: 0x6b705c, pack: null,     hair: 0x2d2d2d, hat: 'none' },
+  { id: 'king',   name: 'המלך',      price: 3000, desc: 'עם כתר זהב!',      shirt: 0xffd60a, skin: 0xf1c27d, cap: 0x7b2cbf, pants: 0x5a189a, shoes: 0xffd60a, pack: 0x7b2cbf, hair: 0xb5651d, hat: 'crown', cape: 0x7b2cbf },
+  { id: 'super',  name: 'סופר־רץ',   price: 5000, desc: 'עם גלימה מעופפת',  shirt: 0x1d4ed8, skin: 0xf1c27d, cap: 0xd00000, pants: 0x1d4ed8, shoes: 0xd00000, pack: null,     hair: 0x111111, hat: 'none', cape: 0xd00000 }
 ];
 let owned = store.get('sr_owned', ['dani']), selected = store.get('sr_char', 'dani');
 if (!CHARS.some(c => c.id === selected) || !owned.includes(selected)) selected = 'dani';
 
-const hero = makeHuman({ ...CHARS[0], visor: 0.36 });
+const hero = makeHuman({ ...CHARS[0], visor: 0.36, acc: true });
 function applySkin(id) {
   const ch = CHARS.find(c => c.id === id) || CHARS[0];
-  for (const k of ['shirt', 'skin', 'cap', 'pants', 'shoes', 'pack', 'hair']) hero.mats[k].color.setHex(ch[k]);
+  for (const k of ['shirt', 'skin', 'cap', 'pants', 'shoes', 'hair']) hero.mats[k].color.setHex(ch[k]);
+  if (ch.pack != null) hero.mats.pack.color.setHex(ch.pack);
+  hero.packParts.forEach(m => m.visible = ch.pack != null);
   hero.baseShoe = ch.shoes;
-  hero.crown.visible = !!ch.crown;
-  hero.caps.forEach(m => m.visible = !ch.crown);
+  const hat = ch.hat || 'cap', a = hero.acc;
+  hero.crown.visible = hat === 'crown';
+  hero.caps.forEach(m => m.visible = hat === 'cap');
+  a.beanie.visible = hat === 'beanie';
+  a.ponytail.visible = !!ch.ponytail;
+  a.antenna.visible = !!ch.antenna;
+  a.mask.visible = !!ch.mask; hero.mats.mask.color.setHex(ch.shirt);
+  a.glasses.visible = ch.glasses != null; if (ch.glasses != null) hero.mats.glasses.color.setHex(ch.glasses);
+  a.phones.visible = ch.phones != null; if (ch.phones != null) hero.mats.phones.color.setHex(ch.phones);
+  a.cape.visible = ch.cape != null; if (ch.cape != null) hero.mats.cape.color.setHex(ch.cape);
 }
 applySkin(selected);
 // hoverboard
@@ -1131,12 +1211,22 @@ function refreshMenu() {
 // ================= shop =================
 const css = hex => '#' + hex.toString(16).padStart(6, '0');
 function figHTML(c) {
-  return `<div class="fig">
-    <div class="${c.crown ? 'crown' : 'cap'}" style="${c.crown ? '' : 'background:' + css(c.cap)}"></div>
-    <div class="head" style="background:${css(c.skin)}"></div>
-    <div class="torso" style="background:${css(c.shirt)};box-shadow:inset 0 -6px 0 rgba(0,0,0,.12)"></div>
+  const hat = c.hat || 'cap', bg = v => `background:${css(v)}`;
+  let x = '';
+  if (c.cape != null) x += `<div class="cape" style="${bg(c.cape)}"></div>`;
+  if (c.ponytail) x += `<div class="tail" style="${bg(c.hair)}"></div>`;
+  x += `<div class="head" style="${bg(c.skin)}"></div><div class="hairtop" style="${bg(c.hair)}"></div>`;
+  if (c.mask) x += `<div class="mask" style="${bg(c.shirt)}"></div>`;
+  if (c.glasses != null) x += `<div class="glasses" style="${bg(c.glasses)}"></div>`;
+  if (hat === 'cap') x += `<div class="cap" style="${bg(c.cap)}"></div>`;
+  if (hat === 'crown') x += `<div class="crown"></div>`;
+  if (hat === 'beanie') x += `<div class="beanie" style="${bg(c.cap)}"></div><div class="pom"></div>`;
+  if (c.antenna) x += `<div class="antenna"></div><div class="ball"></div>`;
+  if (c.phones != null) x += `<div class="cup cupL" style="${bg(c.phones)}"></div><div class="cup cupR" style="${bg(c.phones)}"></div><div class="band" style="border-color:${css(c.phones)}"></div>`;
+  x += `<div class="torso" style="${bg(c.shirt)};box-shadow:inset 0 -6px 0 rgba(0,0,0,.12)"></div>
     <div class="legs" style="background-color:${css(c.pants)}"></div>
-    <div class="shoes" style="background:${css(c.shoes)}"></div></div>`;
+    <div class="shoes" style="${bg(c.shoes)}"></div>`;
+  return `<div class="fig">${x}</div>`;
 }
 function renderShop() {
   $('shopBank').textContent = bank.toLocaleString('en-US');
@@ -1339,6 +1429,10 @@ function render(dt, now) {
   jetMesh.visible = PU.jet > 0 || (P.inv > 0 && PU.jet === 0 && P.y > 0.5 && playing);
   for (const f of flames) { f.visible = PU.jet > 0; f.scale.y = 0.8 + Math.random() * 0.6; }
   hero.shoeMat.color.setHex(PU.sneakers > 0 ? 0x39ff14 : hero.baseShoe);
+  const moving = playing && P.roll <= 0;
+  const flap = moving ? (PU.jet > 0 ? 1.25 : 0.7) + Math.sin(t * 14) * 0.12 : 0.08 + Math.sin(t * 2) * 0.03;
+  hero.acc.cape.rotation.x = lerp(hero.acc.cape.rotation.x, -flap, Math.min(1, dt * 8));
+  hero.acc.tail.rotation.x = moving ? 0.9 + Math.sin(t * 16) * 0.15 : 0.35 + Math.sin(t * 2) * 0.05;
 
   // guard & dog
   const target = state === 'dying' || state === 'over' ? 1.7 : (state === 'menu' ? 30 : (guardChase > 0 ? 3.4 : 32));
