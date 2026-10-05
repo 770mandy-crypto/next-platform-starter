@@ -114,6 +114,9 @@
   .fig .torso{top:33px;width:40px;height:26px;border-radius:4px}
   .fig .legs{top:59px;width:28px;height:20px;background-image:linear-gradient(90deg,transparent 45%,rgba(0,0,0,.35) 45%,rgba(0,0,0,.35) 55%,transparent 55%)}
   .fig .shoes{top:78px;width:32px;height:7px;border-radius:2px}
+  .wprev{width:100%;height:64px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:36px;
+    box-shadow:inset 0 -3px 0 rgba(0,0,0,.2)}
+  .char.locked .wprev{filter:grayscale(.85) brightness(.75)}
   .fig .hairtop{top:7px;width:30px;height:9px;border-radius:12px 12px 2px 2px}
   .fig .beanie{top:-1px;width:32px;height:15px;border-radius:15px 15px 3px 3px;box-shadow:inset 0 -4px 0 rgba(0,0,0,.18)}
   .fig .pom{top:-7px;width:9px;height:9px;border-radius:50%;background:#fff}
@@ -171,6 +174,7 @@
     <button class="btn" id="playBtn">▶ התחל לרוץ!</button><br>
     <button class="btn ghost" id="missionBtn">🎯 משימות <span id="missionBadge" class="badge">0/3</span></button>
     <button class="btn ghost" id="shopBtn">🛒 חנות דמויות</button>
+    <button class="btn ghost" id="worldBtn">🌍 עולמות</button>
     <button class="btn ghost" id="musicBtn">🎵 מוזיקה</button>
     <button class="btn ghost" id="muteBtn">🔊 צליל</button>
   </div>
@@ -193,6 +197,18 @@
     <p class="sub" id="missionInfo"></p>
     <div id="missionList" class="missionList"></div>
     <button class="btn" id="missionBack">← חזרה</button>
+  </div>
+</div>
+
+<div id="worldScreen" class="screen hidden">
+  <div class="card shopCard">
+    <div class="shopHead">
+      <h2>🌍 עולמות</h2>
+      <div class="chip bankChip">🪙 <span id="worldBank">0</span></div>
+    </div>
+    <p class="sub">בחר איפה לרוץ – לכל עולם נוף, מזג אוויר ומנהרות משלו</p>
+    <div id="worldGrid" class="shopGrid"></div>
+    <button class="btn" id="worldBack">← חזרה</button>
   </div>
 </div>
 
@@ -394,7 +410,8 @@ scene.background = new THREE.Color(SKY);
 scene.fog = new THREE.Fog(SKY, 70, 175);
 const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.1, 320);
 
-scene.add(new THREE.HemisphereLight(0xffffff, 0x8a7055, 0.8));
+const hemi = new THREE.HemisphereLight(0xffffff, 0x8a7055, 0.8);
+scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xfff3dd, 0.75);
 sun.castShadow = true;
 sun.shadow.mapSize.set(1024, 1024);
@@ -421,22 +438,23 @@ function noise(x, w, h, n, cols) {
   for (let i = 0; i < n; i++) { x.fillStyle = pick(cols); x.fillRect(Math.random() * w, Math.random() * h, 2, 2); }
 }
 
-// ground with sleepers (8 world units per texture tile)
-const groundTex = (() => {
+// ground with sleepers (8 world units per texture tile), one look per world
+function makeGroundTex(base, dots, sleeper, ballast = 'rgba(50,38,28,.35)') {
   const [c, x] = canvas(512, 256), ppu = 512 / 18;
-  x.fillStyle = '#7d6c59'; x.fillRect(0, 0, 512, 256);
-  noise(x, 512, 256, 5000, ['#6b5b4a', '#8f7d69', '#5e5043', '#9a8a77']);
+  x.fillStyle = base; x.fillRect(0, 0, 512, 256);
+  noise(x, 512, 256, 5000, dots);
   for (const L of LANES) {
     const cx = (L + 9) * ppu;
-    x.fillStyle = 'rgba(50,38,28,.35)'; x.fillRect(cx - 1.3 * ppu, 0, 2.6 * ppu, 256);
+    x.fillStyle = ballast; x.fillRect(cx - 1.3 * ppu, 0, 2.6 * ppu, 256);
     for (let k = 0; k < 8; k++) {
       const y = k * 32 + 10;
-      x.fillStyle = '#4e3420'; x.fillRect(cx - 1.05 * ppu, y, 2.1 * ppu, 12);
+      x.fillStyle = sleeper; x.fillRect(cx - 1.05 * ppu, y, 2.1 * ppu, 12);
       x.fillStyle = 'rgba(255,255,255,.1)'; x.fillRect(cx - 1.05 * ppu, y, 2.1 * ppu, 2);
     }
   }
   return tex(c, 1, 400 / 8);
-})();
+}
+let groundTex = makeGroundTex('#7d6c59', ['#6b5b4a', '#8f7d69', '#5e5043', '#9a8a77'], '#4e3420');
 
 // graffiti walls
 const GRAFFITI_WORDS = ['RUSH!', 'GO GO', 'SURF', 'YO!', 'WOW', 'JUMP', 'RUN', 'COOL', 'ZAP', 'HEY!'];
@@ -459,6 +477,74 @@ const wallMats = Array.from({ length: 6 }, () => {
   }
   return new THREE.MeshLambertMaterial({ map: tex(c) });
 });
+
+// walls for the other worlds
+function wallBase(base, dots) { const [c, x] = canvas(512, 64); x.fillStyle = base; x.fillRect(0, 0, 512, 64); noise(x, 512, 64, 1500, dots); return [c, x]; }
+function blocks(x, h, col) {
+  x.strokeStyle = col; x.lineWidth = 2;
+  for (let r = 0; r * h < 64; r++) for (let i = (r % 2) * -24; i < 512; i += 48) x.strokeRect(i, r * h, 48, h);
+}
+const WALLS = {
+  city: wallMats,
+  beach: [['#f1faee', '#a8dadc'], ['#ffffff', '#ffb4a2'], ['#fefae0', '#90e0ef']].map(([a, b]) => {
+    const [c, x] = canvas(512, 64);
+    for (let px = 0; px < 512; px += 32) { x.fillStyle = (px / 32) % 2 ? b : a; x.fillRect(px, 0, 32, 64); x.fillStyle = 'rgba(0,0,0,.25)'; x.fillRect(px, 0, 2, 64); }
+    x.fillStyle = 'rgba(0,0,0,.12)'; x.fillRect(0, 14, 512, 4); x.fillRect(0, 46, 512, 4);
+    return new THREE.MeshLambertMaterial({ map: tex(c) });
+  }),
+  snow: Array.from({ length: 3 }, () => {
+    const [c, x] = wallBase('#8d99ae', ['#7d8a9e', '#a3afc0', '#94a1b4']);
+    blocks(x, 16, 'rgba(0,0,0,.22)');
+    x.fillStyle = '#fff'; x.fillRect(0, 0, 512, 12);
+    for (let i = 0; i < 26; i++) { x.beginPath(); x.arc(rand(0, 512), 12, rand(3, 9), 0, Math.PI); x.fill(); }
+    return new THREE.MeshLambertMaterial({ map: tex(c) });
+  }),
+  night: Array.from({ length: 4 }, () => {
+    const [c, x] = wallBase('#23242f', ['#1b1c25', '#2c2e3b', '#262734']);
+    for (let i = 0; i < 3; i++) {
+      const col = pick(['#ff006e', '#00f5d4', '#fee440', '#9b5de5', '#3a86ff']);
+      x.save(); x.translate(40 + i * 170 + rand(-20, 20), 42); x.rotate(rand(-.12, .12));
+      x.font = `900 italic ${randInt(26, 34)}px Rubik, Arial Black, sans-serif`;
+      x.shadowColor = col; x.shadowBlur = 16; x.lineWidth = 3; x.strokeStyle = col;
+      const w = pick(GRAFFITI_WORDS); x.strokeText(w, 0, 0); x.strokeText(w, 0, 0);
+      x.restore();
+    }
+    const t = tex(c);
+    return new THREE.MeshLambertMaterial({ map: t, emissiveMap: t, emissive: 0xffffff, emissiveIntensity: 0.85 });
+  }),
+  desert: Array.from({ length: 3 }, () => {
+    const [c, x] = wallBase('#d4b073', ['#c49f62', '#e0c08a', '#caa468']);
+    blocks(x, 21, 'rgba(90,60,20,.25)');
+    x.strokeStyle = '#7a5230'; x.fillStyle = '#7a5230'; x.lineWidth = 3;
+    for (let i = 0; i < 9; i++) {
+      const sx = 25 + i * 55 + rand(-6, 6), sy = 32;
+      const k = randInt(0, 3);
+      x.beginPath();
+      if (k === 0) { x.ellipse(sx, sy, 10, 6, 0, 0, Math.PI * 2); x.stroke(); x.beginPath(); x.arc(sx, sy, 3, 0, Math.PI * 2); x.fill(); }
+      else if (k === 1) { x.moveTo(sx - 9, sy + 9); x.lineTo(sx, sy - 9); x.lineTo(sx + 9, sy + 9); x.closePath(); x.stroke(); }
+      else if (k === 2) { x.arc(sx, sy - 5, 5, 0, Math.PI * 2); x.moveTo(sx, sy); x.lineTo(sx, sy + 11); x.moveTo(sx - 7, sy + 3); x.lineTo(sx + 7, sy + 3); x.stroke(); }
+      else { x.moveTo(sx - 9, sy); x.quadraticCurveTo(sx, sy - 12, sx + 9, sy); x.moveTo(sx - 9, sy + 6); x.lineTo(sx + 9, sy + 6); x.stroke(); }
+    }
+    return new THREE.MeshLambertMaterial({ map: tex(c) });
+  })
+};
+// night buildings: dark facades with random lit windows (also used as the glow map)
+const nightWinTex = (() => {
+  const [c, x] = canvas(128, 192);
+  x.fillStyle = '#2a2d3e'; x.fillRect(0, 0, 128, 192);
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 6; j++) {
+    x.fillStyle = Math.random() < .55 ? pick(['#ffd36b', '#ffe8a3', '#9be7ff', '#ffb3c6']) : '#151722';
+    x.fillRect(8 + i * 30, 8 + j * 31, 18, 20);
+  }
+  return tex(c, 1, 1);
+})();
+const sandWinTex = (() => {
+  const [c, x] = canvas(64, 64);
+  x.fillStyle = '#fff'; x.fillRect(0, 0, 64, 64);
+  noise(x, 64, 64, 200, ['#eee', '#f6f6f6', '#e4e4e4']);
+  x.fillStyle = '#5b3a1e'; x.fillRect(22, 18, 20, 24);
+  return tex(c, 3, 2);
+})();
 
 // building windows
 const winTex = (() => {
@@ -578,6 +664,33 @@ for (const L of LANES) for (const s of [-0.72, 0.72]) {
   const r = box(0.12, 0.16, 400, metalMat, false); r.position.set(L + s, 0.08, 0); r.receiveShadow = true; rails.add(r);
 }
 scene.add(rails);
+const sea = new THREE.Mesh(new THREE.PlaneGeometry(200, 400), new THREE.MeshLambertMaterial({ color: 0x1ca3ec, emissive: 0x05304a }));
+sea.rotation.x = -Math.PI / 2; sea.position.set(108, -0.01, 0); sea.visible = false; scene.add(sea);
+
+// weather particles (snow / rain) in a box that travels with the player
+const WN = 1500;
+const wPos = new Float32Array(WN * 3);
+for (let i = 0; i < WN; i++) { wPos[i * 3] = rand(-22, 22); wPos[i * 3 + 1] = rand(0, 18); wPos[i * 3 + 2] = rand(-70, 10); }
+const wGeo = new THREE.BufferGeometry(); wGeo.setAttribute('position', new THREE.BufferAttribute(wPos, 3));
+const snowMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.2, transparent: true, opacity: .9, depthWrite: false });
+const rainMat = new THREE.PointsMaterial({ color: 0xa9d6ff, size: 0.09, transparent: true, opacity: .55, depthWrite: false });
+const weather = new THREE.Points(wGeo, snowMat); weather.frustumCulled = false; weather.visible = false; scene.add(weather);
+function updateWeather(dt, t) {
+  if (!world.weather) { weather.visible = false; return; }
+  weather.visible = true;
+  weather.material = world.weather === 'snow' ? snowMat : rainMat;
+  weather.position.set(0, 0, P.z);
+  const fall = world.weather === 'snow' ? 2.2 : 26, run = state === 'play' ? speed : 0;
+  for (let i = 0; i < WN; i++) {
+    const k = i * 3;
+    wPos[k + 1] -= fall * dt;
+    wPos[k + 2] += run * dt;
+    if (world.weather === 'snow') wPos[k] += Math.sin(t * 1.5 + i) * dt * 0.6;
+    if (wPos[k + 1] < 0) wPos[k + 1] += 18;
+    if (wPos[k + 2] > 10) wPos[k + 2] -= 80;
+  }
+  wGeo.attributes.position.needsUpdate = true;
+}
 
 // recycled scenery segments (walls, buildings, lamp posts)
 const SEG = 20, NSEG = 14;
@@ -594,23 +707,173 @@ for (let i = 0; i < NSEG; i++) {
   const p2 = box(1.4, 0.12, 0.16, poleMat); p2.position.set(0, 5, 0);
   const lamp = box(0.5, 0.18, 0.35, new THREE.MeshBasicMaterial({ color: 0xfff1a8 }), false); lamp.position.set(0, 4.9, 0);
   pole.add(p1, p2, lamp);
-  g.add(wl, wr, bl, br, pole);
-  g.userData = { wl, wr, bl, br, pole, p2, lamp };
+  const props = new THREE.Group();
+  g.add(wl, wr, bl, br, pole, props);
+  g.userData = { wl, wr, bl, br, pole, p2, lamp, props };
   scene.add(g); segs.push(g);
 }
+// ----- scenery props for each world -----
+const PM = {
+  trunk: M(0x8b5a2b), leaf: M(0x2d9e4f), coconut: M(0x5b3a1e), pine: M(0x1f5f3a), snow: M(0xffffff),
+  wood: M(0x8d5524), cactus: M(0x3f8f3a), sand: M(0xe0b878), door: M(0x4a2c17),
+  win: new THREE.MeshBasicMaterial({ color: 0xffe08a })
+};
+const HUT_MATS = [0xff8fab, 0x90e0ef, 0xffd166, 0x95d5b2, 0xcdb4db].map(c => M(c));
+const HUT_ROOFS = [0xe63946, 0x1d3557, 0xf4a261].map(c => M(c));
+const NEON = [0xff006e, 0x00f5d4, 0xfee440, 0x9b5de5, 0x3a86ff].map(c => new THREE.MeshBasicMaterial({ color: c }));
+const NIGHT_COLS = [0xffffff, 0xc8c8ff, 0xffd0e0, 0xd0fff4];
+const SAND_COLS = [0xffffff, 0xf2dcb3, 0xe8c99a, 0xf5e1c0];
+const PGEO = {
+  cone8: new THREE.ConeGeometry(1, 1, 8), cone4: new THREE.ConeGeometry(1, 1, 4),
+  prism: new THREE.CylinderGeometry(1, 1, 1, 3).rotateX(-Math.PI / 2)
+};
+function palm(parent, x, z) {
+  const g = new THREE.Group(); g.position.set(x, 0, z); parent.add(g);
+  const trunk = new THREE.Group(); trunk.rotation.z = rand(-0.18, 0.18); g.add(trunk);
+  part(GEO.cyl, PM.trunk, 0.2, 5, 0.2, 0, 2.5, 0, trunk);
+  const top = new THREE.Group(); top.position.y = 5; trunk.add(top);
+  for (let i = 0; i < 7; i++) {
+    const pv = new THREE.Group(); pv.rotation.y = i / 7 * Math.PI * 2 + rand(0, .3); top.add(pv);
+    part(GEO.rbox, PM.leaf, 2.4, 0.07, 0.6, 1.1, -0.3, 0, pv).rotation.z = -0.42;
+  }
+  for (let i = 0; i < 3; i++) part(GEO.sphere, PM.coconut, .17, .17, .17, rand(-.2, .2), -0.25, rand(-.2, .2), top, false);
+}
+function hut(parent, x, z) {
+  part(BOX, pick(HUT_MATS), 3, 2.2, 3, x, 1.1, z, parent);
+  part(PGEO.cone4, pick(HUT_ROOFS), 2.4, 1.3, 2.4, x, 2.85, z, parent).rotation.y = Math.PI / 4;
+  part(BOX, PM.door, 0.05, 1.4, 0.8, x + 1.52, 0.7, z, parent, false);
+}
+function pine(parent, x, z, s) {
+  const g = new THREE.Group(); g.position.set(x, 0, z); g.scale.setScalar(s); parent.add(g);
+  part(GEO.cyl, PM.trunk, .2, 1.2, .2, 0, .6, 0, g);
+  for (const [r, hh, y] of [[1.7, 2.2, 1.9], [1.3, 2, 3.1], [0.9, 1.7, 4.2]]) {
+    part(PGEO.cone8, PM.pine, r, hh, r, 0, y, 0, g);
+    part(PGEO.cone8, PM.snow, r * 0.55, hh * 0.36, r * 0.55, 0, y + hh * 0.32, 0, g, false);
+  }
+}
+function cabin(parent, x, z, side) {
+  part(BOX, PM.wood, 4, 3, 4.6, x, 1.5, z, parent);
+  part(PGEO.prism, PM.snow, 2.7, 1.5, 5, x, 3.75, z, parent);
+  part(BOX, PM.door, 0.06, 1.6, 0.9, x - side * 2.02, 0.8, z - 0.8, parent, false);
+  part(BOX, PM.win, 0.06, 0.8, 0.9, x - side * 2.02, 1.8, z + 1.1, parent, false);
+  part(BOX, PM.door, 0.5, 1.4, 0.5, x + side * 0.8, 4.3, z - 1.2, parent);
+}
+function cactus(parent, x, z) {
+  const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = rand(0, Math.PI); parent.add(g);
+  part(GEO.cyl, PM.cactus, .3, 3, .3, 0, 1.5, 0, g); part(GEO.sphere, PM.cactus, .3, .3, .3, 0, 3, 0, g, false);
+  for (const [s, y] of [[1, 1.3], [-1, 1.9]]) {
+    part(GEO.cyl, PM.cactus, .16, .55, .16, s * 0.45, y, 0, g, false).rotation.z = Math.PI / 2;
+    part(GEO.cyl, PM.cactus, .16, .8, .16, s * 0.7, y + 0.38, 0, g, false);
+    part(GEO.sphere, PM.cactus, .16, .16, .16, s * 0.7, y + 0.78, 0, g, false);
+  }
+}
+function setBuild(b, map, emap, col, hgt) {
+  const m = b.material;
+  if (m.map !== map || m.emissiveMap !== emap) { m.map = map; m.emissiveMap = emap; m.needsUpdate = true; }
+  m.emissive.setHex(emap ? 0xffffff : 0x000000);
+  m.color.setHex(col); b.visible = true; b.scale.y = hgt; b.position.y = hgt / 2;
+}
+const WALL_H = { city: 2.6, night: 2.6, beach: 1.1, snow: 1.6, desert: 2.2 };
 function dressSeg(g) {
-  const u = g.userData;
-  u.wl.material = pick(wallMats); u.wr.material = pick(wallMats);
+  const u = g.userData, st = world.style, pr = u.props;
+  while (pr.children.length) pr.remove(pr.children[0]);
+  for (const w of [u.wl, u.wr]) { w.material = pick(WALLS[st]); w.scale.y = WALL_H[st]; w.position.y = WALL_H[st] / 2; }
   for (const [b, side] of [[u.bl, -1], [u.br, 1]]) {
-    const h = rand(7, 24);
-    b.scale.y = h; b.position.set(side * rand(10, 11.5), h / 2, 0);
-    b.material.color.setHex(pick(BUILD_COLS));
+    b.position.x = side * rand(10, 11.5);
+    if (st === 'city') setBuild(b, winTex, null, pick(BUILD_COLS), rand(7, 24));
+    else if (st === 'night') setBuild(b, nightWinTex, nightWinTex, pick(NIGHT_COLS), rand(10, 28));
+    else if (st === 'desert') setBuild(b, sandWinTex, null, pick(SAND_COLS), rand(3, 9));
+    else b.visible = false;
   }
   const side = Math.random() < .5 ? -1 : 1;
+  u.pole.visible = st === 'city' || st === 'night';
   u.pole.position.set(side * 4.75, 0, rand(-6, 6));
   u.p2.position.x = -side * 0.6; u.lamp.position.x = -side * 1.2;
+  if (st === 'night') {
+    for (const [b, s] of [[u.bl, -1], [u.br, 1]]) if (Math.random() < .75)
+      part(BOX, pick(NEON), 0.1, rand(0.7, 1.5), rand(2, 4.5), s * (Math.abs(b.position.x) - 3.56), rand(3.5, Math.min(b.scale.y - 1, 10)), rand(-6, 6), pr, false);
+  } else if (st === 'beach') {
+    if (Math.random() < .65) hut(pr, -rand(9.5, 12), rand(-5, 5));
+    for (const s of [-1, 1]) if (Math.random() < .8) palm(pr, s * rand(6.4, 7.4), rand(-8, 8));
+    if (Math.random() < .5) palm(pr, -rand(14, 18), rand(-8, 8));
+  } else if (st === 'snow') {
+    for (const s of [-1, 1]) {
+      for (let i = randInt(1, 3); i > 0; i--) pine(pr, s * rand(7.5, 17), rand(-9, 9), rand(0.8, 1.5));
+      if (Math.random() < .35) cabin(pr, s * rand(11.5, 13.5), rand(-4, 4), s);
+      part(GEO.hemi, PM.snow, 1.4, rand(0.4, 0.8), rand(2, 4), s * 6.1, 0, rand(-7, 7), pr, false);
+    }
+  } else if (st === 'desert') {
+    for (const s of [-1, 1]) if (Math.random() < .6) cactus(pr, s * rand(6.4, 7.8), rand(-8, 8));
+    if (Math.random() < .2) part(PGEO.cone4, PM.sand, 14, 12, 14, side * rand(36, 50), 6, rand(-5, 5), pr, false).rotation.y = Math.PI / 4;
+  }
 }
 function resetScenery(z0) { segs.forEach((g, i) => { g.position.z = z0 + 20 - i * SEG; dressSeg(g); }); }
+
+// ================= worlds =================
+const WORLDS = [
+  { id: 'city',   name: 'העיר',       icon: '🏙️', price: 0,    desc: 'גרפיטי ורכבות',      style: 'city',
+    sky: 0x8fd8ff, fog: [70, 175], hemi: [0xffffff, 0x8a7055, 0.8], sun: [0xfff3dd, 0.75], outer: 0x5d6670, tunnel: 0x6b6f7a,
+    ground: ['#7d6c59', ['#6b5b4a', '#8f7d69', '#5e5043', '#9a8a77'], '#4e3420'], prev: '#7d6c59' },
+  { id: 'beach',  name: 'חוף הים',    icon: '🏖️', price: 300,  desc: 'דקלים, חול וים',      style: 'beach',
+    sky: 0x5ec8ff, fog: [80, 190], hemi: [0xffffff, 0xe8cfa0, 0.9], sun: [0xfff6e0, 0.8], outer: 0xe8d3a0, tunnel: 0xd8c3a5,
+    ground: ['#e3c58f', ['#d6b57b', '#efd6a6', '#cfa96a', '#f3e1b8'], '#8d6e4a', 'rgba(120,90,50,.18)'], prev: '#e3c58f' },
+  { id: 'snow',   name: 'ארץ השלג',   icon: '❄️', price: 600,  desc: 'אורנים, בקתות ושלג',  style: 'snow', weather: 'snow',
+    sky: 0xcfe3f2, fog: [35, 150], hemi: [0xffffff, 0xb8c8d8, 0.9], sun: [0xeef6ff, 0.6], outer: 0xf2f6fa, tunnel: 0x8d99ae,
+    ground: ['#e8eef4', ['#dbe4ec', '#ffffff', '#cfd9e3', '#f4f8fb'], '#6d5843', 'rgba(120,135,160,.22)'], prev: '#e8eef4' },
+  { id: 'night',  name: 'עיר הלילה',  icon: '🌃', price: 1000, desc: 'ניאון וגשם',          style: 'night', weather: 'rain',
+    sky: 0x0c1033, fog: [40, 160], hemi: [0x7a8bff, 0x221a33, 0.55], sun: [0x99aaff, 0.3], outer: 0x22252e, tunnel: 0x2b2d42,
+    ground: ['#454552', ['#3a3a46', '#55556a', '#30303a', '#5e5e72'], '#2d2620', 'rgba(0,0,0,.25)'], prev: '#2a2d3e' },
+  { id: 'desert', name: 'המדבר',      icon: '🏜️', price: 1500, desc: 'פירמידות וקקטוסים',   style: 'desert',
+    sky: 0xffcf8a, fog: [60, 170], hemi: [0xfff1d6, 0xc99650, 0.85], sun: [0xffe2b0, 0.85], outer: 0xd8a865, tunnel: 0xc8a165,
+    ground: ['#d9a95f', ['#c99650', '#e6bb76', '#b98745', '#f0c98a'], '#7a5230', 'rgba(110,70,30,.22)'], prev: '#d9a95f' }
+];
+const TOUR = { id: 'tour', name: 'מסע עולמי', icon: '🌍', price: 0, desc: 'מחליף עולם כל 40 שניות' };
+const TOUR_TIME = 40;
+for (const w of WORLDS) {
+  w.c = { sky: new THREE.Color(w.sky), hs: new THREE.Color(w.hemi[0]), hg: new THREE.Color(w.hemi[1]), sun: new THREE.Color(w.sun[0]) };
+  w.groundTex = null; w.tunnelMat = null;
+}
+const worldById = id => WORLDS.find(w => w.id === id) || WORLDS[0];
+let ownedWorlds = store.get('sr_worlds', ['city']).filter(id => WORLDS.some(w => w.id === id));
+if (!ownedWorlds.includes('city')) ownedWorlds.unshift('city');
+let worldSel = store.get('sr_world', 'city');
+if (worldSel !== 'tour' && !ownedWorlds.includes(worldSel)) worldSel = 'city';
+let world = WORLDS[0], worldTimer = 0, tourIdx = 0;
+
+function setWorld(w, instant) {
+  world = w;
+  if (!w.groundTex) w.groundTex = makeGroundTex(...w.ground);
+  groundTex = w.groundTex; ground.material.map = groundTex; ground.material.needsUpdate = true;
+  outer.material.color.setHex(w.outer);
+  sea.visible = w.style === 'beach';
+  if (instant) {
+    scene.background.copy(w.c.sky); scene.fog.color.copy(w.c.sky);
+    scene.fog.near = w.fog[0]; scene.fog.far = w.fog[1];
+    hemi.color.copy(w.c.hs); hemi.groundColor.copy(w.c.hg); hemi.intensity = w.hemi[2];
+    sun.color.copy(w.c.sun); sun.intensity = w.sun[1];
+  }
+}
+function blendWorld(dt) {
+  const k = Math.min(1, dt * 1.2), w = world;
+  scene.background.lerp(w.c.sky, k); scene.fog.color.copy(scene.background);
+  scene.fog.near = lerp(scene.fog.near, w.fog[0], k); scene.fog.far = lerp(scene.fog.far, w.fog[1], k);
+  hemi.color.lerp(w.c.hs, k); hemi.groundColor.lerp(w.c.hg, k); hemi.intensity = lerp(hemi.intensity, w.hemi[2], k);
+  sun.color.lerp(w.c.sun, k); sun.intensity = lerp(sun.intensity, w.sun[1], k);
+}
+function startWorld() {
+  worldTimer = 0;
+  if (worldSel === 'tour') { tourIdx = randInt(0, ownedWorlds.length - 1); setWorld(worldById(ownedWorlds[tourIdx]), true); }
+  else setWorld(worldById(worldSel), true);
+}
+function tourTick(dt) {
+  if (worldSel !== 'tour' || ownedWorlds.length < 2) return;
+  worldTimer += dt;
+  if (worldTimer < TOUR_TIME) return;
+  worldTimer = 0; tourIdx = (tourIdx + 1) % ownedWorlds.length;
+  setWorld(worldById(ownedWorlds[tourIdx]), false);
+  forceTunnel = true;
+  SFX.board(); toast(`${world.icon} ברוכים הבאים ל${world.name}!`);
+}
 
 // ================= characters =================
 // Detailed, smooth character: rounded body, face, hair, hoodie, jeans,
@@ -926,6 +1189,27 @@ function placeBarrier(lane, zf, kind) {
   g.position.set(LANES[lane], 0, zf - 0.2);
   return addObstacle({ type: kind, solid: false, lane, zf, len: 0.4, mesh: g, yMin: kind === 'low' ? 0 : 1.42, yMax: kind === 'low' ? 1.02 : 2.6 });
 }
+const decos = [];
+let forceTunnel = false;
+function placeTunnel(zf, len) {
+  const w = world;
+  if (!w.tunnelMat) w.tunnelMat = [M(w.tunnel), M(new THREE.Color(w.tunnel).multiplyScalar(0.7).getHex())];
+  const [mat, dark] = w.tunnelMat;
+  const g = new THREE.Group(), top = new THREE.Group();
+  for (const s of [-1, 1]) {
+    const wall = box(0.8, 6.6, len, dark); wall.position.set(s * 4.8, 3.3, 0); wall.receiveShadow = true; g.add(wall);
+    const pillar = box(1.6, 8.4, 1.4, mat); pillar.position.set(s * 5.1, 4.2, len / 2); g.add(pillar);
+  }
+  const roof = box(10.4, 0.7, len, dark); roof.position.y = 6.95; top.add(roof);
+  const lintel = box(11.8, 2, 1.4, mat); lintel.position.set(0, 7.6, len / 2); top.add(lintel);
+  const stripe = box(11.82, 0.35, 1.42, new THREE.MeshBasicMaterial({ color: 0xffbe0b }), false); stripe.position.set(0, 6.9, len / 2); top.add(stripe);
+  for (let z = -len / 2 + 3; z < len / 2 - 1; z += 6) {
+    const l = box(0.4, 0.08, 1.6, PM.win, false); l.position.set(0, 6.58, z); top.add(l);
+  }
+  g.add(top);
+  g.position.set(0, 0, zf - len / 2);
+  scene.add(g); decos.push({ mesh: g, top, zf, len });
+}
 function placeCoin(lane, z, y = 0.8) {
   const m = new THREE.Mesh(coinGeo, coinMat);
   const c = { mesh: m, x: LANES[lane], y, z };
@@ -1016,13 +1300,47 @@ function secMoving() {
   maybePickup(free, z - 38);
   spawnZ = front - 20 - gapLen();
 }
+// a long multi-car train: climb the ramp and run across the roofs
+function secRoofRun() {
+  const z = spawnZ, order = shuffled(), rl = order[0];
+  placeRamp(rl, z);
+  for (let d = 1; d < RAMP_LEN; d += 2.4) placeCoin(rl, z - d, TRAIN_H * d / RAMP_LEN + 0.8);
+  let cz = z - RAMP_LEN;
+  const cars = randInt(3, 5);
+  for (let i = 0; i < cars; i++) {
+    placeTrain(rl, cz, 14);
+    for (let d = 1; d < 14; d += 2.4) placeCoin(rl, cz - d, TRAIN_H + 0.8);
+    cz -= 15.5;
+  }
+  const total = Math.round(z - cz);
+  placeTrain(order[1], z - RAMP_LEN - 3, total - RAMP_LEN - 3);
+  if (Math.random() < .5) {
+    for (let d = 8; d < total - 4; d += 16) placeBarrier(order[2], z - d, pick(['low', 'high']));
+    coinLine(order[2], z - 2, Math.floor(total / 4), 0.8, 4);
+  } else placeTrain(order[2], z - RAMP_LEN - randInt(6, 14), Math.round(total * 0.6));
+  maybePickup(rl, cz - 2);
+  spawnZ = cz - gapLen();
+}
+// a tunnel with a couple of regular sections inside it
+function secTunnel() {
+  const start = spawnZ;
+  spawnZ -= 8;
+  const n = randInt(2, 3);
+  for (let i = 0; i < n; i++) pick([secBarriers, secTrains, secRoofRun, secCoins])();
+  spawnZ += 4;
+  placeTunnel(start, Math.round(start - spawnZ));
+  spawnZ -= 10;
+}
 function genSection() {
   secCount++;
   if (secCount === 1) { secCoins(); return; }
+  if (forceTunnel) { forceTunnel = false; secTunnel(); return; }
   const r = Math.random(), d = diff();
-  if (r < 0.32) secBarriers();
-  else if (r < 0.64) secTrains();
-  else if (r < 0.76 + 0.1 * d) secMoving();
+  if (r < 0.26) secBarriers();
+  else if (r < 0.48) secTrains();
+  else if (r < 0.58) secRoofRun();
+  else if (r < 0.68) secTunnel();
+  else if (r < 0.80 + 0.08 * d) secMoving();
   else secCoins();
 }
 function genAhead() { while (spawnZ > P.z - 190) genSection(); }
@@ -1202,6 +1520,7 @@ function updateHUD() {
 function refreshMenu() {
   $('bestMenu').textContent = best.toLocaleString('en-US'); $('bankMenu').textContent = bank.toLocaleString('en-US');
   $('multMenu').textContent = 'x' + missions.level;
+  $('worldBtn').textContent = '🌍 עולמות · ' + (worldSel === 'tour' ? TOUR.icon : worldById(worldSel).icon);
   $('missionBadge').textContent = missions.list.filter(m => m.done).length + '/3';
   $('muteBtn').textContent = muted ? '🔇 צליל כבוי' : '🔊 צליל';
   $('musicBtn').textContent = $('musicBtn2').textContent = Music.on ? '🎵 מוזיקה' : '🎵 מוזיקה כבויה';
@@ -1256,11 +1575,44 @@ function shopAction(id, el) {
 $('shopGrid').addEventListener('click', e => {
   const card = e.target.closest('.char'); if (card) shopAction(card.dataset.id, card);
 });
+// ----- worlds screen -----
+function renderWorlds() {
+  $('worldBank').textContent = bank.toLocaleString('en-US');
+  $('worldGrid').innerHTML = [TOUR, ...WORLDS].map(w => {
+    const have = w.id === 'tour' || ownedWorlds.includes(w.id), sel = w.id === worldSel;
+    let cls = 'act', label;
+    if (sel) { cls += ' on'; label = '✓ נבחר'; }
+    else if (have) label = 'בחר';
+    else { cls += bank >= w.price ? ' buy' : ' poor'; label = '🪙 ' + w.price.toLocaleString('en-US'); }
+    const bg = w.id === 'tour'
+      ? 'linear-gradient(135deg,#8fd8ff,#5ec8ff 25%,#cfe3f2 50%,#0c1033 75%,#ffcf8a)'
+      : `linear-gradient(180deg,#${w.sky.toString(16).padStart(6, '0')} 0 58%,${w.prev} 58%)`;
+    return `<div class="char${sel ? ' sel' : ''}${have ? '' : ' locked'}" data-id="${w.id}">
+      <div class="wprev" style="background:${bg}">${w.icon}</div>
+      <div class="nm">${w.name}</div><div class="ds">${w.desc}</div>
+      <button class="${cls}">${label}</button></div>`;
+  }).join('');
+}
+$('worldGrid').addEventListener('click', e => {
+  const card = e.target.closest('.char'); if (!card) return;
+  const id = card.dataset.id, w = id === 'tour' ? TOUR : worldById(id);
+  if (id !== 'tour' && !ownedWorlds.includes(id)) {
+    if (bank < w.price) { card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake'); SFX.stumble(); return; }
+    bank -= w.price; ownedWorlds.push(id);
+    store.set('sr_bank', bank); store.set('sr_worlds', ownedWorlds);
+    SFX.power();
+  } else SFX.lane();
+  worldSel = id; store.set('sr_world', worldSel);
+  startWorld(); resetScenery(P.z);     // preview the world behind the menu
+  renderWorlds(); refreshMenu();
+});
+function openWorlds() { if (state === 'over') toMenu(); renderWorlds(); show('worldScreen'); }
 function openShop() { if (state === 'over') toMenu(); renderShop(); show('shopScreen'); }
 
 // ================= flow =================
 function clearWorld() {
-  for (const a of [obstacles, coins, pickups]) { for (const o of a) scene.remove(o.mesh); a.length = 0; }
+  for (const a of [obstacles, coins, pickups, decos]) { for (const o of a) scene.remove(o.mesh); a.length = 0; }
+  forceTunnel = false;
 }
 function reset() {
   clearWorld(); Music.bpm = 120;
@@ -1270,11 +1622,12 @@ function reset() {
   lastStumble = -99; guardChase = 3.5; guardGap = 3.5; shake = 0;
   spawnZ = -40; secCount = 0;
   hero.body.rotation.set(0, 0, 0); hero.body.scale.setScalar(1); hero.g.rotation.set(0, 0, 0);
+  startWorld();
   resetScenery(0);
   genAhead();
 }
-function show(id) { for (const s of ['startScreen', 'pauseScreen', 'overScreen', 'shopScreen', 'missionScreen']) $(s).classList.toggle('hidden', s !== id); $('hud').classList.toggle('hidden', id !== null && id !== 'pauseScreen'); }
-function startGame() { audio(); reset(); resetRunMissions(); state = 'play'; show(null); updateHUD(); Music.start(); }
+function show(id) { for (const s of ['startScreen', 'pauseScreen', 'overScreen', 'shopScreen', 'missionScreen', 'worldScreen']) $(s).classList.toggle('hidden', s !== id); $('hud').classList.toggle('hidden', id !== null && id !== 'pauseScreen'); }
+function startGame() { audio(); reset(); resetRunMissions(); state = 'play'; show(null); updateHUD(); Music.start(); toast(`${world.icon} ${world.name}`); }
 function toMenu() { reset(); state = 'menu'; refreshMenu(); show('startScreen'); Music.start(); }
 function pause() { if (state === 'play') { state = 'pause'; show('pauseScreen'); Music.stop(); } }
 function resume() { if (state === 'pause') { state = 'play'; show(null); last = performance.now(); Music.start(); } }
@@ -1299,6 +1652,7 @@ function update(dt) {
   elapsed += dt;
   speed = START_SPEED + (MAX_SPEED - START_SPEED) * (1 - Math.exp(-elapsed / 90));
   Music.bpm = 120 + (speed - START_SPEED) * 1.6;
+  tourTick(dt);
   P.prevZ = P.z; P.z -= speed * dt;
   score += speed * dt * 0.6 * scoreMult();
   track('score', score, true); track('survive', elapsed, true);
@@ -1366,6 +1720,7 @@ function update(dt) {
     const o = obstacles[i];
     if (o.dead || o.zf - o.len > behind) { scene.remove(o.mesh); obstacles.splice(i, 1); }
   }
+  for (let i = decos.length - 1; i >= 0; i--) { const d = decos[i]; if (d.zf - d.len > behind + 10) { scene.remove(d.mesh); decos.splice(i, 1); } }
   for (let i = coins.length - 1; i >= 0; i--) { const c = coins[i]; if (c.taken || c.z > behind) { scene.remove(c.mesh); coins.splice(i, 1); } }
   for (let i = pickups.length - 1; i >= 0; i--) { const p = pickups[i]; if (p.taken || p.z > behind) { scene.remove(p.mesh); pickups.splice(i, 1); } }
 
@@ -1380,7 +1735,10 @@ function render(dt, now) {
   // world follow
   ground.position.z = P.z - 150;
   groundTex.offset.y = ((-ground.position.z / 8) % 1 + 1) % 1;
-  outer.position.z = rails.position.z = P.z - 150;
+  outer.position.z = rails.position.z = sea.position.z = P.z - 150;
+  blendWorld(dt);
+  updateWeather(dt, t);
+  for (const d of decos) d.top.visible = PU.jet <= 0 && P.y < 6;
   for (const g of segs) if (g.position.z > P.z + 30) { g.position.z -= SEG * NSEG; dressSeg(g); }
   sun.position.set(P.x - 8, 22, P.z + 6); sun.target.position.set(P.x, 0, P.z - 12);
 
@@ -1551,6 +1909,8 @@ $('boardBtn').onclick = useBoard;
 $('muteBtn').onclick = () => { muted = !muted; store.set('sr_muted', muted); refreshMenu(); };
 $('musicBtn').onclick = $('musicBtn2').onclick = () => { Music.toggle(); if (state === 'pause') Music.stop(); refreshMenu(); };
 $('shopBtn').onclick = openShop;
+$('worldBtn').onclick = openWorlds;
+$('worldBack').onclick = () => { show('startScreen'); refreshMenu(); };
 $('missionBtn').onclick = openMissions;
 $('missionBack').onclick = () => { show('startScreen'); refreshMenu(); };
 $('overShopBtn').onclick = openShop;
