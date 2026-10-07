@@ -169,7 +169,7 @@ function Lobby({ tab, setTab, progress, setProgress, onPlay, touch }) {
             {tab === 'play' && (
                 <main className="grid max-w-6xl gap-6 px-4 py-6 mx-auto sm:px-8 lg:grid-cols-[1fr_1.1fr]">
                     <div className="relative flex flex-col items-center rounded-3xl bg-gradient-to-b from-indigo-500/30 to-indigo-950/40 ring-1 ring-white/10">
-                        <Preview look={sel.look} className="w-full h-[46vh] min-h-[300px]" />
+                        <Preview look={sel.look} className="w-full h-[46vh] min-h-[300px]" emotes />
                         <div className="absolute text-center top-4 inset-x-4">
                             <div className="text-3xl italic font-black">{sel.name}</div>
                             <div className="text-yellow-300 font-bold">{sel.title}</div>
@@ -233,7 +233,7 @@ function Lobby({ tab, setTab, progress, setProgress, onPlay, touch }) {
             {tab === 'locker' && (
                 <main className="grid max-w-6xl gap-6 px-4 py-6 mx-auto sm:px-8 lg:grid-cols-[360px_1fr]">
                     <div className="rounded-3xl bg-gradient-to-b from-indigo-500/30 to-indigo-950/40 ring-1 ring-white/10">
-                        <Preview look={sel.look} className="w-full h-[50vh] min-h-[320px]" />
+                        <Preview look={sel.look} className="w-full h-[50vh] min-h-[320px]" emotes />
                         <div className="p-4 text-center">
                             <div className="text-2xl italic font-black">{sel.name}</div>
                             <div className="text-yellow-300">{sel.title}</div>
@@ -386,7 +386,7 @@ function Help() {
     );
 }
 
-function Preview({ look, className }) {
+function Preview({ look, className, emotes }) {
     const ref = useRef(null);
     const pv = useRef(null);
     useEffect(() => {
@@ -402,7 +402,23 @@ function Preview({ look, className }) {
     useEffect(() => {
         pv.current?.setLook(look);
     }, [look]);
-    return <canvas ref={ref} className={className} />;
+    if (!emotes) return <canvas ref={ref} className={className} />;
+    return (
+        <div className="relative w-full">
+            <canvas ref={ref} className={className} />
+            <div className="absolute flex gap-1.5 -translate-x-1/2 bottom-2 left-1/2">
+                {[
+                    ['dance', '💃', 'ריקוד'],
+                    ['wave', '👋', 'שלום'],
+                    ['cheer', '🙌', 'שמחה']
+                ].map(([id, icon, label]) => (
+                    <button key={id} onClick={() => pv.current?.playEmote(id)} className="px-2.5 py-1 text-sm font-bold rounded-full bg-black/40 hover:bg-black/60 ring-1 ring-white/20">
+                        {icon} {label}
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
 }
 
 function MiniAvatar({ look, locked }) {
@@ -701,11 +717,11 @@ function Hud({ hud, world, touch, game }) {
                     <div className="absolute w-28 h-28 rounded-full bottom-8 left-8 ring-2 ring-white/30 bg-white/5">
                         <div className="absolute w-12 h-12 -translate-x-1/2 -translate-y-1/2 rounded-full top-1/2 left-1/2 bg-white/25" />
                     </div>
+                    <div className="absolute flex gap-2 top-3 right-[134px] pointer-events-auto">
+                        <TouchBtn label="⛶" sub="מפה" {...tap('map')} />
+                        <TouchBtn label="⏸" sub="עצור" onPointerDown={() => game()?.pause()} />
+                    </div>
                     <div className="absolute flex flex-col items-end gap-2 bottom-5 right-5 pointer-events-auto">
-                        <div className="flex gap-2">
-                            <TouchBtn label="⛶" sub="מפה" {...tap('map')} />
-                            <TouchBtn label="⏸" sub="עצור" onPointerDown={() => game()?.pause()} />
-                        </div>
                         <div className="flex gap-2">
                             {hud.prompt && <TouchBtn label="✋" sub="אסוף" {...tap('interact')} big />}
                             <TouchBtn label="↻" sub="טען" {...tap('reload')} />

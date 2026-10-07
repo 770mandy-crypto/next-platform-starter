@@ -14,7 +14,13 @@ import {
     BUILD_PIECES,
     STORM_PHASES
 } from './data';
-import { makeCharacter, poseCharacter, setHeld, makeWeaponMesh, makeAirship, makeGlider, makeChest, makeLootMesh, lambert } from './models';
+import { makeWeaponMesh, makeAirship, makeGlider, makeChest, makeLootMesh, lambert } from './models';
+import { makeCharacter, setHeld, animateRig } from './character';
+import { makeSky, makeClouds, makeWater, makeGrass, layoutGrass, makeStormMaterial, Sprites } from './fx';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { Sfx } from './audio';
 
 const G = GRID;
@@ -162,6 +168,8 @@ class Bucket {
         this.mesh = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial({ color: 0xffffff, flatShading: true }), cap);
         this.mesh.count = 0;
         this.mesh.frustumCulled = false;
+        this.mesh.castShadow = true;
+        this.mesh.receiveShadow = true;
         this.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
         this.mesh.setColorAt(0, new THREE.Color(1, 1, 1));
         this.cap = cap;
@@ -275,9 +283,17 @@ export class Game {
     initRenderer() {
         const w = this.container.clientWidth || window.innerWidth;
         const h = this.container.clientHeight || window.innerHeight;
+        // High quality (shadows, bloom, dense grass) on desktop; lighter on phones.
+        this.hq = !this.touch;
         this.renderer = new THREE.WebGLRenderer({ antialias: !this.touch, powerPreference: 'high-performance' });
-        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.touch ? 1.25 : 1.75));
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.touch ? 1.25 : 1.5));
         this.renderer.setSize(w, h);
+        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        this.renderer.toneMappingExposure = this.world.exposure ?? 1.05;
+        if (this.hq) {
+            this.renderer.shadowMap.enabled = true;
+            this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        }
         const cv = this.renderer.domElement;
         cv.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;';
         this.container.appendChild(cv);
@@ -288,20 +304,49 @@ export class Game {
         this.ctx = this.overlay.getContext('2d');
 
         this.scene = new THREE.Scene();
-        this.scene.background = col(this.world.sky);
-        this.scene.fog = new THREE.Fog(this.world.fog, 150, 520);
-        this.camera = new THREE.PerspectiveCamera(75, w / h, 0.1, 1400);
+        this.scene.background = col(this.world.fog);
+        this.scene.fog = new THREE.Fog(this.world.fog, 160, 560);
+        this.camera = new THREE.PerspectiveCamera(75, w / h, 0.1, 2400);
         this.fov = 75;
-        const hemi = new THREE.HemisphereLight(this.world.sky, this.world.ground[1], 1.5);
+        this.sunDir = new THREE.Vector3(0.45, 0.8, 0.35).normalize();
+        const hemi = new THREE.HemisphereLight(this.world.sky, this.world.ground[1], 1.6);
         this.scene.add(hemi);
-        const sun = new THREE.DirectionalLight(this.world.sun, 2.1);
-        sun.position.set(80, 160, 60);
+        this.scene.add(new THREE.AmbientLight('#ffffff', 0.55));
+        const sun = new THREE.DirectionalLight(this.world.sun, 2.6);
+        sun.position.copy(this.sunDir).multiplyScalar(150);
+        if (this.hq) {
+            sun.castShadow = true;
+            sun.shadow.mapSize.set(2048, 2048);
+            const sc = sun.shadow.camera;
+            sc.left = -55;
+            sc.right = 55;
+            sc.top = 55;
+            sc.bottom = -55;
+            sc.near = 10;
+            sc.far = 400;
+            sun.shadow.bias = -0.0004;
+            sun.shadow.normalBias = 0.04;
+        }
         this.scene.add(sun);
+        this.scene.add(sun.target);
+        this.sun = sun;
+        this.sky = makeSky(this.world, this.sunDir);
+        this.scene.add(this.sky);
+        this.muzzleLight = new THREE.PointLight('#ffc46b', 0, 9, 2);
+        this.scene.add(this.muzzleLight);
+        if (this.hq) {
+            this.composer = new EffectComposer(this.renderer);
+            this.composer.addPass(new RenderPass(this.scene, this.camera));
+            this.bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.42, 0.5, 0.95);
+            this.composer.addPass(this.bloom);
+            this.composer.addPass(new OutputPass());
+        }
 
         this.resize = () => {
             const W = this.container.clientWidth || window.innerWidth;
             const Hh = this.container.clientHeight || window.innerHeight;
             this.renderer.setSize(W, Hh);
+            this.composer?.setSize(W, Hh);
             this.camera.aspect = W / Hh;
             this.camera.updateProjectionMatrix();
             const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -328,17 +373,14 @@ export class Game {
         this.genHeightfield();
         this.genTerrainMesh();
 
-        const water = new THREE.Mesh(
-            new THREE.PlaneGeometry(4000, 4000),
-            new THREE.MeshLambertMaterial({ color: this.world.water, transparent: true, opacity: 0.85 })
-        );
-        water.rotation.x = -Math.PI / 2;
-        water.position.y = this.world.waterLevel;
-        S.add(water);
+        this.water = makeWater(this.world);
+        S.add(this.water);
+        this.clouds = makeClouds(this.world);
+        S.add(this.clouds);
 
         if (this.world.lava) {
             this.lavaY = this.heightAt(0, 0) + 1.2;
-            const lava = new THREE.Mesh(new THREE.CircleGeometry(15, 24), new THREE.MeshBasicMaterial({ color: '#ff6a1a' }));
+            const lava = new THREE.Mesh(new THREE.CircleGeometry(15, 24), new THREE.MeshBasicMaterial({ color: new THREE.Color('#ff7a2a').multiplyScalar(2.2) }));
             lava.rotation.x = -Math.PI / 2;
             lava.position.set(0, this.lavaY, 0);
             S.add(lava);
@@ -351,10 +393,7 @@ export class Game {
         this.genFieldLoot();
 
         // the storm wall
-        this.stormMesh = new THREE.Mesh(
-            new THREE.CylinderGeometry(1, 1, 700, 72, 1, true),
-            new THREE.MeshBasicMaterial({ color: '#9b30ff', transparent: true, opacity: 0.3, side: THREE.DoubleSide, depthWrite: false })
-        );
+        this.stormMesh = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 700, 96, 1, true), makeStormMaterial());
         this.stormMesh.position.y = 150;
         S.add(this.stormMesh);
         this.initStorm();
@@ -388,6 +427,12 @@ export class Game {
 
         this.initEffects();
         this.makeMapImage();
+        this.sprites = new Sprites(S);
+        const grassy = { hills: 1, city: 1, jungle: 1, legends: 1 }[this.world.id];
+        if (grassy) {
+            this.grass = makeGrass(this.world.ground[0], this.hq ? 18000 : 3800);
+            S.add(this.grass);
+        }
     }
 
     rawHeight(x, z) {
@@ -495,6 +540,7 @@ export class Game {
         geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
         geo.computeVertexNormals();
         const mesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }));
+        mesh.receiveShadow = true;
         this.scene.add(mesh);
         this.terrain = mesh;
     }
@@ -1062,7 +1108,12 @@ export class Game {
             lastAttacker: null,
             kills: 0,
             perks: { speed: 1, jump: 1, dmg: 1, storm: 1, harvest: 1, regen: false },
-            deathT: 0
+            deathT: 0,
+            lastShot: -99,
+            landTime: -99,
+            buildTime: -99,
+            flashT: 0,
+            animSkip: 0
         };
         this.chars.push(c);
         return c;
@@ -1213,6 +1264,8 @@ export class Game {
                 c.state = 'ground';
                 c.vy = 0;
                 c.grounded = true;
+                c.landTime = this.time;
+                this.dustRing(p, 7);
                 if (c.isPlayer) this.onLand();
             }
             this.clampBounds(c);
@@ -1238,6 +1291,11 @@ export class Game {
         p.y += c.vy * dt;
         if (p.y <= g) {
             p.y = g;
+            if (!c.grounded && c.vy < -7) {
+                c.landTime = this.time;
+                this.dustRing(p, 4);
+                if (c.isPlayer) this.shake = Math.max(this.shake || 0, 0.25);
+            }
             c.vy = 0;
             c.grounded = true;
         } else if (c.grounded && c.vy <= 0 && p.y - g < 0.7) {
@@ -1389,9 +1447,20 @@ export class Game {
                 this.burst(res.point, res.piece.parts[0]?.color.getHexString() || 'cccccc', 2, 2);
             } else if (res.type === 'terrain') {
                 this.burst(res.point, '8a7a60', 2, 1.5);
+                if (i < 2) this.sprites.spawn('puff', res.point, { color: '#d6c7a8', size: 0.3, grow: 1.2, life: 0.5, alpha: 0.6 });
             }
         }
+        c.lastShot = this.time;
         const dist = this.distToPlayer(origin.x, origin.y, origin.z);
+        if (dist < 160) {
+            this.sprites.spawn('flash', muzzle, { size: W.pellets > 1 || W.zoom ? 1.1 : 0.7, vel: _v1.set(0, 0, 0) });
+            if (dist < 60) {
+                this.muzzleLight.position.copy(muzzle);
+                this.muzzleLight.intensity = 14;
+                this.muzzleT = 0.05;
+            }
+        }
+        if (c.isPlayer) this.shake = Math.max(this.shake || 0, W.zoom || W.pellets > 1 ? 0.5 : 0.18);
         this.sfx.shot(it.type, c.isPlayer ? 0 : dist);
         if (c.isPlayer) {
             this.pitch += W.zoom ? 0.03 : it.type === 'shotgun' ? 0.04 : 0.008;
@@ -1481,6 +1550,7 @@ export class Game {
         }
         t.hp -= rem;
         t.lastHurt = this.time;
+        t.flashT = 0.12;
         if (attacker) t.lastAttacker = attacker;
         if (attacker?.isPlayer) {
             this.stats.dmg += dmg;
@@ -1498,6 +1568,7 @@ export class Game {
             });
         }
         if (t.isPlayer) {
+            this.shake = Math.max(this.shake || 0, Math.min(0.6, dmg / 60));
             this.hurtFlash = Math.min(1, this.hurtFlash + dmg / 35);
             if (attacker) this.hurtFrom = { x: attacker.pos.x, z: attacker.pos.z, t: 1.2 };
         }
@@ -1547,9 +1618,10 @@ export class Game {
         } else if (this.player.alive && this.aliveCount === 1) {
             this.won = true;
             this.place = 1;
-            this.message('#1 ניצחון אגדי!', 'נשארת אחרון/ה על האי', 5);
+            this.message('#1 ניצחון אגדי!', 'נשארת אחרון/ה על האי', 6);
             this.sfx.victory();
-            this.endT = 5;
+            this.buildMode = false;
+            this.endT = 6;
         }
     }
 
@@ -1653,6 +1725,7 @@ export class Game {
         else if (type === 'floor') this.addFloor(pl.tcx, pl.tcz, pl.base, color, opts);
         else this.addRamp(pl.tcx, pl.tcz, pl.q, pl.base, color, opts);
         c.mats -= BUILD_COST;
+        c.buildTime = this.time;
         if (this.distToPlayer(c.pos.x, c.pos.y, c.pos.z) < 40) this.sfx.build();
         return true;
     }
@@ -2201,8 +2274,10 @@ export class Game {
             this.update(dt);
         }
         this.updateCamera(dt);
+        this.updateWorldFx(dt);
         for (const k in this.buckets) this.buckets[k].flush();
-        this.renderer.render(this.scene, this.camera);
+        if (this.composer) this.composer.render();
+        else this.renderer.render(this.scene, this.camera);
         this.drawOverlay(dt);
         this.hudT -= dt;
         if (this.hudT <= 0 && this.opts.onHud) {
@@ -2245,24 +2320,35 @@ export class Game {
 
     animateChar(c, dt) {
         const m = c.model;
+        const R = m.userData.rig;
         if (!c.alive) {
             c.deathT += dt;
-            m.rotation.x = Math.min(1, c.deathT * 2.5) * (Math.PI / 2);
+            m.rotation.x = Math.min(1, Math.max(0, c.deathT - 0.15) * 2.4) * (Math.PI / 2);
             c.glider.visible = false;
-            if (c.deathT > 2.5 && !c.isPlayer) m.visible = false;
+            if (c.deathT > 3 && !c.isPlayer) m.visible = false;
             m.position.copy(c.pos);
+            if (m.visible) animateRig(m, { time: this.time, mode: 'dead', deadT: c.deathT }, dt);
             return;
         }
         m.visible = c.state !== 'bus' && !(c.isPlayer && this.aiming && this.isScoped());
+        const camD = this.camera.position.distanceTo(c.pos);
+        if (!c.isPlayer && camD > 260) m.visible = false;
+        if (!m.visible) return;
         m.position.copy(c.pos);
         m.rotation.y = c.yaw;
-        m.rotation.x = c.state === 'dive' ? -1.1 : 0;
+        m.rotation.x = c.state === 'dive' ? lerp(m.rotation.x, -1.15, Math.min(1, dt * 4)) : lerp(m.rotation.x, 0, Math.min(1, dt * 10));
         c.glider.visible = c.state === 'glide';
-        const sp = Math.hypot(c.vel.x, c.vel.z);
-        c.walk += dt * sp * 1.7;
+        // far-away bots animate at a lower rate
+        if (!c.isPlayer && camD > 90) {
+            c.animSkip += dt;
+            if (c.animSkip < (camD > 160 ? 0.12 : 0.05)) return;
+            dt = c.animSkip;
+        }
+        c.animSkip = 0;
         const it = c.slots[c.active];
         let holding = 'none';
-        if (c.isPlayer && this.buildMode) holding = 'none';
+        if (c.isPlayer && this.won) holding = 'none';
+        else if (c.isPlayer && this.buildMode) holding = 'build';
         else if (it?.kind === 'pickaxe') holding = 'pick';
         else if (it?.kind === 'weapon') holding = 'gun';
         else if (it?.kind === 'heal') holding = 'heal';
@@ -2273,19 +2359,104 @@ export class Game {
             if (m.userData.heldKey !== key) mesh = makeWeaponMesh('pickaxe');
         } else if (holding === 'gun') {
             key = `${it.type}:${it.rarity}`;
-            if (m.userData.heldKey !== key) mesh = makeWeaponMesh(it.type, RARITIES[it.rarity].color);
+            if (m.userData.heldKey !== key) mesh = makeWeaponMesh(it.type, RARITIES[it.rarity].color, it.rarity);
         }
         if (m.userData.heldKey !== key) setHeld(m, key, mesh);
-        poseCharacter(m, {
-            walk: c.walk,
-            moving: sp > 0.5 && c.grounded,
-            airborne: c.state === 'ground' && !c.grounded,
-            holding,
-            swing: c.swingT / 0.4,
-            pitch: c.isPlayer ? this.pitch * 0.7 : 0,
-            diving: c.state === 'dive',
-            build: c.isPlayer && this.buildMode
-        });
+        const fx = -Math.sin(c.yaw);
+        const fz = -Math.cos(c.yaw);
+        const sp = Math.hypot(c.vel.x, c.vel.z);
+        if (c.flashT > 0) c.flashT -= dt;
+        const victory = c.isPlayer && this.won;
+        const step = animateRig(
+            m,
+            {
+                time: this.time,
+                mode: victory ? 'emote' : c.state === 'dive' ? 'dive' : c.state === 'glide' ? 'glide' : 'ground',
+                emote: 'dance',
+                speed: sp,
+                fwd: c.vel.x * fx + c.vel.z * fz,
+                side: c.vel.x * -fz + c.vel.z * fx,
+                vy: c.vy,
+                grounded: c.grounded,
+                hold: holding,
+                weapon: it?.type,
+                pitch: c.isPlayer ? this.pitch : c.ai?.target ? Math.atan2(c.ai.target.pos.y - c.pos.y, Math.hypot(c.ai.target.pos.x - c.pos.x, c.ai.target.pos.z - c.pos.z) + 0.01) : 0,
+                yaw: c.yaw,
+                shotT: this.time - c.lastShot,
+                reload: c.reloadT > 0 ? 1 - c.reloadT / c.reloadDur : 0,
+                swing: c.swingT > 0 ? 1 - c.swingT / 0.4 : 0,
+                build: this.time - c.buildTime,
+                hurtT: this.time - c.lastHurt,
+                landT: this.time - c.landTime,
+                flash: Math.max(0, c.flashT / 0.12)
+            },
+            dt
+        );
+        if (step && c.grounded && c.state === 'ground') {
+            if (camD < 30) {
+                const run = sp > 5;
+                if (run && Math.random() < 0.5) this.sprites.spawn('puff', c.pos, { color: this.world.shore, size: 0.25, grow: 0.8, life: 0.45, alpha: 0.35 });
+                this.sfx.step(c.isPlayer ? 0 : camD, run);
+            }
+        }
+        void R;
+    }
+
+    dustRing(p, n) {
+        if (this.distToPlayer(p.x, p.y, p.z) > 80) return;
+        for (let i = 0; i < n; i++) {
+            const a = (i / n) * Math.PI * 2;
+            this.sprites.spawn('puff', _v1.set(p.x + Math.cos(a) * 0.4, p.y + 0.15, p.z + Math.sin(a) * 0.4), {
+                color: this.world.shore,
+                size: 0.5,
+                grow: 2,
+                life: 0.8,
+                alpha: 0.5,
+                vel: _v2.set(Math.cos(a) * 2.2, 0.4, Math.sin(a) * 2.2)
+            });
+        }
+    }
+
+    // Sky, sun/shadows, water, clouds, grass and storm wall all track the camera or time.
+    updateWorldFx(dt) {
+        const cam = this.camera.position;
+        this.sky.position.copy(cam);
+        const p = this.player;
+        const focus = p.state === 'bus' ? this.bus.pos : p.pos;
+        const snap = 2;
+        _v1.set(Math.round(focus.x / snap) * snap, Math.round(focus.y / snap) * snap, Math.round(focus.z / snap) * snap);
+        this.sun.target.position.copy(_v1);
+        this.sun.position.copy(_v1).addScaledVector(this.sunDir, 150);
+        this.water.userData.update(dt);
+        this.clouds.position.x = ((this.time * 1.6) % 300) - 150;
+        const sm = this.stormMesh.material;
+        sm.uniforms.uTime.value = this.time;
+        this.stormFlash = Math.max(0, (this.stormFlash || 0) - dt * 3);
+        if (Math.random() < dt * 0.25) this.stormFlash = 1;
+        sm.uniforms.uFlash.value = this.stormFlash * this.stormFlash;
+        if (this.muzzleT > 0) {
+            this.muzzleT -= dt;
+            if (this.muzzleT <= 0) this.muzzleLight.intensity = 0;
+        }
+        this.sprites.update(dt);
+        if (this.grass) {
+            this.grass.userData.uniforms.uTime.value = this.time;
+            const c = this.grass.userData.center;
+            const gp = p.state === 'ground' || p.state === 'glide' ? p.pos : null;
+            if (gp && (!c || Math.hypot(gp.x - c.x, gp.z - c.z) > 12)) {
+                const wl = this.world.waterLevel;
+                layoutGrass(this.grass, gp.x, gp.z, this.hq ? 42 : 28, this.hq ? 0.55 : 0.8, (x, z) => this.heightAt(x, z), (x, z, r) => {
+                    const h = this.heightAt(x, z);
+                    if (h < wl + 1.4 || h > wl + 15) return false;
+                    // thin the grass out towards towns so floors never sprout blades
+                    for (const poi of this.pois) {
+                        const d = Math.hypot(x - poi.x, z - poi.z);
+                        if (d < 30 || (d < 42 && r > (d - 30) / 12)) return false;
+                    }
+                    return true;
+                });
+            }
+        }
     }
 
     isScoped() {
@@ -2322,8 +2493,21 @@ export class Game {
             this.deathCam = (this.deathCam || 0) + dt;
             this.camPos.y += Math.min(6, this.deathCam * 3);
         }
+        if (this.won && p.alive) {
+            const a = this.time * 0.45;
+            this.camPos.set(p.pos.x + Math.sin(a) * 4.6, p.pos.y + 1.9, p.pos.z + Math.cos(a) * 4.6);
+            cam.position.copy(this.camPos);
+            cam.lookAt(p.pos.x, p.pos.y + 1.2, p.pos.z);
+            return;
+        }
         cam.position.copy(this.camPos);
-        cam.lookAt(_v1.copy(this.camPos).add(d));
+        if (this.shake > 0) {
+            this.shake = Math.max(0, this.shake - dt * 3);
+            const k = this.shake * this.shake * 0.12;
+            cam.position.x += (Math.random() - 0.5) * k;
+            cam.position.y += (Math.random() - 0.5) * k;
+        }
+        cam.lookAt(_v1.copy(cam.position).add(d));
         if (dt > 0 && Math.abs(this.camera.fov - targetFov) > 0.1) {
             this.camera.fov = lerp(this.camera.fov, targetFov, Math.min(1, dt * 14));
             this.camera.updateProjectionMatrix();
@@ -2351,6 +2535,20 @@ export class Game {
         }
         const cm = lambert('#d99a1e', '#f59e0b');
         cm.emissiveIntensity = 0.35 + Math.sin(this.time * 4) * 0.25;
+        for (const ch of this.chests) {
+            const gl = ch.mesh.userData.glow;
+            if (gl) {
+                gl.material.opacity = ch.opened ? Math.max(0, 0.12 - ch.t * 0.1) : 0.09 + Math.sin(this.time * 3 + ch.pos.x) * 0.04;
+                gl.rotation.y += dt;
+            }
+            if (!ch.opened && Math.random() < dt * 2 && this.distToPlayer(ch.pos.x, ch.pos.y, ch.pos.z) < 40)
+                this.sprites.spawn('flash', _v1.set(ch.pos.x + (Math.random() - 0.5) * 1.2, ch.pos.y + 0.6 + Math.random() * 0.8, ch.pos.z + (Math.random() - 0.5) * 1.2), {
+                    size: 0.18,
+                    grow: 0.05,
+                    life: 0.7,
+                    vel: _v2.set(0, 0.5, 0)
+                });
+        }
         for (let i = this.chests.length - 1; i >= 0; i--) {
             const ch = this.chests[i];
             if (!ch.opened) continue;
@@ -2681,7 +2879,7 @@ export class Game {
             ctx.fillText(n.text, sx, sy);
         }
         ctx.globalAlpha = 1;
-        const small = W < 700;
+        const small = W < 700 || this.touch;
         const ms = small ? 112 : 176;
         if (!this.showMap) this.drawMap(ctx, W - ms - 14, 14, ms, false);
         else {
@@ -2926,6 +3124,7 @@ export class Game {
             if (o.isInstancedMesh) o.dispose();
         });
         this.terrain.geometry.dispose();
+        this.composer?.dispose();
         this.renderer.dispose();
         this.renderer.forceContextLoss?.();
         this.canvas.remove();
@@ -2948,30 +3147,82 @@ const _c2 = new THREE.Color();
 const _lists = [];
 const _lists2 = [];
 
-// A small turntable renderer for the locker screen.
+// The locker showcase: an animated hero on a glowing podium. Drag to spin,
+// and play emotes (dance / wave / cheer).
 export function createPreview(canvas) {
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 50);
-    camera.position.set(0, 1.25, 5.4);
-    camera.lookAt(0, 0.95, 0);
-    scene.add(new THREE.HemisphereLight('#dbeafe', '#1e1b4b', 1.8));
-    const key = new THREE.DirectionalLight('#ffffff', 2.4);
-    key.position.set(2, 4, 5);
+    const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
+    camera.position.set(0, 1.45, 5.9);
+    camera.lookAt(0, 1.22, 0);
+    scene.add(new THREE.HemisphereLight('#dbeafe', '#312e81', 1.4));
+    const key = new THREE.DirectionalLight('#fff4e0', 3);
+    key.position.set(2.5, 5, 4);
+    key.castShadow = true;
+    key.shadow.mapSize.set(1024, 1024);
+    key.shadow.camera.left = -2;
+    key.shadow.camera.right = 2;
+    key.shadow.camera.top = 3;
+    key.shadow.camera.bottom = -1;
+    key.shadow.normalBias = 0.02;
     scene.add(key);
-    const rim = new THREE.DirectionalLight('#a78bfa', 1.6);
-    rim.position.set(-3, 2, -4);
+    const rim = new THREE.DirectionalLight('#a78bfa', 2.6);
+    rim.position.set(-3, 2.5, -4);
     scene.add(rim);
-    const pad = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.25, 0.18, 32), new THREE.MeshLambertMaterial({ color: '#312e81' }));
-    pad.position.y = -0.09;
+    const rim2 = new THREE.DirectionalLight('#38bdf8', 1.6);
+    rim2.position.set(3, 1.5, -3);
+    scene.add(rim2);
+    const pad = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.3, 0.2, 48), new THREE.MeshStandardMaterial({ color: '#2e2a6e', roughness: 0.35, metalness: 0.4 }));
+    pad.position.y = -0.1;
+    pad.receiveShadow = true;
     scene.add(pad);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(1.22, 0.03, 8, 64), new THREE.MeshBasicMaterial({ color: new THREE.Color('#facc15').multiplyScalar(1.5) }));
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = 0.0;
+    scene.add(ring);
+    const beam = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.1, 1.2, 3.2, 40, 1, true),
+        new THREE.MeshBasicMaterial({ color: '#8b5cf6', transparent: true, opacity: 0.08, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+    );
+    beam.position.y = 1.6;
+    scene.add(beam);
     let model = null;
     let raf = 0;
     let t = 0;
-    const frame = () => {
+    let spin = 0;
+    let spinVel = 0;
+    let drag = null;
+    let emote = null;
+    let emoteT = 0;
+    let last = performance.now();
+    const down = (e) => {
+        drag = e.clientX;
+        canvas.setPointerCapture?.(e.pointerId);
+    };
+    const move = (e) => {
+        if (drag === null) return;
+        spinVel = (e.clientX - drag) * 0.012;
+        spin += spinVel;
+        drag = e.clientX;
+    };
+    const up = () => {
+        drag = null;
+    };
+    canvas.addEventListener('pointerdown', down);
+    canvas.addEventListener('pointermove', move);
+    canvas.addEventListener('pointerup', up);
+    canvas.addEventListener('pointercancel', up);
+    canvas.style.touchAction = 'pan-y';
+    canvas.style.cursor = 'grab';
+    const frame = (now) => {
         raf = requestAnimationFrame(frame);
-        t += 0.016;
+        const dt = Math.min(0.05, ((now || performance.now()) - last) / 1000);
+        last = now || performance.now();
+        t += dt;
         const w = canvas.clientWidth;
         const h = canvas.clientHeight;
         if (w && h && (canvas.width !== Math.floor(w * renderer.getPixelRatio()) || canvas.height !== Math.floor(h * renderer.getPixelRatio()))) {
@@ -2979,11 +3230,19 @@ export function createPreview(canvas) {
             camera.aspect = w / h;
             camera.updateProjectionMatrix();
         }
-        if (model) {
-            model.rotation.y = Math.PI + Math.sin(t * 0.7) * 0.7;
-            poseCharacter(model, { walk: 0, moving: false, holding: 'pick', swing: 0 });
-            model.userData.body.position.y = Math.sin(t * 2) * 0.02;
+        if (drag === null) {
+            spinVel *= 0.94;
+            spin += spinVel;
         }
+        if (model) {
+            model.rotation.y = Math.PI + spin + (drag === null && Math.abs(spinVel) < 0.002 ? Math.sin(t * 0.6) * 0.35 : 0);
+            if (emote) {
+                emoteT -= dt;
+                if (emoteT <= 0) emote = null;
+            }
+            animateRig(model, { time: t, mode: emote ? 'emote' : 'ground', emote, grounded: true, speed: 0, hold: emote ? 'none' : 'pick' }, dt);
+        }
+        beam.material.opacity = 0.06 + Math.sin(t * 2) * 0.025;
         renderer.render(scene, camera);
     };
     frame();
@@ -2993,9 +3252,23 @@ export function createPreview(canvas) {
             model = makeCharacter(look);
             setHeld(model, 'pick', makeWeaponMesh('pickaxe'));
             scene.add(model);
+            emote = 'cheer';
+            emoteT = 1.6;
+        },
+        playEmote(name) {
+            emote = name;
+            emoteT = name === 'dance' ? 6 : 3;
+            if (model) setHeld(model, 'none', null);
+            setTimeout(() => {
+                if (model && !emote) setHeld(model, 'pick', makeWeaponMesh('pickaxe'));
+            }, emoteT * 1000 + 50);
         },
         dispose() {
             cancelAnimationFrame(raf);
+            canvas.removeEventListener('pointerdown', down);
+            canvas.removeEventListener('pointermove', move);
+            canvas.removeEventListener('pointerup', up);
+            canvas.removeEventListener('pointercancel', up);
             renderer.dispose();
             renderer.forceContextLoss?.();
         }

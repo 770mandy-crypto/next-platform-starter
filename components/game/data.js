@@ -114,7 +114,7 @@ export const WORLDS = [
     {
         id: 'desert', name: 'דיונות הזהב', subtitle: 'מדבר, מקדשים ונווה מדבר', emoji: '🏜️', seed: 37,
         sky: '#ffd9a0', fog: '#f5dcb4', sun: '#fff1c9',
-        ground: ['#e3c27a', '#d6ad62', '#b8864a'], shore: '#f0dca0', water: '#2bb3c0', waterLevel: -2,
+        ground: ['#e3c27a', '#d6ad62', '#b8864a'], shore: '#f0dca0', water: '#2bb3c0', waterLevel: -2, exposure: 0.92,
         terrain: { base: 5, amp: 7, freq: 0.01, style: 'dunes' },
         trees: { type: 'cactus', count: 90 }, rocks: 45, rockColor: '#b07a4a',
         build: { wall: '#e0c08a', roof: '#c49a5a', floor: '#a47a45', floors: [1, 2], houses: [3, 4], size: [1, 2] },
@@ -124,7 +124,7 @@ export const WORLDS = [
     {
         id: 'snow', name: 'פסגות הקרח', subtitle: 'הרים מושלגים ואגם קפוא', emoji: '🏔️', seed: 41,
         sky: '#c7dcf0', fog: '#e4eef7', sun: '#ffffff',
-        ground: ['#e9f1f7', '#d3e2ee', '#9fb3c4'], shore: '#cfe0ea', water: '#8fc6e8', waterLevel: 0,
+        ground: ['#d9e4ee', '#c3d3e2', '#90a5b8'], shore: '#c4d6e2', water: '#6fb0dc', waterLevel: 0, exposure: 0.72,
         terrain: { base: 6, amp: 10, freq: 0.012, style: 'mountains' },
         trees: { type: 'snowpine', count: 160 }, rocks: 30, rockColor: '#94a3b8',
         build: { wall: '#8b5e3c', roof: '#f8fafc', floor: '#6b4428', floors: [1, 2], houses: [3, 4], size: [1, 2] },

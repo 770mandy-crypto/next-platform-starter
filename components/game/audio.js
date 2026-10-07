@@ -108,6 +108,11 @@ export class Sfx {
         [523, 659, 784, 1046, 1318].forEach((f, i) => this.tone(0.25, 0.4, f, f, 'triangle', i * 0.15));
     }
 
+    step(dist = 0, run = false) {
+        const v = Math.max(0, 1 - dist / 30) * (run ? 0.22 : 0.14);
+        this.burst(v, 0.07, 260 + Math.random() * 120, 1.2);
+    }
+
     hurt() {
         this.tone(0.25, 0.15, 220, 110, 'sawtooth');
     }
