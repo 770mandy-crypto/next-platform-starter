@@ -1,5 +1,7 @@
 > **🧭 Maslul AI (מסלול)** — an MVP of an AI that leads a user from goal → plan → execution → result, with approval before any external action. Open `/pilot`. Full Hebrew guide, screenshots and roadmap: [docs/MASLUL.md](docs/MASLUL.md).
 
+> **⚡ סערת הקרב** — a 3D battle royale shooter in the browser: 7 worlds, 8 unlockable characters, building, bots and a closing storm. Open `/game`. Hebrew guide: [docs/GAME.md](docs/GAME.md).
+
 # Next.js on Netlify Platform Starter
 
 [Live Demo](https://nextjs-platform-starter.netlify.app/)

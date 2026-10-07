@@ -216,3 +216,13 @@
         @apply px-2 py-1 border border-slate-200;
     }
 }
+
+/* Lobby background for the סערת הקרב game */
+.storm-bg {
+    background:
+        radial-gradient(ellipse at 20% 0%, rgba(168, 85, 247, 0.45), transparent 55%),
+        radial-gradient(ellipse at 90% 100%, rgba(59, 130, 246, 0.5), transparent 55%),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0 14px, transparent 14px 28px),
+        linear-gradient(180deg, #1e3a8a, #312e81 60%, #1e1b4b);
+    background-color: #1e1b4b;
+}
