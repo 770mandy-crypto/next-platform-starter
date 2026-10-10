@@ -1,3 +1,5 @@
+> **🎬 AI Studio (סטודיו AI)** — one chat that drives the leading AI media services: video generation (Veo, Kling, Hailuo), images (FLUX), music, dubbing into other languages and voice-over (ElevenLabs), and cloud editing (Shotstack). Open `/studio`. Details: [AI Studio](#ai-studio-studio) below.
+
 > **🧭 Maslul AI (מסלול)** — an MVP of an AI that leads a user from goal → plan → execution → result, with approval before any external action. Open `/pilot`. Full Hebrew guide, screenshots and roadmap: [docs/MASLUL.md](docs/MASLUL.md).
 
 # Next.js on Netlify Platform Starter
@@ -39,6 +41,83 @@ netlify dev
 ```
 
 If your browser doesn't navigate to the site automatically, visit [localhost:8888](http://localhost:8888).
+
+## AI Studio (`/studio`)
+
+A Hebrew, chat-first video studio. Claude acts as the director: it plans the production with
+you (script, shot list, storyboard, translations, subtitles) and runs it by calling tools that
+drive outside AI services. Every result appears as a card in the "my jobs" panel and updates by
+itself until it is ready to play, download or reuse.
+
+| Capability | Tool Claude calls | Provider | Key |
+| --- | --- | --- | --- |
+| Chat, scripts, storyboards, translation, SRT | (Claude itself) | Anthropic | `ANTHROPIC_API_KEY` |
+| Video clips from text, or animating a still | `generate_video` | Replicate (Veo / Kling / Hailuo) | `REPLICATE_API_TOKEN` |
+| Images: frames, characters, thumbnails | `generate_image` | Replicate (FLUX) | `REPLICATE_API_TOKEN` |
+| Music and songs | `generate_music` | Replicate (MiniMax Music) | `REPLICATE_API_TOKEN` |
+| Talking characters: a still + speech → a video where the lips, face, head and hands move with the words; or re-syncing lips in an existing clip | `animate_character` | Replicate (OmniHuman / Sync Lipsync) | `REPLICATE_API_TOKEN` |
+| Dubbing a video into other languages, in the original voices | `dub_video` | ElevenLabs | `ELEVENLABS_API_KEY` |
+| Narration from a script, in any language | `create_voiceover` | ElevenLabs | `ELEVENLABS_API_KEY` |
+| Joining clips with trims, transitions, music, narration and titles | `edit_video` | Shotstack | `SHOTSTACK_API_KEY` |
+| Finding earlier results to build on | `list_jobs` | — | — |
+
+The studio works with any subset of keys: the header shows which services are connected, and
+the director says which key is missing when a request needs one. All keys are listed in
+`.env.example`.
+
+### How it works
+
+- **Nothing waits for a render.** Video and dubbing take minutes, far longer than a serverless
+  function may run. Each tool only *starts* a job with the provider and records it
+  (`lib/studio/jobs.js`); the page polls `GET /api/studio/jobs`, and that poll is what checks
+  running jobs with their provider (at most every 4 seconds per job, however many tabs poll).
+- **A manual tool loop** (`lib/studio/chat.js`): Claude answers, any tool calls run on the
+  server, their results go back, and it continues — up to 6 rounds per message. Tool inputs are
+  validated with Zod before anything is called, and a refused or cut-off turn never runs its
+  tools.
+- **Cost controls.** Each chat message counts against the existing daily AI quota, and each paid
+  provider job against a separate daily job limit (`STUDIO_DAILY_JOB_LIMIT`, default 40). The
+  director is told to show a plan and ask before a production needing more than about four paid
+  jobs. You need an account (the same one as `/pilot`), and every job is billed by the provider
+  to your own account with them.
+- **Model slugs are configuration.** Replicate model names change as vendors ship new versions;
+  point any slot at another model with `STUDIO_MODEL_VEO`, `STUDIO_MODEL_KLING`,
+  `STUDIO_MODEL_HAILUO`, `STUDIO_MODEL_FLUX`, `STUDIO_MODEL_MUSIC`, `STUDIO_MODEL_AVATAR` or
+  `STUDIO_MODEL_LIPSYNC` (`owner/name`). The defaults
+  in `lib/studio/catalog.js` should be checked against replicate.com before going live, and so
+  should the per-model input field names in `lib/studio/providers.js`, since each model's input
+  schema is its own.
+
+### Limits worth knowing
+
+- **Media goes in as public links.** Dubbing and editing services download their input by URL,
+  so a video on your computer must first be uploaded somewhere that serves it directly.
+  Uploading large files through the site itself is not supported (serverless request bodies are
+  capped at a few MB).
+- **File links are private share links.** Voice-overs and dubs are served from
+  `/api/studio/files/{job id}` without signing in, because the cloud editor has to fetch them.
+  The id is a random UUID shown only to the job's owner. Anyone who has the link can open the file.
+- **Shotstack's free key renders to its sandbox,** which watermarks the output. Set
+  `SHOTSTACK_ENV=v1` with a production key for clean video.
+- **Talking characters are one line per job.** The director designs the character once, records
+  each line as a voice-over, animates each line from the same still, and joins them with
+  `edit_video`. The avatar model fetches the voice-over by its file link, so this needs the
+  deployed site (a provider cannot reach `localhost`).
+- **Rights and consent.** The director is told not to imitate a real person's face or voice
+  without consent, and not to dub or re-edit media you don't own or have permission to use.
+
+### Endpoints
+
+```
+POST /api/studio/chat          # {message, history} -> NDJSON stream: text, tool, tool_result, job, done
+GET  /api/studio/jobs          # the signed-in user's recent jobs (running ones are re-checked)
+GET  /api/studio/files/{id}    # a finished voice-over or dub (?download for an attachment)
+GET  /api/studio/status        # which providers are connected and which model each slot uses
+```
+
+`npm test` covers the studio offline (`lib/studio.test.mjs`): every provider call runs against
+a local fixture server, and the tool loop runs against a scripted stand-in for the Claude
+client, so no keys or network are needed.
 
 ## שוקי — Stock Analyst Bot (`/bot`)
 
