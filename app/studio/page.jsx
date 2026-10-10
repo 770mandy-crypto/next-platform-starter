@@ -15,6 +15,7 @@ const TOOL_LABELS = {
     generate_music: 'מלחין מוזיקה',
     dub_video: 'מדבב',
     create_voiceover: 'מקליט קריינות',
+    animate_character: 'מנפיש דמות מדברת',
     edit_video: 'עורך את הסרטון',
     list_jobs: 'בודק את העבודות שלך'
 };
@@ -23,6 +24,7 @@ const EXAMPLES = [
     'תדבב לי את הסרטון הזה לאנגלית, ספרדית וערבית: https://…',
     'בוא נעשה פרסומת של 20 שניות לבית קפה תל אביבי: תסריט, 4 שוטים, מוזיקה וקריינות בעברית',
     'תכתוב תסריט לסרטון הסבר של דקה על המוצר שלי ותקליט קריינות',
+    'צור דמות מצוירת של שועל חמוד שמדבר אל המצלמה ומציג את עצמו בעברית',
     'צור דמות מצוירת של שועל חמוד ותנפיש אותה רצה ביער',
     'תערוך את הקליפים שיצרנו לסרטון אחד עם מוזיקה וכותרות'
 ];
@@ -370,9 +372,9 @@ function Welcome({ onPick }) {
         <div className="py-6 text-center">
             <h2 className="text-3xl font-extrabold">מה מפיקים היום?</h2>
             <p className="max-w-xl mx-auto mt-3 text-slate-400">
-                הבמאי של הסטודיו מחובר לכלי ה-AI המובילים: וידאו (Veo, Kling, Hailuo), תמונות (FLUX), מוזיקה, דיבוב לכל
-                השפות וקריינות (ElevenLabs) ועריכה בענן (Shotstack). תארו מה אתם רוצים, והוא יתכנן, יפעיל את הכלים ויחבר
-                הכול.
+                הבמאי של הסטודיו מחובר לכלי ה-AI המובילים: וידאו (Veo, Kling, Hailuo), תמונות (FLUX), דמויות שזזות
+                ומדברות (OmniHuman, Lipsync), מוזיקה, דיבוב לכל השפות וקריינות (ElevenLabs) ועריכה בענן (Shotstack).
+                תארו מה אתם רוצים, והוא יתכנן, יפעיל את הכלים ויחבר הכול.
             </p>
             <div className="grid gap-2 mt-6 text-right sm:grid-cols-2">
                 {EXAMPLES.map((example) => (
@@ -443,7 +445,7 @@ function Turn({ turn }) {
 function JobCard({ job }) {
     const kind = JOB_KINDS[job.kind] ?? { label: job.kind, icon: '•' };
     const isAudio = job.kind === 'voiceover' || job.kind === 'music';
-    const isVideo = job.kind === 'video' || job.kind === 'edit' || job.kind === 'dub';
+    const isVideo = ['video', 'edit', 'dub', 'character'].includes(job.kind);
     return (
         <article className="overflow-hidden border rounded-xl border-white/10 bg-slate-900">
             {job.status === 'done' && job.url && (

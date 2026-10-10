@@ -55,6 +55,7 @@ itself until it is ready to play, download or reuse.
 | Video clips from text, or animating a still | `generate_video` | Replicate (Veo / Kling / Hailuo) | `REPLICATE_API_TOKEN` |
 | Images: frames, characters, thumbnails | `generate_image` | Replicate (FLUX) | `REPLICATE_API_TOKEN` |
 | Music and songs | `generate_music` | Replicate (MiniMax Music) | `REPLICATE_API_TOKEN` |
+| Talking characters: a still + speech → a video where the lips, face, head and hands move with the words; or re-syncing lips in an existing clip | `animate_character` | Replicate (OmniHuman / Sync Lipsync) | `REPLICATE_API_TOKEN` |
 | Dubbing a video into other languages, in the original voices | `dub_video` | ElevenLabs | `ELEVENLABS_API_KEY` |
 | Narration from a script, in any language | `create_voiceover` | ElevenLabs | `ELEVENLABS_API_KEY` |
 | Joining clips with trims, transitions, music, narration and titles | `edit_video` | Shotstack | `SHOTSTACK_API_KEY` |
@@ -81,7 +82,8 @@ the director says which key is missing when a request needs one. All keys are li
   to your own account with them.
 - **Model slugs are configuration.** Replicate model names change as vendors ship new versions;
   point any slot at another model with `STUDIO_MODEL_VEO`, `STUDIO_MODEL_KLING`,
-  `STUDIO_MODEL_HAILUO`, `STUDIO_MODEL_FLUX` or `STUDIO_MODEL_MUSIC` (`owner/name`). The defaults
+  `STUDIO_MODEL_HAILUO`, `STUDIO_MODEL_FLUX`, `STUDIO_MODEL_MUSIC`, `STUDIO_MODEL_AVATAR` or
+  `STUDIO_MODEL_LIPSYNC` (`owner/name`). The defaults
   in `lib/studio/catalog.js` should be checked against replicate.com before going live, and so
   should the per-model input field names in `lib/studio/providers.js`, since each model's input
   schema is its own.
@@ -97,6 +99,10 @@ the director says which key is missing when a request needs one. All keys are li
   The id is a random UUID shown only to the job's owner. Anyone who has the link can open the file.
 - **Shotstack's free key renders to its sandbox,** which watermarks the output. Set
   `SHOTSTACK_ENV=v1` with a production key for clean video.
+- **Talking characters are one line per job.** The director designs the character once, records
+  each line as a voice-over, animates each line from the same still, and joins them with
+  `edit_video`. The avatar model fetches the voice-over by its file link, so this needs the
+  deployed site (a provider cannot reach `localhost`).
 - **Rights and consent.** The director is told not to imitate a real person's face or voice
   without consent, and not to dub or re-edit media you don't own or have permission to use.
 
