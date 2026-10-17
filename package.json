@@ -8,7 +8,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "node --test 'lib/*.test.mjs'"
+    "test": "node --test 'lib/*.test.mjs'",
+    "test:sales": "node --test lib/sales-unit.test.mjs lib/sales-db.test.mjs",
+    "sales:migrate": "node scripts/sales-migrate.mjs",
+    "sales:seed": "node scripts/sales-seed.mjs",
+    "sales:eval-he": "node scripts/sales-hebrew-eval.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.120.0",
@@ -17,6 +21,7 @@
     "bright": "^1.0.0",
     "markdown-to-jsx": "^7.7.16",
     "next": "^16.0.8",
+    "pg": "^8.23.1",
     "react": "19.2.1",
     "react-dom": "19.2.1",
     "unique-names-generator": "^4.7.1",
@@ -28,6 +33,7 @@
     "eslint": "9.39.2",
     "eslint-config-next": "^16.0.8",
     "postcss": "^8.4.36",
-    "tailwindcss": "^4.1.15"
+    "tailwindcss": "^4.1.15",
+    "twilio": "^5.13.1"
   }
 }

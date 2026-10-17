@@ -1,3 +1,5 @@
+> **📞 AI Sales Agent (סוכן מכירות AI)** — an AI agent that answers and places phone calls for a business, using only the business's verified knowledge: books meetings, saves leads, hands off to a person, honours do-not-call. PostgreSQL, Twilio, Claude. Open `/sales`. Setup, architecture and what is verified: [docs/SALES_AGENT.md](docs/SALES_AGENT.md).
+
 > **🎬 AI Studio (סטודיו AI)** — one chat that drives the leading AI media services: video generation (Veo, Kling, Hailuo), images (FLUX), music, dubbing into other languages and voice-over (ElevenLabs), and cloud editing (Shotstack). Open `/studio`. Details: [AI Studio](#ai-studio-studio) below.
 
 > **🧭 Maslul AI (מסלול)** — an MVP of an AI that leads a user from goal → plan → execution → result, with approval before any external action. Open `/pilot`. Full Hebrew guide, screenshots and roadmap: [docs/MASLUL.md](docs/MASLUL.md).
