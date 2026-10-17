@@ -41,3 +41,6 @@ yarn-error.log*
 
 # Maslul local data (MASLUL_STORE=file)
 /.data
+
+# Sales agent evaluation reports (may contain test transcripts)
+/sales-eval
