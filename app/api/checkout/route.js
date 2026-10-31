@@ -33,8 +33,9 @@ export async function POST(request) {
     if (!/^05\d{8}$/.test(phone)) {
         return Response.json({ error: 'נא למלא מספר נייד תקין (05XXXXXXXX)' }, { status: 400 });
     }
-    if (email && !/^\S+@\S+\.\S+$/.test(email)) {
-        return Response.json({ error: 'כתובת המייל לא תקינה' }, { status: 400 });
+    // The program is delivered by email, so the address is required.
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+        return Response.json({ error: 'נא למלא כתובת מייל תקינה – לשם נשלחת התוכנית' }, { status: 400 });
     }
 
     const origin = request.headers.get('origin') || new URL(request.url).origin;
@@ -46,6 +47,8 @@ export async function POST(request) {
             phone,
             email,
             planId: plan.id,
+            // Sent back to us by Grow after payment, so we know where to email the program.
+            buyerEmail: email,
             successUrl: `${origin}/offer/success`,
             cancelUrl: `${origin}/offer`,
             notifyUrl: `${origin}/api/grow-notify`

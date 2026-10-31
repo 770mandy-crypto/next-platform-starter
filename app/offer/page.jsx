@@ -187,7 +187,7 @@ export default function OfferPage() {
                         {[
                             { key: 'fullName', label: 'שם מלא', type: 'text', auto: 'name', placeholder: 'ישראל ישראלי' },
                             { key: 'phone', label: 'טלפון נייד', type: 'tel', auto: 'tel', placeholder: '050-0000000' },
-                            { key: 'email', label: 'מייל (לקבלה ולפרטי הגישה)', type: 'email', auto: 'email', placeholder: 'name@example.com' }
+                            { key: 'email', label: 'מייל – לשם נשלחת התוכנית', type: 'email', auto: 'email', placeholder: 'name@example.com' }
                         ].map((field) => (
                             <label key={field.key} className="block">
                                 <span className="mb-1 block text-sm font-medium text-slate-700">{field.label}</span>
