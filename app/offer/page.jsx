@@ -110,6 +110,7 @@ export default function OfferPage() {
     const [selected, setSelected] = useState(offer.plans.find((p) => p.popular)?.id || offer.plans[0].id);
     const [paying, setPaying] = useState(false);
     const [error, setError] = useState('');
+    const [buyer, setBuyer] = useState({ fullName: '', phone: '', email: '' });
 
     async function checkout() {
         setPaying(true);
@@ -118,7 +119,7 @@ export default function OfferPage() {
             const res = await fetch('/api/checkout', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ planId: selected })
+                body: JSON.stringify({ planId: selected, ...buyer })
             });
             const data = await res.json();
             if (!res.ok || !data.url) throw new Error(data.error || 'שגיאה בפתיחת התשלום');
@@ -182,6 +183,27 @@ export default function OfferPage() {
                         })}
                     </div>
 
+                    <div className="mt-6 space-y-3">
+                        {[
+                            { key: 'fullName', label: 'שם מלא', type: 'text', auto: 'name', placeholder: 'ישראל ישראלי' },
+                            { key: 'phone', label: 'טלפון נייד', type: 'tel', auto: 'tel', placeholder: '050-0000000' },
+                            { key: 'email', label: 'מייל (לקבלה ולפרטי הגישה)', type: 'email', auto: 'email', placeholder: 'name@example.com' }
+                        ].map((field) => (
+                            <label key={field.key} className="block">
+                                <span className="mb-1 block text-sm font-medium text-slate-700">{field.label}</span>
+                                <input
+                                    type={field.type}
+                                    autoComplete={field.auto}
+                                    placeholder={field.placeholder}
+                                    dir={field.type === 'text' ? 'rtl' : 'ltr'}
+                                    value={buyer[field.key]}
+                                    onChange={(e) => setBuyer((b) => ({ ...b, [field.key]: e.target.value }))}
+                                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-right outline-none focus:border-orange-500"
+                                />
+                            </label>
+                        ))}
+                    </div>
+
                     <button
                         type="button"
                         onClick={checkout}
@@ -192,7 +214,7 @@ export default function OfferPage() {
                     </button>
                     {error && <p className="mt-3 text-center text-sm text-rose-600">{error}</p>}
                     <p className="mt-4 text-center text-xs text-slate-500">
-                        🔒 תשלום מאובטח באמצעות Stripe · כרטיס אשראי, Apple Pay ו-Google Pay
+                        🔒 תשלום מאובטח באמצעות Grow (משולם) · כרטיס אשראי, Bit, Apple Pay ו-Google Pay
                     </p>
                 </section>
             </main>
