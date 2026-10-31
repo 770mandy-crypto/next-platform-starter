@@ -212,11 +212,20 @@ export default function OfferPage() {
                     >
                         {paying ? 'פותחים תשלום מאובטח…' : 'קבלו את התוכנית שלי'}
                     </button>
+                    <p className="mt-2 text-center text-xs text-slate-500">
+                        בלחיצה על הכפתור אני מאשר/ת את <a href="/fit/terms">התקנון ומדיניות הביטולים</a>
+                    </p>
                     {error && <p className="mt-3 text-center text-sm text-rose-600">{error}</p>}
                     <p className="mt-4 text-center text-xs text-slate-500">
                         🔒 תשלום מאובטח באמצעות Grow (משולם) · כרטיס אשראי, Bit, Apple Pay ו-Google Pay
                     </p>
                 </section>
+
+                <nav className="mt-12 flex justify-center gap-4 text-xs text-slate-500">
+                    <a href="/fit">דף הבית</a>
+                    <a href="/fit/terms">תקנון ומדיניות ביטולים</a>
+                    <a href="/fit/privacy">מדיניות פרטיות</a>
+                </nav>
             </main>
         </>
     );
