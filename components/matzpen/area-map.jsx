@@ -24,6 +24,7 @@ export function AreaMap({ areas, selectedId, highlightIds, onSelect }) {
                 attribution: '&copy; OpenStreetMap'
             }).addTo(map.current);
             for (const area of areas) {
+                if (!Number.isFinite(area.lat) || !Number.isFinite(area.lng)) continue;
                 const marker = L.circleMarker([area.lat, area.lng], {
                     radius: 7 + area.score / 12,
                     color: '#fff',
