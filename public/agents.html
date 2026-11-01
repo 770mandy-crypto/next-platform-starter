@@ -29,6 +29,12 @@
     --c-review: #0d9488;
     --c-test: #16a34a;
     --c-docs: #5b6472;
+    --c-brief: #ea580c;
+    --c-email: #ca8a04;
+    --c-meeting: #0891b2;
+    --c-drive: #0284c7;
+    --c-weekly: #c026d3;
+    --c-news: #059669;
 
     --sans: "Assistant", system-ui, -apple-system, "Segoe UI", sans-serif;
     --display: "Rubik", var(--sans);
@@ -57,6 +63,12 @@
       --c-review: #2dd4bf;
       --c-test: #4ade80;
       --c-docs: #9aa3b2;
+      --c-brief: #fb923c;
+      --c-email: #eab308;
+      --c-meeting: #22d3ee;
+      --c-drive: #38bdf8;
+      --c-weekly: #e879f9;
+      --c-news: #34d399;
     }
   }
   :root[data-theme="dark"] {
@@ -81,6 +93,12 @@
     --c-review: #2dd4bf;
     --c-test: #4ade80;
     --c-docs: #9aa3b2;
+    --c-brief: #fb923c;
+    --c-email: #eab308;
+    --c-meeting: #22d3ee;
+    --c-drive: #38bdf8;
+    --c-weekly: #e879f9;
+    --c-news: #34d399;
   }
 
   * { box-sizing: border-box; }
@@ -288,15 +306,16 @@
   <header class="masthead">
     <p class="eyebrow">.claude / agents</p>
     <h1>צוות הסוכנים שלי</h1>
-    <p class="lede">שבעה סוכני AI מתמחים, כל אחד מומחה בתחום אחד. אפשר לדבר איתם כאן באתר, או בסשן Claude Code על הריפו.</p>
+    <p class="lede">שלושה-עשר סוכני AI מתמחים — שבעה לפיתוח ושישה לעוזר האישי היומיומי. אפשר לדבר איתם כאן באתר, או בסשן Claude Code על הריפו.</p>
     <p class="cta-row"><a class="btn primary" href="/agents/chat">לצ׳אט עם הסוכנים</a></p>
     <div class="stats">
-      <span class="chip"><b>7</b> סוכנים</span>
+      <span class="chip"><b>13</b> סוכנים</span>
       <span class="chip"><span class="dot" style="background:var(--c-security)"></span> אבטחה</span>
       <span class="chip"><span class="dot" style="background:var(--c-bug)"></span> באגים</span>
       <span class="chip"><span class="dot" style="background:var(--c-research)"></span> מחקר</span>
-      <span class="chip"><span class="dot" style="background:var(--c-test)"></span> טסטים</span>
-      <span class="chip"><span class="dot" style="background:var(--c-docs)"></span> תיעוד</span>
+      <span class="chip"><span class="dot" style="background:var(--c-brief)"></span> תדריך בוקר</span>
+      <span class="chip"><span class="dot" style="background:var(--c-email)"></span> מיילים</span>
+      <span class="chip"><span class="dot" style="background:var(--c-news)"></span> חדשות AI</span>
     </div>
   </header>
 
@@ -412,6 +431,102 @@
       <p class="desc">כותב ומשפר תיעוד — README, הערות ו-docstrings, מדריכי שימוש — מבוסס על הקוד האמיתי, בלי להמציא.</p>
       <div class="tools"><span class="tool">Read</span><span class="tool">Grep</span><span class="tool">Glob</span><span class="tool">Bash</span><span class="tool">Edit</span><span class="tool">Write</span></div>
       <div class="example"><span class="caret">›</span><span class="q">תתעד את המודול הזה</span></div>
+    </article>
+
+    <!-- morning-brief -->
+    <article class="card" style="--c: var(--c-brief)">
+      <div class="card-top">
+        <span class="badge-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18h18M5 18a7 7 0 0114 0"/><path d="M12 3v3M4 9l2 1M20 9l-2 1M2 18h2M20 18h2"/></svg>
+        </span>
+        <div class="name-block">
+          <div class="agent-name">morning-brief</div>
+          <span class="model sonnet">sonnet</span>
+        </div>
+      </div>
+      <p class="desc">מסדר תדריך בוקר קצר מהיומן, המיילים והמשימות שתדביק: פגישות לפי שעה, מה דורש תגובה, ומה הכי חשוב היום.</p>
+      <div class="tools"><span class="tool">WebSearch</span><span class="tool">WebFetch</span><span class="tool">Read</span><span class="tool">Grep</span><span class="tool">Glob</span></div>
+      <div class="example"><span class="caret">›</span><span class="q">סדר לי תדריך בוקר להיום</span></div>
+    </article>
+
+    <!-- email-triage -->
+    <article class="card" style="--c: var(--c-email)">
+      <div class="card-top">
+        <span class="badge-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+        </span>
+        <div class="name-block">
+          <div class="agent-name">email-triage</div>
+          <span class="model sonnet">sonnet</span>
+        </div>
+      </div>
+      <p class="desc">ממיין מיילים שתדביק: מה באמת חשוב/דחוף, מה פרסומת, ועל מה צריך לענות — ומנסח טיוטת תשובה לפי בקשה.</p>
+      <div class="tools"><span class="tool">WebSearch</span><span class="tool">WebFetch</span><span class="tool">Read</span><span class="tool">Grep</span><span class="tool">Glob</span></div>
+      <div class="example"><span class="caret">›</span><span class="q">על מה צריך לענות במיילים האלה?</span></div>
+    </article>
+
+    <!-- meeting-summarizer -->
+    <article class="card" style="--c: var(--c-meeting)">
+      <div class="card-top">
+        <span class="badge-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="12" height="16" rx="2"/><path d="M8 9h4M8 13h4"/><path d="M20 8l-4 2v4l4 2z"/></svg>
+        </span>
+        <div class="name-block">
+          <div class="agent-name">meeting-summarizer</div>
+          <span class="model sonnet">sonnet</span>
+        </div>
+      </div>
+      <p class="desc">מקבל תמליל או הערות מפגישה ומחזיר TL;DR, נקודות עיקריות, החלטות ומשימות למעקב עם אחראי ומועד.</p>
+      <div class="tools"><span class="tool">WebSearch</span><span class="tool">WebFetch</span><span class="tool">Read</span><span class="tool">Grep</span><span class="tool">Glob</span></div>
+      <div class="example"><span class="caret">›</span><span class="q">תסכם את הפגישה הזו</span></div>
+    </article>
+
+    <!-- drive-organizer -->
+    <article class="card" style="--c: var(--c-drive)">
+      <div class="card-top">
+        <span class="badge-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+        </span>
+        <div class="name-block">
+          <div class="agent-name">drive-organizer</div>
+          <span class="model sonnet">sonnet</span>
+        </div>
+      </div>
+      <p class="desc">ייעוץ לארגון קבצים: מבנה תיקיות, שמות, מה לשמור מול לארכב, ושגרת גיבוי פשוטה. ייעוץ בלבד — לא נוגע בקבצים.</p>
+      <div class="tools"><span class="tool">WebSearch</span><span class="tool">WebFetch</span><span class="tool">Read</span><span class="tool">Grep</span><span class="tool">Glob</span></div>
+      <div class="example"><span class="caret">›</span><span class="q">איך לארגן את הדרייב ומה לגבות?</span></div>
+    </article>
+
+    <!-- weekly-review -->
+    <article class="card" style="--c: var(--c-weekly)">
+      <div class="card-top">
+        <span class="badge-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M8 14l3 3 5-6"/></svg>
+        </span>
+        <div class="name-block">
+          <div class="agent-name">weekly-review</div>
+          <span class="model sonnet">sonnet</span>
+        </div>
+      </div>
+      <p class="desc">מסכם את השבוע שעבר ומתכנן את הקרוב: מה נעשה, מה פתוח ודורש מעקב, ומה העדיפויות לשבוע הבא.</p>
+      <div class="tools"><span class="tool">WebSearch</span><span class="tool">WebFetch</span><span class="tool">Read</span><span class="tool">Grep</span><span class="tool">Glob</span></div>
+      <div class="example"><span class="caret">›</span><span class="q">תעזור לי לסכם ולתכנן את השבוע</span></div>
+    </article>
+
+    <!-- ai-news -->
+    <article class="card" style="--c: var(--c-news)">
+      <div class="card-top">
+        <span class="badge-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h13v14H5a1 1 0 01-1-1z"/><path d="M17 8h2a1 1 0 011 1v9a1 1 0 01-1 1"/><path d="M7 8h7M7 12h7M7 16h4"/></svg>
+        </span>
+        <div class="name-block">
+          <div class="agent-name">ai-news</div>
+          <span class="model sonnet">sonnet</span>
+        </div>
+      </div>
+      <p class="desc">מחפש ברשת ומסכם את חדשות ה-AI החשובות מהתקופה האחרונה — מודלים, השקות ומהלכים של החברות הגדולות — עם קישורים.</p>
+      <div class="tools"><span class="tool">WebSearch</span><span class="tool">WebFetch</span><span class="tool">Read</span><span class="tool">Grep</span><span class="tool">Glob</span></div>
+      <div class="example"><span class="caret">›</span><span class="q">מה חדש בעולם ה-AI השבוע?</span></div>
     </article>
 
   </main>
