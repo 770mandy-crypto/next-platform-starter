@@ -1,3 +1,5 @@
+> **🧠 MENDI AI** — a command room for a team of 10 AI agents: you give the manager one task ("take care of my meeting, summarize it, make a deck and send it to the participants") and it splits the work between the meeting, presentation, mail, secretary, research, business, marketing, finance and service agents. Mail and WhatsApp go out only after your approval. Open `/mendi`. Hebrew guide: [docs/MENDI.md](docs/MENDI.md).
+
 > **🎬 AI Studio (סטודיו AI)** — one chat that drives the leading AI media services: video generation (Veo, Kling, Hailuo), images (FLUX), music, dubbing into other languages and voice-over (ElevenLabs), and cloud editing (Shotstack). Open `/studio`. Details: [AI Studio](#ai-studio-studio) below.
 
 > **🧭 Maslul AI (מסלול)** — an MVP of an AI that leads a user from goal → plan → execution → result, with approval before any external action. Open `/pilot`. Full Hebrew guide, screenshots and roadmap: [docs/MASLUL.md](docs/MASLUL.md).
@@ -41,6 +43,50 @@ netlify dev
 ```
 
 If your browser doesn't navigate to the site automatically, visit [localhost:8888](http://localhost:8888).
+
+## MENDI AI (`/mendi`)
+
+A Hebrew command room for a team of agents. The **manager** turns one request into steps and hands
+each to a specialist with a `delegate` tool; each specialist runs its own Claude tool loop with only
+its own tools and returns its result to the manager, which checks it and answers once.
+
+| Agent | Tools |
+| --- | --- |
+| Manager | `delegate`, `list_files`, `list_tasks` |
+| Meeting | `zoom_list_recordings`, `zoom_get_transcript`, `add_task` |
+| Mail | `send_email`, `send_whatsapp`, `list_files` |
+| Presentation | `create_presentation` (RTL .pptx via PptxGenJS), `list_files` |
+| Secretary | `add_task`, `list_tasks`, `update_task`, `create_calendar_invite` (.ics) |
+| Business, Research | web search/fetch, `create_spreadsheet` (CSV for Excel) |
+| Marketing | web search/fetch |
+| Finance | `create_spreadsheet` |
+| Service | `send_whatsapp`, `send_email`, `add_task` |
+
+- **Background missions.** A request becomes a *mission* record. On Netlify it runs in a background
+  function (`netlify/functions/mendi-run-background.mjs`, up to 15 minutes); locally it runs in the
+  dev server after the response. The page polls the record, so you watch each agent work and can
+  close the tab and come back from another device. One mission per user at a time.
+- **Approvals.** `send_email` / `send_whatsapp` only create an action in the approvals queue. You
+  can edit and approve it (it is sent exactly once) or reject it. In settings you may let a kind of
+  message go by itself, but only to recipients on your trusted list.
+- **Meetings** come from Zoom cloud-recording transcripts, so participants are notified by Zoom
+  itself. A live bot that joins calls is not built yet.
+- **Not yet:** reading your inbox (Gmail), your real calendar, inbound WhatsApp for the service
+  agent, and voice calls. See [docs/MENDI.md](docs/MENDI.md) for the roadmap.
+
+```
+POST /api/mendi/missions           # {room, message} -> queued mission (202)
+GET  /api/mendi/missions?room=…    # the room's chat
+GET  /api/mendi/missions/{id}      # one mission, with live steps
+GET  /api/mendi/state              # connectors, approvals, files, tasks, activity, settings
+POST /api/mendi/actions/{id}       # {decision: approve|reject, subject?, body?}
+POST /api/mendi/settings           # {autoApprove, trustedRecipients}
+POST /api/mendi/tasks[/{id}]       # add a task / mark done
+GET  /api/mendi/files/{id}         # download a file an agent made
+```
+
+`lib/mendi.test.mjs` runs everything offline: Zoom, Resend and WhatsApp against a fixture server,
+and a whole manager → meeting → presentation → mail mission against a scripted Claude client.
 
 ## AI Studio (`/studio`)
 
