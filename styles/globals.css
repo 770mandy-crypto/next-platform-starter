@@ -240,3 +240,17 @@
         @apply px-2 py-1 border border-white/10;
     }
 }
+
+/* MENDI AI replies: headings a touch brighter on the command room's navy. */
+.mendi-md {
+    h1,
+    h2,
+    h3,
+    strong {
+        @apply text-white;
+    }
+    ul,
+    ol {
+        @apply list-outside ps-5;
+    }
+}
