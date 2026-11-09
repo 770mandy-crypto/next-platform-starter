@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { formatIls, formatPrice } from './format';
+import { PhotoUploader } from './photo-uploader';
 
 const field = 'w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5';
 
@@ -45,6 +46,10 @@ export function PublishForm({ areas, cities, initialArea }) {
         return (
             <div className="space-y-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-6">
                 <h2 className="text-xl font-black text-emerald-800">🎉 הדירה פורסמה!</h2>
+                <div>
+                    <p className="mb-2 text-sm font-bold">הוסיפו תמונות. מודעות עם תמונות מקבלות הרבה יותר פניות:</p>
+                    <PhotoUploader listingId={result.id} token={result.token} />
+                </div>
                 <Link href={`/matzpen/listings/${result.id}`} className="inline-block rounded-xl bg-emerald-600 px-5 py-2.5 font-bold text-white no-underline">
                     לצפייה במודעה
                 </Link>

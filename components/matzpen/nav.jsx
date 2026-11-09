@@ -7,6 +7,7 @@ const LINKS = [
     { href: '/matzpen/map', label: 'מפה', icon: '🗺️' },
     { href: '/matzpen/agent', label: 'הסוכן', icon: '💬' },
     { href: '/matzpen/ranking', label: 'דירוג', icon: '🏆' },
+    { href: '/matzpen/compare', label: 'השוואה', icon: '⚖️', desktopOnly: true },
     { href: '/matzpen/listings', label: 'דירות', icon: '🏠' },
     { href: '/matzpen/publish', label: 'פרסום דירה', icon: '➕' }
 ];
@@ -38,7 +39,7 @@ export function Nav() {
             </header>
             {/* Bottom tab bar on phones */}
             <nav className="fixed inset-x-0 bottom-0 z-[1000] grid grid-cols-5 border-t border-slate-200 bg-white md:hidden">
-                {LINKS.map((l) => (
+                {LINKS.filter((l) => !l.desktopOnly).map((l) => (
                     <Link
                         key={l.href}
                         href={l.href}

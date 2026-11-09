@@ -2,10 +2,13 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ContactOwner, DeleteListing } from 'components/matzpen/listing-actions';
 import { formatIls, formatPrice } from 'components/matzpen/format';
+import { Gallery } from 'components/matzpen/gallery';
+import { MortgageCalculator } from 'components/matzpen/mortgage-calculator';
+import { PhotoUploader } from 'components/matzpen/photo-uploader';
 import { ScoreBadge } from 'components/matzpen/score-badge';
 import { Stat } from 'components/matzpen/stat';
 import { getArea } from 'lib/nadlan/dataset';
-import { getListing, publicListing } from 'lib/nadlan/listings';
+import { getListing, publicListing, tokenMatches } from 'lib/nadlan/listings';
 import { getDb } from 'lib/pilot/db';
 
 export const dynamic = 'force-dynamic';
@@ -20,7 +23,7 @@ export default async function ListingPage({ params, searchParams }) {
     const { token } = await searchParams;
     const full = await getListing(await getDb(), id).catch(() => null);
     if (!full) notFound();
-    const isOwner = typeof token === 'string' && token === full.editToken;
+    const isOwner = tokenMatches(full, token);
     const listing = publicListing(full);
     const area = await getArea(listing.areaId);
     const median = area?.perRoom?.[Math.round(listing.rooms)] ?? area?.price;
@@ -31,6 +34,8 @@ export default async function ListingPage({ params, searchParams }) {
             <nav className="text-sm text-slate-500">
                 <Link href="/matzpen/listings">דירות למכירה</Link> › {listing.areaName}, {listing.cityName}
             </nav>
+
+            <Gallery listingId={listing.id} photos={listing.photos} />
 
             <section className="rounded-2xl border border-slate-200 bg-white p-5">
                 <div className="text-3xl font-black">{formatPrice(listing.price)}</div>
@@ -66,11 +71,19 @@ export default async function ListingPage({ params, searchParams }) {
                 </Link>
             )}
 
+            <MortgageCalculator price={listing.price} title="כמה תעלה לכם הדירה הזו בחודש?" />
+
             <p className="text-xs text-slate-500">
                 המודעה פורסמה על ידי בעל הדירה. מצפן נדל״ן לא בודק מודעות ואינו צד לעסקה. לפני קנייה בדקו נסח טאבו, היתרים ומצב תכנוני, והתייעצו עם עורך דין ושמאי. השוואה לחציון
                 היא לדירות עם מספר חדרים דומה בשכונה.
             </p>
 
+            {isOwner && (
+                <section className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
+                    <h2 className="mb-2 text-lg font-black">התמונות של המודעה</h2>
+                    <PhotoUploader listingId={listing.id} token={token} initialPhotos={listing.photos ?? []} />
+                </section>
+            )}
             {isOwner && <DeleteListing id={listing.id} token={token} />}
         </main>
     );

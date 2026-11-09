@@ -5,7 +5,14 @@ import { formatIls, formatPrice } from './format';
 export function ListingCard({ listing, median }) {
     const diff = Number.isFinite(median) && median > 0 ? Math.round(((listing.price - median) / median) * 100) : null;
     return (
-        <Link href={`/matzpen/listings/${listing.id}`} className="block rounded-2xl border border-slate-200 bg-white p-4 text-slate-900 no-underline shadow-sm hover:border-indigo-400">
+        <Link href={`/matzpen/listings/${listing.id}`} className="block overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-900 no-underline shadow-sm hover:border-indigo-400">
+            {listing.photos?.length > 0 ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={`/api/matzpen/photos/${listing.id}/${listing.photos[0]}`} alt="" loading="lazy" className="aspect-[4/3] w-full object-cover" />
+            ) : (
+                <div className="flex aspect-[4/3] w-full items-center justify-center bg-slate-100 text-4xl">🏠</div>
+            )}
+            <div className="p-4">
             <div className="flex items-start justify-between gap-2">
                 <div>
                     <div className="text-xl font-black">{formatPrice(listing.price)}</div>
@@ -23,7 +30,10 @@ export function ListingCard({ listing, median }) {
                 📍 {listing.street ? `${listing.street}, ` : ''}
                 {listing.areaName}, {listing.cityName}
             </div>
-            <div className="mt-1 text-xs text-slate-400">{formatIls(listing.pricePerSqm)} למ״ר</div>
+            <div className="mt-1 text-xs text-slate-400">
+                {formatIls(listing.pricePerSqm)} למ״ר{listing.photos?.length > 1 ? ` · 📷 ${listing.photos.length}` : ''}
+            </div>
+            </div>
         </Link>
     );
 }

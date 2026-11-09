@@ -19,7 +19,7 @@ export function PriceChart({ history, color = '#4f46e5' }) {
                 <path d={area} fill={color} opacity="0.08" />
                 <path d={line} fill="none" stroke={color} strokeWidth="2.5" vectorEffect="non-scaling-stroke" />
             </svg>
-            <figcaption className="mt-1 flex justify-between text-xs text-slate-500">
+            <figcaption dir="ltr" className="mt-1 flex justify-between text-xs text-slate-500">
                 <span>
                     {formatMonth(history[0].month)}: {formatPrice(history[0].value)}
                 </span>

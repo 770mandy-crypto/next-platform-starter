@@ -20,7 +20,12 @@ export default async function RankingPage({ searchParams }) {
 
     return (
         <main className="mx-auto max-w-5xl space-y-6 p-4">
-            <h1 className="text-2xl font-black">{current ? `השכונות של ${current.name}` : 'דירוג השכונות בכל הארץ'}</h1>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+                <h1 className="text-2xl font-black">{current ? `השכונות של ${current.name}` : 'דירוג השכונות בכל הארץ'}</h1>
+                <Link href={`/matzpen/compare?ids=${areas.slice(0, 3).map((a) => a.id).join(',')}`} className="rounded-full bg-white px-4 py-2 text-sm font-bold text-slate-800 no-underline ring-1 ring-slate-200 hover:ring-slate-400">
+                    ⚖️ השוואת המובילות
+                </Link>
+            </div>
 
             <section>
                 <h2 className="mb-2 text-sm font-bold text-slate-500">ערים לפי ציון ממוצע</h2>

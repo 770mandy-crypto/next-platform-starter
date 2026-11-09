@@ -2,7 +2,9 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Stat } from 'components/matzpen/stat';
 import { formatMonth, formatPct, formatPrice, PART_LABELS, SIGNAL_ICONS } from 'components/matzpen/format';
+import { FollowArea } from 'components/matzpen/follow-area';
 import { ListingCard } from 'components/matzpen/listing-card';
+import { MortgageCalculator } from 'components/matzpen/mortgage-calculator';
 import { PriceChart } from 'components/matzpen/price-chart';
 import { ScoreBadge } from 'components/matzpen/score-badge';
 import { getDb } from 'lib/pilot/db';
@@ -134,7 +136,18 @@ export default async function AreaPage({ params }) {
                 <Link href={`/matzpen/publish?area=${area.id}`} className="flex-1 rounded-xl border border-slate-300 bg-white py-3 text-center font-bold text-slate-800 no-underline hover:border-slate-500">
                     ➕ יש לכם דירה כאן? פרסמו אותה
                 </Link>
+                <Link href={`/matzpen/compare?ids=${area.id}`} className="flex-1 rounded-xl border border-slate-300 bg-white py-3 text-center font-bold text-slate-800 no-underline hover:border-slate-500">
+                    ⚖️ השוו לשכונות אחרות
+                </Link>
             </div>
+
+            <section className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5">
+                <h2 className="mb-1 text-lg font-black">🔔 קבלו התראה על {area.name}</h2>
+                <p className="mb-3 text-sm text-slate-600">נשלח מייל כשהציון של השכונה משתנה, או כשעולה בה דירה חדשה למכירה.</p>
+                <FollowArea areaId={area.id} areaName={area.name} />
+            </section>
+
+            <MortgageCalculator price={area.price} title={`כמה עולה דירה ב${area.name} בחודש?`} />
 
             <section>
                 <h2 className="mb-3 text-xl font-black">דירות למכירה ב{area.name}</h2>

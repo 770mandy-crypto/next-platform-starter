@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getArea } from 'lib/nadlan/dataset';
 import { createListing, listingInput } from 'lib/nadlan/listings';
+import { announceListing } from 'lib/nadlan/notify';
 import { consumeLimit } from 'lib/pilot/auth';
 import { getDb } from 'lib/pilot/db';
 import { clientIp, HttpError, readJson, route } from 'lib/pilot/http';
@@ -23,6 +24,9 @@ export const POST = route(async (request) => {
     if (!(await consumeLimit(`matzpen-publish:${clientIp(request)}`, PUBLISH_LIMIT))) {
         throw new HttpError('פרסמתם כבר כמה דירות היום. נסו שוב מחר.', 429);
     }
-    const listing = await createListing(await getDb(), parsed.data, area);
-    return NextResponse.json({ id: listing.id, manageUrl: `/matzpen/listings/${listing.id}?token=${listing.editToken}` });
+    const db = await getDb();
+    const listing = await createListing(db, parsed.data, area);
+    // Followers of the neighborhood hear about it; a mail failure never fails the publish.
+    await announceListing(db, listing).catch((error) => console.error('Listing alert failed:', error));
+    return NextResponse.json({ id: listing.id, token: listing.editToken, manageUrl: `/matzpen/listings/${listing.id}?token=${listing.editToken}` });
 });

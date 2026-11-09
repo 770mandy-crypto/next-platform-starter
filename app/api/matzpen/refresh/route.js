@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getDb } from 'lib/pilot/db';
 import { refreshCycle } from 'lib/nadlan/importer';
 import { loadDataset } from 'lib/nadlan/dataset';
+import { scoreChangeNotifier } from 'lib/nadlan/notify';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 26;
@@ -14,7 +15,8 @@ export async function POST(request) {
     if (!secret || request.headers.get('x-refresh-secret') !== secret) {
         return NextResponse.json({ error: 'forbidden' }, { status: 403 });
     }
-    const result = await refreshCycle({ db: await getDb() });
+    const db = await getDb();
+    const result = await refreshCycle({ db, notify: scoreChangeNotifier(db) });
     await loadDataset({ fresh: true });
     return NextResponse.json(result);
 }

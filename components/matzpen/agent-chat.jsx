@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 const STARTERS = [
     'יש לי 1.8 מיליון ואני רוצה להשקיע. איפה כדאי?',
     'איפה כדאי לקנות 4 חדרים לגור בתקציב של 2.5 מיליון?',
-    'מה השכונות הכי חזקות בחיפה?',
+    'יש לי 600 אלף הון עצמי ומשכורת של 20 אלף. מה אני יכול לקנות?',
     'תראה לי דירות למכירה בשכונות במגמת עלייה'
 ];
 
@@ -15,7 +15,8 @@ const TOOL_STATUS = {
     search_areas: 'מחפש שכונות מתאימות...',
     get_area: 'בודק את נתוני השכונה...',
     search_listings: 'מחפש דירות למכירה...',
-    web_search: 'בודק חדשות תכנון ותחבורה...'
+    web_search: 'בודק חדשות תכנון ותחבורה...',
+    mortgage_estimate: 'מחשב משכנתא...'
 };
 
 export function AgentChat({ areas, onAreas, onSelect, initialQuestion, compact = false }) {
