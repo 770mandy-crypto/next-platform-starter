@@ -1,3 +1,5 @@
+> **🎙️ Meeting bot (בוט פגישות)** — an AI assistant that joins Google Meet, Zoom and Teams calls: transcribes live, answers out loud when called by name, summarizes, and builds presentations. Open `/meet`. Details: [Meeting bot](#meeting-bot-meet) below.
+
 > **🎬 AI Studio (סטודיו AI)** — one chat that drives the leading AI media services: video generation (Veo, Kling, Hailuo), images (FLUX), music, dubbing into other languages and voice-over (ElevenLabs), and cloud editing (Shotstack). Open `/studio`. Details: [AI Studio](#ai-studio-studio) below.
 
 > **🧭 Maslul AI (מסלול)** — an MVP of an AI that leads a user from goal → plan → execution → result, with approval before any external action. Open `/pilot`. Full Hebrew guide, screenshots and roadmap: [docs/MASLUL.md](docs/MASLUL.md).
@@ -41,6 +43,55 @@ netlify dev
 ```
 
 If your browser doesn't navigate to the site automatically, visit [localhost:8888](http://localhost:8888).
+
+## Meeting bot (`/meet`)
+
+Sends an AI participant into a Google Meet, Zoom or Microsoft Teams call. It announces itself
+in the chat, transcribes what is said, and when someone says or types its name ("קלוד, מה
+סיכמנו?") it answers out loud. It summarizes on request and when the meeting ends, and builds
+presentations whose link it posts in the meeting chat.
+
+| Part | Service | Key |
+| --- | --- | --- |
+| Joining the call, live transcript, chat, playing audio | [Recall.ai](https://www.recall.ai) | `RECALL_API_KEY` (+ `RECALL_REGION`) |
+| Answers, summaries, presentations | Anthropic | `ANTHROPIC_API_KEY` |
+| The bot's voice | ElevenLabs | `ELEVENLABS_API_KEY` |
+
+Without the Anthropic key the bot only transcribes; without the ElevenLabs key it answers in the
+meeting chat instead of speaking. The page says which keys are missing.
+
+### How it works
+
+- **No process stays in the meeting.** The bot itself runs at Recall. Recall posts each finished
+  utterance and chat message to `/api/meet/hook/<meeting>/<token>`; the route acknowledges at
+  once and does the work after responding (Recall retries anything slow, and repeats are dropped).
+- **Being addressed** is detected locally by name (`lib/meet/engine.js`), so Claude is only
+  called when someone is talking to the bot. "Claude?" followed by the question in the next
+  sentence works too. One reply runs at a time per meeting.
+- **Claude returns JSON in a fixed shape** (`lib/meet/brain.js`): answer, summarize, build a
+  presentation, or ignore (the name only came up in passing). The transcript is passed as data,
+  not as instructions.
+- **Speech**: the answer is synthesized by ElevenLabs and played into the call through Recall's
+  Output Audio endpoint. If that fails, the same text is written in the chat.
+- **Transcription** defaults to the meeting's own captions (free, near real time, Hebrew
+  supported). `RECALL_TRANSCRIPT` switches to ElevenLabs or Deepgram.
+
+### Setup
+
+1. Create a Recall.ai account and API key; set `RECALL_API_KEY` and `RECALL_REGION` on the site.
+2. In the Recall dashboard create a workspace verification secret and set it as
+   `RECALL_WEBHOOK_SECRET` (recommended; webhook signatures are then verified).
+3. Optional: add a dashboard webhook to `https://<site>/api/meet/status-hook` for bot status
+   events. Without it, the page refreshes the status itself while it is open.
+4. Open `/meet`, sign in, paste a meeting link. In Google Meet the host has to admit the bot.
+
+### Limits to know about
+
+- Replies take a few seconds: transcript, then Claude, then speech. It is a turn-taking
+  assistant, not a full-duplex voice agent.
+- Presentations are shared as a link in the chat; the bot does not share its screen.
+- Tested against fixture servers that follow Recall's documented API (`lib/meet.test.mjs`).
+  A first live meeting is the real check of the account, region and caption language.
 
 ## AI Studio (`/studio`)
 
