@@ -1,4 +1,4 @@
-> **🎙️ Meeting bot (בוט פגישות)** — an AI assistant that joins Google Meet, Zoom and Teams calls: transcribes live, answers out loud when called by name, summarizes, and builds presentations. Open `/meet`. Details: [Meeting bot](#meeting-bot-meet) below.
+> **🎙️ Meeting bot (בוט פגישות)** — an AI assistant that joins Google Meet, Zoom and Teams calls: transcribes live, answers out loud when called by name, summarizes, and prepares worksheets and presentations on its owner's behalf and emails them. Open `/meet`. Details: [Meeting bot](#meeting-bot-meet) below.
 
 > **🎬 AI Studio (סטודיו AI)** — one chat that drives the leading AI media services: video generation (Veo, Kling, Hailuo), images (FLUX), music, dubbing into other languages and voice-over (ElevenLabs), and cloud editing (Shotstack). Open `/studio`. Details: [AI Studio](#ai-studio-studio) below.
 
@@ -56,9 +56,23 @@ presentations whose link it posts in the meeting chat.
 | Joining the call, live transcript, chat, playing audio | [Recall.ai](https://www.recall.ai) | `RECALL_API_KEY` (+ `RECALL_REGION`) |
 | Answers, summaries, presentations | Anthropic | `ANTHROPIC_API_KEY` |
 | The bot's voice | ElevenLabs | `ELEVENLABS_API_KEY` |
+| Emailing worksheets and presentations | Resend | `RESEND_API_KEY` + `EMAIL_FROM` |
 
 Without the Anthropic key the bot only transcribes; without the ElevenLabs key it answers in the
 meeting chat instead of speaking. The page says which keys are missing.
+
+### Working on the owner's behalf
+
+The form takes the owner's name as it is said in the meeting, and optionally a recipient (a name
+and an email address). When someone else in the meeting asks the owner by name to prepare
+material ("מנדי, תכין דף עבודה על שניים אוחזין"), the bot says it is the owner's assistant and is
+preparing it, writes the worksheet or presentation without leaving the call, emails it to the
+recipient, and says so when it is done. The link is posted in the meeting chat as well.
+
+It steps in only for requests to prepare material. A question to the owner, or their name in
+passing, is left to the owner: the bot never answers as them. The recipient is whoever the
+owner typed for that meeting; the bot does not pick addresses from the conversation. If the
+email fails or is not configured, the link in the chat is still shared and the chat says so.
 
 ### How it works
 
@@ -89,7 +103,9 @@ meeting chat instead of speaking. The page says which keys are missing.
 
 - Replies take a few seconds: transcript, then Claude, then speech. It is a turn-taking
   assistant, not a full-duplex voice agent.
-- Presentations are shared as a link in the chat; the bot does not share its screen.
+- Presentations and worksheets are shared as a link (chat and email); the bot does not share
+  its screen. Their content is written by AI and should be read before it is taught from.
+- Material is built inside one serverless request, so it is kept compact when requested live.
 - Tested against fixture servers that follow Recall's documented API (`lib/meet.test.mjs`).
   A first live meeting is the real check of the account, region and caption language.
 

@@ -94,6 +94,7 @@ export default function MeetPage() {
                 <div className="space-y-6">
                     <NewMeeting
                         disabled={status && !status.recall}
+                        userName={user.name}
                         onCreated={async (meeting) => {
                             await loadMeetings();
                             setActiveId(meeting.id);
@@ -118,7 +119,8 @@ function ServiceChips({ status }) {
     const chips = [
         ['הצטרפות לפגישות', status.recall],
         ['חשיבה (Claude)', status.brain],
-        ['דיבור בקול', status.speech]
+        ['דיבור בקול', status.speech],
+        ['שליחת מייל', status.mail]
     ];
     return (
         <div className="flex flex-wrap gap-2 ms-auto">
@@ -143,6 +145,8 @@ function Setup({ status }) {
     if (!status.brain) missing.push(['ANTHROPIC_API_KEY', 'בלי המפתח הזה הבוט מתמלל אבל לא עונה, לא מסכם ולא מכין מצגות.']);
     if (!status.speech)
         missing.push(['ELEVENLABS_API_KEY', 'בלי המפתח הזה הבוט עונה בכתב בצ׳אט של הפגישה במקום בקול.']);
+    if (!status.mail)
+        missing.push(['RESEND_API_KEY + EMAIL_FROM', 'בלי שני אלה הבוט לא שולח חומרים במייל, רק קישור בצ׳אט של הפגישה.']);
     if (!status.reachable)
         missing.push(['MEET_PUBLIC_URL', 'האתר רץ בכתובת מקומית, ו-Recall לא יכול לשלוח אליה את התמלול. צריך כתובת https ציבורית.']);
     if (!missing.length) return null;
@@ -163,10 +167,13 @@ function Setup({ status }) {
     );
 }
 
-function NewMeeting({ disabled, onCreated }) {
+function NewMeeting({ disabled, userName, onCreated }) {
     const [meetingUrl, setMeetingUrl] = useState('');
     const [botName, setBotName] = useState('קלוד');
     const [language, setLanguage] = useState('he');
+    const [ownerName, setOwnerName] = useState(userName || '');
+    const [recipientName, setRecipientName] = useState('');
+    const [recipientEmail, setRecipientEmail] = useState('');
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState(null);
 
@@ -177,7 +184,7 @@ function NewMeeting({ disabled, onCreated }) {
         try {
             const data = await api('/api/meet/meetings', {
                 method: 'POST',
-                body: JSON.stringify({ meetingUrl, botName, language })
+                body: JSON.stringify({ meetingUrl, botName, language, ownerName, recipientName, recipientEmail })
             });
             setMeetingUrl('');
             await onCreated(data.meeting);
@@ -223,6 +230,41 @@ function NewMeeting({ disabled, onCreated }) {
                             </option>
                         ))}
                     </select>
+                </label>
+            </div>
+            <label className="block text-sm text-slate-400">
+                השם שלי בפגישה
+                <input
+                    value={ownerName}
+                    maxLength={60}
+                    onChange={(event) => setOwnerName(event.target.value)}
+                    className={`${field} mt-1`}
+                />
+            </label>
+            <p className="text-xs leading-relaxed text-slate-500">
+                כשמישהו פונה אליך בשם ומבקש דף עבודה או מצגת, הבוט מכין אותם בשמך. על שאלות אליך הוא לא עונה.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+                <label className="block text-sm text-slate-400">
+                    לשלוח חומרים אל
+                    <input
+                        value={recipientName}
+                        maxLength={60}
+                        placeholder="הרב"
+                        onChange={(event) => setRecipientName(event.target.value)}
+                        className={`${field} mt-1`}
+                    />
+                </label>
+                <label className="block text-sm text-slate-400">
+                    מייל
+                    <input
+                        dir="ltr"
+                        type="email"
+                        value={recipientEmail}
+                        placeholder="name@example.com"
+                        onChange={(event) => setRecipientEmail(event.target.value)}
+                        className={`${field} mt-1`}
+                    />
                 </label>
             </div>
             <p className="text-xs leading-relaxed text-slate-500">
@@ -277,6 +319,7 @@ function Meeting({ id, onChanged }) {
     const [meeting, setMeeting] = useState(null);
     const [lines, setLines] = useState([]);
     const [decks, setDecks] = useState([]);
+    const [docs, setDocs] = useState([]);
     const [error, setError] = useState(null);
     const [busy, setBusy] = useState(null);
     const [draft, setDraft] = useState('');
@@ -291,6 +334,7 @@ function Meeting({ id, onChanged }) {
             const data = await api(`/api/meet/meetings/${id}${query}`);
             setMeeting(data.meeting);
             setDecks(data.decks);
+            setDocs(data.docs ?? []);
             if (data.lines.length) {
                 // Two loads can overlap (the poll and an action finishing), so
                 // both may return the same new lines: add each line once.
@@ -432,33 +476,53 @@ function Meeting({ id, onChanged }) {
             </div>
 
             <div className="p-4 border rounded-2xl bg-slate-900 border-white/10">
-                <h2 className="text-lg font-bold">מצגות</h2>
+                <h2 className="text-lg font-bold">דפי עבודה ומצגות</h2>
+                {meeting.recipientEmail && (
+                    <p className="mt-1 text-sm text-slate-400">
+                        חומר שמשותף בפגישה נשלח גם במייל אל {meeting.recipientName || 'הנמען'} (<span dir="ltr">{meeting.recipientEmail}</span>).
+                    </p>
+                )}
                 <form
                     className="flex flex-wrap gap-2 mt-3"
                     onSubmit={async (event) => {
                         event.preventDefault();
-                        const announce = event.nativeEvent.submitter?.value === 'announce';
-                        if (await act('deck', { text: topic, announce })) setTopic('');
+                        const [type, mode] = (event.nativeEvent.submitter?.value || 'worksheet:quiet').split(':');
+                        if (await act(type, { text: topic, announce: mode === 'announce' })) setTopic('');
                     }}
                 >
                     <input
                         value={topic}
                         maxLength={500}
                         onChange={(event) => setTopic(event.target.value)}
-                        placeholder="נושא המצגת (ריק: הפגישה עצמה)"
-                        className="flex-1 basis-full sm:basis-0 min-w-0 px-3 py-2 text-white border rounded-xl bg-slate-800 border-white/10 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        placeholder="נושא (ריק: הפגישה עצמה)"
+                        className="flex-1 basis-full min-w-0 px-3 py-2 text-white border rounded-xl bg-slate-800 border-white/10 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
-                    <button type="submit" value="quiet" disabled={busy !== null} className={button}>
+                    <button type="submit" value="worksheet:quiet" disabled={busy !== null} className={button}>
+                        {busy === 'worksheet' ? 'כותב…' : 'צור דף עבודה'}
+                    </button>
+                    <button type="submit" value="deck:quiet" disabled={busy !== null} className={button}>
                         {busy === 'deck' ? 'בונה…' : 'צור מצגת'}
                     </button>
                     {inCall && (
-                        <button type="submit" value="announce" disabled={busy !== null} className={button}>
-                            צור ושתף בפגישה
-                        </button>
+                        <>
+                            <button type="submit" value="worksheet:announce" disabled={busy !== null} className={button}>
+                                דף עבודה + שיתוף
+                            </button>
+                            <button type="submit" value="deck:announce" disabled={busy !== null} className={button}>
+                                מצגת + שיתוף
+                            </button>
+                        </>
                     )}
                 </form>
-                {decks.length > 0 && (
+                {(docs.length > 0 || decks.length > 0) && (
                     <ul className="mt-3 space-y-1.5">
+                        {docs.map((doc) => (
+                            <li key={doc.id}>
+                                <a href={`/meet/doc/${doc.id}`} target="_blank" rel="noreferrer" className="text-sm text-sky-300 hover:underline">
+                                    {doc.title} (דף עבודה)
+                                </a>
+                            </li>
+                        ))}
                         {decks.map((deck) => (
                             <li key={deck.id}>
                                 <a href={`/meet/deck/${deck.id}`} target="_blank" rel="noreferrer" className="text-sm text-sky-300 hover:underline">

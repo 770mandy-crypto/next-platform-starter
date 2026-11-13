@@ -26,6 +26,9 @@ export const POST = route(async (request) => {
         meetingUrl: body?.meetingUrl,
         botName: body?.botName,
         language: body?.language,
+        ownerName: body?.ownerName ?? user.name,
+        recipientName: body?.recipientName,
+        recipientEmail: body?.recipientEmail,
         publicUrl: publicUrl(request)
     });
     return NextResponse.json({ meeting: publicMeeting(meeting) }, { status: 201 });

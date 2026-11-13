@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { isBrainConfigured } from 'lib/meet/brain';
-import { deliver, endMeeting, LIVE_STATUSES, publicMeeting, respond, runDeck, runSummary } from 'lib/meet/engine';
+import { deliver, endMeeting, LIVE_STATUSES, publicMeeting, respond, runDeck, runSummary, runWorksheet } from 'lib/meet/engine';
 import { ownedMeeting } from 'lib/meet/http';
 import { addLine } from 'lib/meet/store';
 import { clip, HttpError, readJson, requireUser, route } from 'lib/pilot/http';
@@ -13,6 +13,8 @@ export const dynamic = 'force-dynamic';
 //   ask      put a question to the bot as if it were asked in the meeting
 //   summary  summarize now; with announce, also share it in the meeting
 //   deck     build a presentation; with announce, share its link in the meeting
+//   worksheet  build a worksheet, the same way. Either is also emailed to the
+//            meeting's recipient, if one was set.
 //   leave    take the bot out of the meeting
 export const POST = route(async (request, { params }) => {
     const user = await requireUser(request);
@@ -53,6 +55,11 @@ export const POST = route(async (request, { params }) => {
             needBrain();
             await consumeAiQuota(user.id);
             return NextResponse.json({ deck: await runDeck(meeting, text, { announce }) });
+        }
+        case 'worksheet': {
+            needBrain();
+            await consumeAiQuota(user.id);
+            return NextResponse.json({ doc: await runWorksheet(meeting, text, { announce }) });
         }
         case 'leave': {
             if (!LIVE_STATUSES.includes(meeting.status)) throw new HttpError('הבוט כבר לא בפגישה.', 409);
