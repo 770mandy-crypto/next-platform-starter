@@ -65,7 +65,16 @@ export function LetterWriter({ kinds }) {
     const [error, setError] = useState(null);
     const abort = useRef(null);
 
-    useEffect(() => setSender(loadSender()), []);
+    useEffect(() => {
+        setSender(loadSender());
+        // Other pages can open this one with the request filled in, e.g. the
+        // appointment planner's "waiting too long?" link.
+        const params = new URLSearchParams(window.location.search);
+        const preset = params.get('kind');
+        if (preset && kinds.some(([id]) => id === preset)) setKind(preset);
+        if (params.get('situation')) setSituation(params.get('situation').slice(0, 6000));
+        if (params.get('to')) setRecipientHint(params.get('to').slice(0, 200));
+    }, [kinds]);
 
     async function submit(event) {
         event.preventDefault();

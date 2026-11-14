@@ -10,6 +10,19 @@ const EXAMPLES = [
     ['ועדה רפואית לנכות', 'nii']
 ];
 
+const HEALTH_FUNDS = ['clalit', 'maccabi', 'meuhedet', 'leumit'];
+
+// Opens the letter writer with a demand letter about the wait already
+// described; the person adds the date they were offered.
+function waitingLetterLink({ need, fund, city }) {
+    const situation =
+        `ביקשתי לקבוע תור ל${need} ב${fund}${city ? ` באזור ${city}` : ''}. ` +
+        'התור הפנוי הראשון שהוצע לי הוא רק ב-[התאריך שהוצע], וזו המתנה ארוכה מדי עבורי. ' +
+        'אני רוצה שהקופה תמצא לי תור מוקדם יותר, או תאשר לי תור אצל רופא אחר על חשבונה.';
+    const params = new URLSearchParams({ kind: 'health', to: fund, situation });
+    return `/letters?${params}`;
+}
+
 const CHANNEL_ICON = { online: '🌐', app: '📱', phone: '📞', whatsapp: '💬', in_person: '🏢' };
 const CHANNEL_LABEL = { online: 'באתר', app: 'באפליקציה', phone: 'בטלפון', whatsapp: 'בוואטסאפ', in_person: 'במקום' };
 
@@ -53,7 +66,10 @@ export function AppointmentPlanner({ providers }) {
         }
     }
 
-    if (phase === 'done' && plan) return <Plan plan={plan} onBack={() => setPhase('form')} />;
+    if (phase === 'done' && plan) {
+        const fund = HEALTH_FUNDS.includes(provider) ? providers.find(([id]) => id === provider)[1] : null;
+        return <Plan plan={plan} letterLink={fund ? waitingLetterLink({ need, fund, city }) : null} onBack={() => setPhase('form')} />;
+    }
 
     return (
         <main className="mx-auto max-w-2xl px-5 py-10">
@@ -158,7 +174,7 @@ export function AppointmentPlanner({ providers }) {
     );
 }
 
-function Plan({ plan, onBack }) {
+function Plan({ plan, letterLink, onBack }) {
     const [copied, setCopied] = useState(false);
     const [done, setDone] = useState({});
 
@@ -247,6 +263,22 @@ function Plan({ plan, onBack }) {
                         ))}
                     </ul>
                 </section>
+            )}
+
+            {letterLink && (
+                <a
+                    href={letterLink}
+                    className="flex items-center gap-4 rounded-2xl bg-white p-5 no-underline ring-1 ring-indigo-200 hover:ring-indigo-400"
+                >
+                    <span className="text-3xl">✉️</span>
+                    <span className="flex-1">
+                        <span className="block font-black text-slate-900">ההמתנה ארוכה מדי?</span>
+                        <span className="block text-sm text-slate-600">
+                            כותב המכתבים יכין מכתב דרישה לקופה לתור מוקדם יותר. רוב הפרטים כבר ממולאים, נשאר רק להוסיף את התאריך שהציעו לך.
+                        </span>
+                    </span>
+                    <span className="text-indigo-700">←</span>
+                </a>
             )}
 
             <section className="rounded-2xl bg-slate-900 p-5 text-white">
