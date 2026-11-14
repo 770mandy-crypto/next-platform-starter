@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { streamResearch } from 'lib/research/client';
 
 const SENDER_KEY = 'letters-sender';
 const MAX_FILE = 3_500_000;
@@ -35,33 +36,6 @@ function readFile(file) {
         reader.onerror = () => reject(new Error('לא הצלחתי לקרוא את הקובץ.'));
         reader.readAsDataURL(file);
     });
-}
-
-async function streamLetter(payload, onEvent, signal) {
-    const response = await fetch('/api/letters', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(payload),
-        signal
-    });
-    if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || 'משהו השתבש. נסו שוב.');
-    }
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-    for (;;) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        let newline;
-        while ((newline = buffer.indexOf('\n')) >= 0) {
-            const line = buffer.slice(0, newline).trim();
-            buffer = buffer.slice(newline + 1);
-            if (line) onEvent(JSON.parse(line));
-        }
-    }
 }
 
 // Placeholders like [מספר הדוח] are highlighted so they are not missed.
@@ -110,7 +84,8 @@ export function LetterWriter({ kinds }) {
         abort.current = new AbortController();
         let result = null;
         try {
-            await streamLetter(
+            await streamResearch(
+                '/api/letters',
                 { kind, situation, recipientHint, senderName: sender.name, attachment },
                 (e) => {
                     if (e.type === 'searching' || e.type === 'reading') setProgress((p) => ({ ...p, searches: p.searches + 1 }));
