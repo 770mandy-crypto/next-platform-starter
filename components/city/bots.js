@@ -171,7 +171,12 @@ export function updateBot(bot, dt, ctx) {
     };
     const flat = Math.hypot(dx, dz) || 1;
 
-    if (bot.retreat > 0 && !target.dead) {
+    const hostile = ctx.hostile !== false;
+    if (!hostile && bot.sees && !target.dead) {
+        // Not allowed to open fire (police at a low wanted level): close in to make an arrest.
+        if (dist > 1.1) toward(steerPoint(world, bot, target, dt));
+        speed = 7.2;
+    } else if (bot.retreat > 0 && !target.dead) {
         // Break contact: back away, around the nearest corner if there is one.
         const away = { x: bot.x - (dx / flat) * 30, y: bot.y, z: bot.z - (dz / flat) * 30 };
         toward(locationOf(world, bot.x, bot.y, bot.z).b ? { x: bot.x - dx / flat, z: bot.z - dz / flat } : steerPoint(world, bot, away, dt));

@@ -14,13 +14,15 @@ export const STAGES = [
         title: 'נצחו 10 בוטים', event: 'kill', kind: 'count', need: 10,
         peaceful: { title: 'אספו 20 ארגזי ציוד', event: 'crate', need: 20 },
         reward: { type: 'weapon', id: 'rifle', label: 'רובה סער' }
-    }
+    },
+    { title: 'פרצו 3 כספות בעסקים בעיר', event: 'heist', kind: 'count', need: 3, reward: { type: 'car', id: 'super', label: 'מכונית על' } },
+    { title: 'ברחו מהמשטרה ברמת חיפוש של 3 כוכבים ומעלה', event: 'escape', kind: 'reach', min: 3, reward: { type: 'cash', id: 'bonus', amount: 25000, label: 'מענק של 25,000 ₪' } }
 ];
 
 export const STORAGE_KEY = 'city-game-v2';
 
 export function initialProgress() {
-    return { stage: 0, count: 0, weapons: ['pistol'], cars: [], boats: [], kills: 0, deaths: 0, crates: 0 };
+    return { stage: 0, count: 0, weapons: ['pistol'], cars: [], boats: [], kills: 0, deaths: 0, crates: 0, cash: 0, heists: 0, escapes: 0, arrests: 0 };
 }
 
 /** The current stage as the player sees it, depending on whether bots are on. */
@@ -31,6 +33,7 @@ export function currentStage(state, bots) {
 }
 
 function grant(state, reward) {
+    if (reward.type === 'cash') return { ...state, cash: state.cash + reward.amount };
     const key = reward.type === 'weapon' ? 'weapons' : reward.type === 'car' ? 'cars' : 'boats';
     return state[key].includes(reward.id) ? state : { ...state, [key]: [...state[key], reward.id] };
 }
@@ -44,6 +47,9 @@ export function applyEvent(state, event, value = 1, bots = true) {
     if (event === 'kill') next = { ...next, kills: next.kills + 1 };
     if (event === 'death') next = { ...next, deaths: next.deaths + 1 };
     if (event === 'crate') next = { ...next, crates: next.crates + 1 };
+    if (event === 'heist') next = { ...next, heists: next.heists + 1 };
+    if (event === 'escape') next = { ...next, escapes: next.escapes + 1 };
+    if (event === 'arrest') next = { ...next, arrests: next.arrests + 1 };
     if (event === 'weapon' && !next.weapons.includes(value)) next = { ...next, weapons: [...next.weapons, value] };
     const stage = currentStage(next, bots);
     if (!stage || stage.event !== event) return { state: next, completed: null };
@@ -80,7 +86,11 @@ export function loadProgress(storage) {
             boats: list(raw.boats, []),
             kills: Number(raw.kills) || 0,
             deaths: Number(raw.deaths) || 0,
-            crates: Number(raw.crates) || 0
+            crates: Number(raw.crates) || 0,
+            cash: Math.max(0, Math.floor(Number(raw.cash) || 0)),
+            heists: Number(raw.heists) || 0,
+            escapes: Number(raw.escapes) || 0,
+            arrests: Number(raw.arrests) || 0
         };
     } catch {
         return initialProgress();
@@ -93,4 +103,9 @@ export function saveProgress(storage, state) {
     } catch {
         // Private windows and blocked storage: the game simply does not remember.
     }
+}
+
+/** Add (or with a negative amount, take) money; never below zero. */
+export function addCash(state, amount) {
+    return { ...state, cash: Math.max(0, Math.round(state.cash + amount)) };
 }

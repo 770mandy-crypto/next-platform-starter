@@ -13,9 +13,10 @@ import {
 } from './world.js';
 import { CRATE_COLORS, WEAPONS, WEAPON_ORDER, rayWorld, shoot } from './combat.js';
 import { createBots, hurtBot, updateBot } from './bots.js';
-import { STAGES, applyEvent, initialProgress, loadProgress, saveProgress, stageView } from './progress.js';
+import { STAGES, addCash, applyEvent, initialProgress, loadProgress, saveProgress, stageView } from './progress.js';
+import { clearWanted, createForce, escapeTime, hitOfficer, raiseWanted, reportGunfire, updateForce } from './police.js';
 import { AMBIENT_LINES, CITIZENS } from './dialog.js';
-import { instancedBoxes, makeBoat, makeCar, makeHeli, makeHuman, setGun, swingHuman, waterNormals, windowTextures } from './models.js';
+import { instancedBoxes, makeBoat, makeCar, makeHeli, makeHuman, makeSafe, makeSign, setGun, swingHuman, waterNormals, windowTextures } from './models.js';
 
 const SKY_KEYS = [
     [0, '#060b18'], [5, '#0b1426'], [6.5, '#e39a72'], [8, '#9ccbee'],
@@ -32,6 +33,7 @@ const PANTS = ['#2f3b4c', '#4a4038', '#3b4a3f', '#55524c'];
 const CAR_COLORS = ['#b8443a', '#e0c070', '#3d6f9e', '#e9e6dc', '#3f7f6a', '#2e3238'];
 const CAR_TYPES = {
     basic: { label: 'מכונית', max: 27, accel: 15, turn: 1.9, armor: 0.5 },
+    super: { label: 'מכונית על', max: 54, accel: 34, turn: 2.3, armor: 0.5 },
     sport: { label: 'מכונית ספורט', max: 43, accel: 25, turn: 2.1, armor: 0.5 },
     jeep: { label: 'ג׳יפ משוריין', max: 25, accel: 14, turn: 1.7, armor: 0.2 }
 };
@@ -324,6 +326,7 @@ export function createGame(container, bubbleLayer, cb = {}) {
     addVehicle('car', 'sport', LINES[5] - 2.5, -70, Math.PI, '#c2281e');
     addVehicle('car', 'jeep', 30, LINES[4] + 2.5, Math.PI / 2, '#4b5a44');
     addVehicle('car', 'jeep', LINES[1] + 2.5, -20, 0, '#3b4148');
+    addVehicle('car', 'super', LINES[4] - 2.5, 34, Math.PI, '#1c1f24');
     addVehicle('boat', 'motor', 5.6, SEA_Z + 20, 0, '#e9e3d6');
     addVehicle('boat', 'motor', -5.6, SEA_Z + 20, 0, '#3d6f9e');
     addVehicle('boat', 'speed', 5.6, SEA_Z + 33, 0, '#b8281e');
@@ -344,6 +347,46 @@ export function createGame(container, bubbleLayer, cb = {}) {
         scene.add(mesh);
         return { mesh, bar, weapon: null, phase: 0 };
     });
+
+    // Businesses: a sign over the door, a counter, shelves and the safe.
+    const safes = world.businesses.map((biz) => {
+        const b = world.buildings[biz.building];
+        const sign = makeSign(biz.name, biz.color);
+        sign.position.set(b.door.x, PAD_H + b.door.h + 1.25, b.z1 + 0.06);
+        scene.add(sign);
+        const safe = makeSafe();
+        safe.position.set(biz.safe.x, PAD_H, biz.safe.z);
+        safe.rotation.y = Math.atan2(b.cx - biz.safe.x, b.cz - biz.safe.z);
+        scene.add(safe);
+        return { biz, safe, robbedUntil: 0 };
+    });
+    {
+        const decor = [];
+        for (const biz of world.businesses) {
+            const b = world.buildings[biz.building];
+            decor.push({ x: b.cx + 1.5, y: PAD_H + 0.55, z: b.z1 - 4.2, sx: 4.2, sy: 1.1, sz: 0.8, color: biz.color });
+            decor.push({ x: b.cx + 1.5, y: PAD_H + 1.13, z: b.z1 - 4.2, sx: 4.3, sy: 0.06, sz: 0.9, color: '#d8d2c6' });
+            for (let n = 0; n < 3; n++) decor.push({ x: b.x1 - 0.45, y: PAD_H + 1.1, z: b.cz + 1 + n * 2.4, sx: 0.5, sy: 2.2, sz: 2, color: '#6b5238' });
+        }
+        scene.add(instancedBoxes(decor, std('#ffffff', { roughness: 0.6 })));
+    }
+
+    // The police: officers on foot and patrol or chase cars with light bars.
+    let force = createForce();
+    let policeOn = true;
+    const officerViews = Array.from({ length: 12 }, () => {
+        const mesh = makeHuman({ shirt: '#2c4a7a', pants: '#1a2233', vest: '#1b2a3f', hat: '#16233a', hair: '#1b1b1f' });
+        mesh.visible = false;
+        scene.add(mesh);
+        return { mesh, weapon: null, phase: 0 };
+    });
+    const policeCarViews = Array.from({ length: 8 }, () => {
+        const mesh = makeCar('police', '#f1f1ee');
+        mesh.visible = false;
+        scene.add(mesh);
+        return mesh;
+    });
+    let heist = null;
 
     const walkBlocks = world.blocks.filter((b) => b.type !== 'hill');
     const citizens = CITIZENS.map((info, n) => {
@@ -397,6 +440,14 @@ export function createGame(container, bubbleLayer, cb = {}) {
         if (loc.b && Math.hypot(player.x - loc.b.lift.x, player.z - loc.b.lift.z) < 1.5) {
             return { type: 'lift', ref: loc.b, level: loc.level, text: `מעלית · ${levelName(loc.b, loc.level)}` };
         }
+        if (loc.b && loc.level === 0 && loc.b.business !== null) {
+            const s0 = safes[loc.b.business];
+            if (Math.hypot(player.x - s0.biz.safe.x, player.z - s0.biz.safe.z) < 1.9) {
+                if (s0.robbedUntil > clock) return { type: 'emptySafe', ref: s0, text: `הכספת ריקה · מתמלאת שוב בעוד ${Math.ceil(s0.robbedUntil - clock)} שניות` };
+                if (heist) return { type: 'cracking', ref: s0, text: `פורצים… ${Math.floor((heist.t / heist.need) * 100)}%` };
+                return { type: 'safe', ref: s0, text: `פריצת הכספת · ${s0.biz.name}` };
+            }
+        }
         let best = null, bd = Infinity;
         const consider = (t, x, z, max, y = 0) => {
             const d = Math.hypot(player.x - x, player.z - z);
@@ -436,6 +487,8 @@ export function createGame(container, bubbleLayer, cb = {}) {
         if (!t) return;
         if (t.type === 'citizen') { cb.onChat?.({ id: t.ref.id, name: t.ref.name, role: t.ref.role }); return; }
         if (t.type === 'lift') { cb.onElevator?.({ name: t.ref.name, floors: t.ref.floors, level: t.level }); return; }
+        if (t.type === 'safe') { startHeist(t.ref); return; }
+        if (t.type === 'emptySafe' || t.type === 'cracking') return;
         if (t.type === 'locked') { toast(`${t.ref.spec.label} נפתח בסיום שלב ${stageOfReward(t.ref.kind, t.ref.type)}`); return; }
         mode = t.type; vehicle = t.ref; player.mesh.visible = false;
     }
@@ -478,8 +531,12 @@ export function createGame(container, bubbleLayer, cb = {}) {
         player.hp = 0; player.dead = true; player.deadT = 3.5;
         if (mode !== 'foot' && mode !== 'lift') leaveVehicle();
         mode = 'foot'; lift = null;
+        heist = null;
         emit('death');
-        toast('נפלתם! חוזרים לנקודת ההתחלה…');
+        const lost = Math.floor(progress.cash * 0.1);
+        if (lost) { progress = addCash(progress, -lost); dirty = true; }
+        clearWanted(force);
+        toast(lost ? `נפלתם! איבדתם ${lost.toLocaleString('he-IL')} ₪` : 'נפלתם! חוזרים לנקודת ההתחלה…');
     }
     function respawn() {
         Object.assign(player, { ...SPAWN, vy: 0, grounded: true, hp: 100, dead: false, reloading: 0 });
@@ -487,7 +544,54 @@ export function createGame(container, bubbleLayer, cb = {}) {
         for (const b of bots) { b.known = null; b.knownAt = -99; }
     }
 
+    function arrested() {
+        const lost = Math.floor(progress.cash * 0.3);
+        progress = addCash(progress, -lost);
+        emit('arrest');
+        dirty = true;
+        heist = null;
+        if (mode !== 'foot' && mode !== 'lift') leaveVehicle();
+        mode = 'foot'; lift = null;
+        respawn();
+        toast(lost ? `נעצרתם! המשטרה החרימה ${lost.toLocaleString('he-IL')} ₪` : 'נעצרתם! שוחררתם בערבות');
+    }
+
+    function startHeist(s0) {
+        heist = { s: s0, t: 0, need: s0.biz.crack };
+        if (policeOn) raiseWanted(force, 1);
+        cb.onSound?.('alarm');
+        toast(`האזעקה הופעלה ב${s0.biz.name}! פרצו מהר — המשטרה בדרך`);
+    }
+    function updateHeist(dt) {
+        if (!heist) return;
+        const s0 = heist.s;
+        if (player.dead || Math.hypot(player.x - s0.biz.safe.x, player.z - s0.biz.safe.z) > 2.2 || player.y > 1.5) {
+            heist = null;
+            toast('הפריצה הופסקה');
+            return;
+        }
+        heist.t += dt;
+        s0.safe.userData.dial.rotation.y += dt * 9;
+        if (heist.t < heist.need) return;
+        const [lo, hi] = s0.biz.cash;
+        const take = Math.round((lo + Math.random() * (hi - lo)) / 10) * 10;
+        progress = addCash(progress, take);
+        dirty = true;
+        s0.robbedUntil = clock + 240;
+        heist = null;
+        if (policeOn) raiseWanted(force, s0.biz.heat);
+        emit('heist');
+        cb.onSound?.('cash');
+        toast(`הכספת נפרצה! +${take.toLocaleString('he-IL')} ₪ — עכשיו ברחו!`);
+    }
+
     function hitBot(bot, damage) {
+        if (bot.police) {
+            const killed = hitOfficer(force, bot, damage, clock, player);
+            cb.onHit?.(killed);
+            if (killed) toast('שוטר נפגע — רמת החיפוש עלתה!');
+            return;
+        }
         if (hurtBot(bot, damage, clock, player)) {
             emit('kill');
             player.reserve[player.weapon] += WEAPONS[player.weapon].mag;
@@ -503,7 +607,7 @@ export function createGame(container, bubbleLayer, cb = {}) {
         camera.getWorldDirection(v3);
         const dir = [v3.x, v3.y, v3.z];
         const origin = [camera.position.x + v3.x * cam.actual, camera.position.y + v3.y * cam.actual, camera.position.z + v3.z * cam.actual];
-        const live = botsOn ? bots.filter((b) => !b.dead) : [];
+        const live = [...(botsOn ? bots : []), ...force.officers].filter((b) => !b.dead);
         if (coarse) {
             // Touch aim assist: snap to an opponent close to the crosshair.
             let bestDot = 0.985;
@@ -522,6 +626,8 @@ export function createGame(container, bubbleLayer, cb = {}) {
         player.cooldown = 1 / w.rate;
         player.lastShot = clock;
         noise = { x: player.x, y: player.y, z: player.z, time: clock };
+        if (policeOn) reportGunfire(force, player.x, player.z);
+        cb.onSound?.('shot', w.id);
         return true;
     }
 
@@ -571,9 +677,12 @@ export function createGame(container, bubbleLayer, cb = {}) {
             const take = Math.min(w.mag - player.mags[w.id], player.reserve[w.id]);
             player.mags[w.id] += take; player.reserve[w.id] -= take;
         }
-        if (i.fire && (w.auto || !fireLatch)) fire();
-        fireLatch = i.fire;
+        // Semi-automatic weapons fire once per trigger pull; a pull during the
+        // cooldown is remembered until the shot goes off.
+        if (i.fire && (w.auto || !fireLatch) && fire()) fireLatch = true;
+        if (!i.fire) fireLatch = false;
         collectCrates();
+        updateHeist(dt);
 
         const aiming = clock - player.lastShot < 1.2 || i.fire;
         if (aiming) player.heading = angleLerp(player.heading, cam.yaw + Math.PI, Math.min(1, dt * 20));
@@ -608,6 +717,9 @@ export function createGame(container, bubbleLayer, cb = {}) {
         if (out.hit || cz !== out.z) c.speed *= -0.25;
         travelled += Math.hypot(cx - c.x, cz - c.z);
         c.x = cx; c.z = cz;
+        if (Math.abs(c.speed) > 7) for (const o of force.officers) {
+            if (!o.dead && o.y < 1 && Math.hypot(o.x - c.x, o.z - c.z) < 1.9) hitBot(o, 150);
+        }
         if (botsOn && Math.abs(c.speed) > 7) for (const b of bots) {
             if (!b.dead && b.y < 1 && Math.hypot(b.x - c.x, b.z - c.z) < 1.9) hitBot(b, 150);
         }
@@ -670,6 +782,55 @@ export function createGame(container, bubbleLayer, cb = {}) {
             view.bar.scale.x = Math.max(0.02, b.hp / 100);
             view.bar.quaternion.copy(view.mesh.quaternion).invert().multiply(camera.quaternion);
         });
+    }
+
+    function updatePolice(dt) {
+        const onFoot = mode === 'foot' || mode === 'lift';
+        target.x = player.x; target.y = player.y; target.z = player.z; target.dead = player.dead; target.speed = player.speed;
+        updateForce(force, dt, {
+            world, time: clock, rand: Math.random, target,
+            player: { x: player.x, y: player.y, z: player.z, dead: player.dead, speed: player.speed, onFoot, vehicleSpeed: vehicle ? Math.abs(vehicle.speed ?? 0) : 0 },
+            onShot: (o, origin, pellets) => {
+                cb.onSound?.('shot', o.weapon);
+                for (const p of pellets) {
+                    drawShot([origin[0] + Math.sin(o.heading) * 0.6, origin[1] - 0.1, origin[2] + Math.cos(o.heading) * 0.6], p.end, !!p.target);
+                    if (p.target) damagePlayer(p.damage);
+                }
+            },
+            onRam: (dmg) => damagePlayer(dmg),
+            onArrest: arrested,
+            onEscape: (level) => {
+                emit('escape', level);
+                cb.onSound?.('escape');
+                toast(`ברחתם מהמשטרה! (${'★'.repeat(level)})`);
+            }
+        });
+        drawPolice(dt);
+    }
+    function drawPolice(dt) {
+        const flash = Math.sin(clock * 14) > 0;
+        force.cars.forEach((c, n) => {
+            const mesh = policeCarViews[n];
+            if (!mesh) return;
+            mesh.visible = true;
+            mesh.position.set(c.x, 0, c.z);
+            mesh.rotation.set(0, c.yaw, 0);
+            const on = force.level > 0 && (c.crew > 0 || c.parked);
+            mesh.userData.lights[0].emissiveIntensity = on && flash ? 6 : 0.15;
+            mesh.userData.lights[1].emissiveIntensity = on && !flash ? 6 : 0.15;
+        });
+        for (let n = force.cars.length; n < policeCarViews.length; n++) policeCarViews[n].visible = false;
+        force.officers.forEach((o, n) => {
+            const view = officerViews[n];
+            if (!view) return;
+            view.mesh.visible = true;
+            if (view.weapon !== o.weapon) { view.weapon = o.weapon; setGun(view.mesh, o.weapon); }
+            if (o.moving && !o.dead) view.phase += dt * 10;
+            view.mesh.position.set(o.x, o.y + (o.dead ? 0.25 : 0), o.z);
+            view.mesh.rotation.set(o.dead ? -Math.PI / 2 : 0, o.heading, 0);
+            swingHuman(view.mesh, view.phase, o.moving && !o.dead ? 0.7 : 0, true);
+        });
+        for (let n = force.officers.length; n < officerViews.length; n++) officerViews[n].mesh.visible = false;
     }
 
     function updateCitizens(dt) {
@@ -836,7 +997,10 @@ export function createGame(container, bubbleLayer, cb = {}) {
         const status = {
             hp: Math.ceil(player.hp), dead: player.dead, weapon: w.id, weaponName: w.name, mag: player.mags[w.id], reserve: player.reserve[w.id],
             reloading: player.reloading > 0, owned: WEAPON_ORDER.filter((id) => progress.weapons.includes(id)), kills: progress.kills, deaths: progress.deaths,
-            bots: botsOn, armed: mode === 'foot', locked
+            bots: botsOn, armed: mode === 'foot', locked,
+            cash: progress.cash, wanted: force.level, police: policeOn,
+            searching: force.level > 0 && !force.seen && force.unseen > 0 ? Math.min(1, force.unseen / escapeTime(force.level)) : 0,
+            heist: heist ? { name: heist.s.biz.name, pct: Math.floor((heist.t / heist.need) * 100) } : null
         };
         const statusKey = JSON.stringify(status);
         if (statusKey !== lastStatus) { lastStatus = statusKey; cb.onStatus?.(status); }
@@ -860,6 +1024,7 @@ export function createGame(container, bubbleLayer, cb = {}) {
             else updateHeli(dt, i);
             if (!player.dead && clock - player.lastHurt > 6 && player.hp < 100) player.hp = Math.min(100, player.hp + 6 * dt);
             if (botsOn) updateBots(dt);
+            if (policeOn) updatePolice(dt);
         }
         player.mesh.position.set(player.x, player.y, player.z);
         player.mesh.rotation.y = player.heading;
@@ -973,6 +1138,13 @@ export function createGame(container, bubbleLayer, cb = {}) {
             setBots(withBots);
         },
         interact, rideTo, reload, nextWeapon, setWeapon, setBots, releasePointer,
+        setPolice(on) {
+            policeOn = !!on;
+            force = createForce(policeOn ? undefined : 0);
+            drawPolice(0);
+            lastStatus = '';
+            report();
+        },
         setMove(x, y) { input.mx = x; input.my = y; },
         setJump(v) { input.jump = v; },
         setDown(v) { input.down = v; },
@@ -996,6 +1168,12 @@ export function createGame(container, bubbleLayer, cb = {}) {
             player: { x: player.x, y: player.y, z: player.z, hp: player.hp, dead: player.dead, weapon: player.weapon, mag: player.mags[player.weapon], reserve: player.reserve[player.weapon] },
             progress: { ...progress },
             botList: bots.map((b) => ({ x: b.x, y: b.y, z: b.z, hp: b.hp, dead: b.dead, weapon: b.weapon })),
+            police: {
+                on: policeOn, wanted: force.level, unseen: force.unseen, seen: force.seen, aggressive: force.aggressive,
+                cars: force.cars.map((c) => ({ x: c.x, z: c.z, speed: c.speed, crew: c.crew, patrol: c.patrol, parked: c.parked })),
+                officers: force.officers.map((o) => ({ x: o.x, y: o.y, z: o.z, hp: o.hp, dead: o.dead, weapon: o.weapon }))
+            },
+            heist: heist ? { business: heist.s.biz.id, t: heist.t, need: heist.need } : null,
             vehicle: vehicle && vehicle.spec ? { kind: vehicle.kind, type: vehicle.type, x: vehicle.x, z: vehicle.z, speed: vehicle.speed } : null,
             heli: { x: heli.x, y: heli.y, z: heli.z }
         }),
@@ -1009,6 +1187,10 @@ export function createGame(container, bubbleLayer, cb = {}) {
             teleport(x, y, z) { Object.assign(player, { x, y, z, vy: 0, grounded: true }); },
             look(yaw, pitch) { cam.yaw = yaw; cam.pitch = pitch; },
             moveBot(n, x, y, z) { if (bots[n]) Object.assign(bots[n], { x, y, z, vy: 0, path: null }); },
+            businesses: () => safes.map((s0) => ({ ...s0.biz, robbed: s0.robbedUntil > clock })),
+            wanted(level) { raiseWanted(force, level); report(); },
+            clearWanted() { clearWanted(force); report(); },
+            moveOfficer(n, x, y, z) { if (force.officers[n]) Object.assign(force.officers[n], { x, y, z, vy: 0, path: null }); },
             freezeBots(v) { for (const b of bots) { b.hunter = !v; if (v) { b.known = null; b.knownAt = -99; } } },
             hurt: damagePlayer,
             citizens: () => citizens.map((c) => ({ id: c.id, name: c.name, x: c.x, z: c.z })),

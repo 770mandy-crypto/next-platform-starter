@@ -37,6 +37,17 @@ const USES = ['מגורים', 'משרדים', 'בית קפה', 'ספרייה', '
 const STREETS_NS = ['שדרת הברושים', 'רחוב הגפן', 'רחוב התאנה', 'שדרת המעלות', 'רחוב הרימון', 'רחוב הזית', 'רחוב התמר', 'שדרת הדקלים'];
 const STREETS_EW = ['דרך ההר', 'רחוב השחר', 'רחוב האופק', 'שדרת המצפה', 'רחוב הרוח', 'רחוב הגשם', 'רחוב הכוכבים', 'טיילת הים'];
 
+/** Shops with a safe in the back corner of the ground floor: what is inside, how long it takes to crack, how hard the police come. */
+export const BUSINESS_TYPES = [
+    { id: 'bank', name: 'בנק', cash: [22000, 38000], crack: 14, heat: 4, color: '#2f5d8a' },
+    { id: 'jewelry', name: 'תכשיטי', cash: [11000, 17000], crack: 10, heat: 3, color: '#8a5aa8' },
+    { id: 'electronics', name: 'אלקטרוניקה', cash: [7000, 11000], crack: 8, heat: 3, color: '#3e8f9a' },
+    { id: 'pawn', name: 'משכון', cash: [5000, 8000], crack: 7, heat: 2, color: '#a8742f' },
+    { id: 'pharmacy', name: 'בית מרקחת', cash: [3000, 5000], crack: 6, heat: 2, color: '#4f8a5b' },
+    { id: 'market', name: 'מכולת', cash: [1500, 3000], crack: 5, heat: 1, color: '#c4553f' },
+    { id: 'cafe', name: 'קפה', cash: [1000, 2200], crack: 4, heat: 1, color: '#76523d' }
+];
+
 export function rng(seed) {
     let s = seed >>> 0;
     return () => {
@@ -79,6 +90,7 @@ export function generateWorld(seed = 11) {
     const trees = [];
     const lamps = [];
     const pickups = [];
+    const businesses = [];
     let nameIndex = 0;
 
     const flat = (x0, z0, x1, z1, h, slab = false) => surfaces.push({ x0, z0, x1, z1, a: h, b: h, axis: 'x', slab });
@@ -139,6 +151,14 @@ export function generateWorld(seed = 11) {
         b.stairs = b.floors <= 8;
         b.door = { x: b.cx, half: 1.2, h: 2.6, zOut: b.z1 + 1.6, zIn: b.z1 - 1.6 };
         b.lift = { x: b.x0 + 1.9, z: b.z0 + 1.9 };
+        b.business = null;
+        if (b.index % 2 === 0) {
+            const type = BUSINESS_TYPES[(b.index / 2) % BUSINESS_TYPES.length];
+            const safe = { x: b.x1 - 1.3, z: b.z0 + 1.3 };
+            b.business = businesses.length;
+            businesses.push({ id: businesses.length, building: b.index, type: type.id, name: `${type.name} ${b.name.split(' ').pop()}`, safe, y: PAD_H, crack: type.crack, heat: type.heat, cash: type.cash, color: type.color, label: type.name });
+            solid(safe.x - 0.45, safe.z - 0.45, safe.x + 0.45, safe.z + 0.45, PAD_H + 1.1);
+        }
 
         // Hollow shell: four walls, with a doorway in the south wall.
         solid(b.x0, b.z0, b.x0 + WALL, b.z1, b.h);
@@ -156,7 +176,7 @@ export function generateWorld(seed = 11) {
             do {
                 x = b.x0 + 2 + r() * (b.size - 4);
                 z = b.z0 + 2 + r() * (b.size - 4);
-            } while (Math.hypot(x - b.lift.x, z - b.lift.z) < 3.2 || (k === 0 && Math.abs(x - b.door.x) < 2 && z > b.z1 - 4));
+            } while (Math.hypot(x - b.lift.x, z - b.lift.z) < 3.2 || (k === 0 && Math.abs(x - b.door.x) < 2 && z > b.z1 - 4) || (k === 0 && Math.hypot(x - (b.x1 - 1.3), z - (b.z0 + 1.3)) < 2.6));
             pickups.push({ id: pickups.length, building: b.index, level: k, x, z, y: levelY(b, k), kind: r() < 0.24 ? 'med' : weaponForLevel(k) });
         }
 
@@ -196,7 +216,7 @@ export function generateWorld(seed = 11) {
     for (const s of solids) rayBoxes.push([s.x0, s.y0, s.z0, s.x1, s.h, s.z1]);
     for (const s of surfaces) if (s.slab) rayBoxes.push([s.x0, s.a - 0.25, s.z0, s.x1, s.a, s.z1]);
 
-    return { surfaces, solids, blocks, buildings, stepBoxes, hillBoxes, trees, lamps, pickups, pier, rayBoxes };
+    return { surfaces, solids, blocks, buildings, stepBoxes, hillBoxes, trees, lamps, pickups, pier, rayBoxes, businesses };
 }
 
 /** Highest walkable surface under (x, z) that can be reached from height y. */
@@ -313,9 +333,10 @@ export function locate(world, x, y, z) {
         const b = block.building;
         if (b) {
             const loc = locationOf(world, x, y, z);
+            if (loc.b && loc.level === 0 && b.business !== null) return `${world.businesses[b.business].name} · ${b.name}`;
             if (loc.b) return `${b.name} · ${levelName(b, loc.level)}`;
             if (y > 1.5) return `מדרגות ${b.name} · קומה ${Math.round(y / FLOOR)}`;
-            return `${b.name} (${b.use}) · ${district}`;
+            return `${b.name} (${b.business !== null ? world.businesses[b.business].name : b.use}) · ${district}`;
         }
         if (block.type === 'hill' && y > block.top - 0.3) return `פסגת ${block.label} · ${district}`;
         return `${block.label} · ${district}`;

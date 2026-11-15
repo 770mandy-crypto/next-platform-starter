@@ -292,14 +292,25 @@ await test('shooting a bot hurts it, headshots count, kills are scored', async (
     const result = await t.page.evaluate(() => {
         const g = window.__cityGame, d = g.debug;
         let shots = 0;
-        g.setFire(true);
-        for (let n = 0; n < 160 && !g.snapshot().botList[0].dead; n++) {
+        // Put the crosshair on the bot: the camera looks over the right shoulder.
+        const aim = () => {
             const s = g.snapshot(), b = s.botList[0];
-            d.look(Math.atan2(-(b.x - s.player.x), -(b.z - s.player.z)), 0);
-            d.advance(0.1);
+            let yaw = Math.atan2(-(b.x - s.player.x), -(b.z - s.player.z));
+            const sx = s.player.x + Math.cos(yaw) * 0.55, sz = s.player.z - Math.sin(yaw) * 0.55;
+            yaw = Math.atan2(-(b.x - sx), -(b.z - sz));
+            d.look(yaw, Math.atan2(0.35, Math.hypot(b.x - sx, b.z - sz)));
+        };
+        aim();
+        d.advance(1);
+        for (let n = 0; n < 60 && !g.snapshot().botList[0].dead; n++) {
+            aim();
+            d.advance(0.05);
+            g.setFire(true);
+            d.advance(0.05);
+            g.setFire(false);
+            d.advance(0.25);
             shots++;
         }
-        g.setFire(false);
         const s = g.snapshot();
         return { dead: s.botList[0].dead, hp: s.botList[0].hp, kills: s.progress.kills, ammo: s.player.mag, shots };
     });

@@ -99,7 +99,7 @@ export function makeGun(id) {
     return g;
 }
 
-export function makeHuman({ shirt, pants, hair = '#2a1f18', vest = null, skinTone = '#e2b594' }) {
+export function makeHuman({ shirt, pants, hair = '#2a1f18', vest = null, skinTone = '#e2b594', hat = null }) {
     const g = new THREE.Group();
     const skin = mat(skinTone);
     const shirtMat = mat(shirt), legMat = mat(pants);
@@ -109,6 +109,12 @@ export function makeHuman({ shirt, pants, hair = '#2a1f18', vest = null, skinTon
     put(g, new THREE.CylinderGeometry(0.06, 0.07, 0.1, 10), skin, 0, 1.5, 0);
     put(g, new THREE.SphereGeometry(0.17, 20, 16), skin, 0, 1.67, 0);
     put(g, new THREE.SphereGeometry(0.182, 20, 12, 0, Math.PI * 2, 0, Math.PI * 0.55), mat(hair), 0, 1.69, -0.012);
+    if (hat) {
+        const capMat = mat(hat, { roughness: 0.6 });
+        put(g, new THREE.CylinderGeometry(0.19, 0.2, 0.12, 18), capMat, 0, 1.82, 0);
+        put(g, new THREE.BoxGeometry(0.3, 0.025, 0.16), capMat, 0, 1.765, 0.18);
+        put(g, new THREE.BoxGeometry(0.08, 0.06, 0.02), mat('#dfc184', { metalness: 0.8, roughness: 0.3 }), 0, 1.83, 0.19, false);
+    }
     const limb = (rad, len, material, x, y, foot) => {
         const pivot = new THREE.Group();
         pivot.position.set(x, y, 0);
@@ -143,7 +149,9 @@ export function swingHuman(group, phase, amp, armed = false) {
 const CAR_SHAPES = {
     basic: { w: 1.9, l: 4.2, body: 0.55, cab: 0.55, ride: 0.34, wheel: 0.36 },
     sport: { w: 2, l: 4.5, body: 0.42, cab: 0.4, ride: 0.26, wheel: 0.36, spoiler: true },
-    jeep: { w: 2.15, l: 4.5, body: 0.8, cab: 0.62, ride: 0.52, wheel: 0.5, rack: true }
+    jeep: { w: 2.15, l: 4.5, body: 0.8, cab: 0.62, ride: 0.52, wheel: 0.5, rack: true },
+    super: { w: 2.1, l: 4.7, body: 0.36, cab: 0.34, ride: 0.22, wheel: 0.37, spoiler: true },
+    police: { w: 1.95, l: 4.5, body: 0.58, cab: 0.56, ride: 0.34, wheel: 0.37, police: true }
 };
 
 export function makeCar(type, color) {
@@ -178,6 +186,18 @@ export function makeCar(type, color) {
     if (s.spoiler) {
         put(g, new THREE.BoxGeometry(s.w * 0.9, 0.05, 0.34), trim, 0, by + s.body / 2 + 0.3, -s.l * 0.45);
         for (const x of [-1, 1]) put(g, new THREE.BoxGeometry(0.05, 0.3, 0.08), trim, x * s.w * 0.36, by + s.body / 2 + 0.15, -s.l * 0.45);
+    }
+    if (s.police) {
+        const blue = mat('#1f4fa8', { roughness: 0.4 });
+        for (const x of [-1, 1]) put(g, new THREE.BoxGeometry(0.02, 0.16, s.l * 0.9), blue, x * (s.w / 2 + 0.01), by, 0, false);
+        put(g, new THREE.BoxGeometry(s.w * 1.02, 0.02, s.l * 0.25), blue, 0, by + s.body / 2 + 0.01, s.l * 0.33, false);
+        const red = new THREE.MeshStandardMaterial({ color: '#5a0d0d', emissive: '#ff2418', emissiveIntensity: 0 });
+        const blueLight = new THREE.MeshStandardMaterial({ color: '#0d1f5a', emissive: '#2a62ff', emissiveIntensity: 0 });
+        const barY = cy + s.cab / 2 + 0.12;
+        put(g, new THREE.BoxGeometry(s.w * 0.7, 0.08, 0.32), mat('#202326'), 0, barY - 0.06, -s.l * 0.06, false);
+        put(g, new THREE.BoxGeometry(s.w * 0.32, 0.13, 0.3), red, -s.w * 0.18, barY + 0.04, -s.l * 0.06, false);
+        put(g, new THREE.BoxGeometry(s.w * 0.32, 0.13, 0.3), blueLight, s.w * 0.18, barY + 0.04, -s.l * 0.06, false);
+        g.userData.lights = [red, blueLight];
     }
     if (s.rack) {
         put(g, new THREE.BoxGeometry(s.w * 0.8, 0.06, cabL * 0.7), trim, 0, cy + s.cab / 2 + 0.14, -s.l * 0.06);
@@ -238,4 +258,41 @@ export function makeHeli() {
     g.userData.rotor = rotor;
     g.userData.tailRotor = tailRotor;
     return g;
+}
+
+/** A safe: steel body, a door on a hinge (userData.door) and a gold dial. */
+export function makeSafe() {
+    const g = new THREE.Group();
+    const steel = mat('#2c3238', { metalness: 0.85, roughness: 0.35 });
+    put(g, new THREE.BoxGeometry(0.9, 1.1, 0.9), steel, 0, 0.55, 0);
+    const hinge = new THREE.Group();
+    hinge.position.set(-0.42, 0, 0.46);
+    put(hinge, new THREE.BoxGeometry(0.84, 1.0, 0.06), mat('#3a424a', { metalness: 0.9, roughness: 0.3 }), 0.42, 0.55, 0);
+    const dial = put(hinge, new THREE.CylinderGeometry(0.11, 0.11, 0.05, 20), mat('#dfc184', { metalness: 0.9, roughness: 0.25 }), 0.52, 0.6, 0.05, false);
+    dial.rotation.x = Math.PI / 2;
+    put(hinge, new THREE.BoxGeometry(0.06, 0.24, 0.05), mat('#dfc184', { metalness: 0.9, roughness: 0.25 }), 0.22, 0.6, 0.05, false);
+    g.add(hinge);
+    // Stacks of cash inside, seen once the door swings open.
+    for (let n = 0; n < 3; n++) put(g, new THREE.BoxGeometry(0.3, 0.12, 0.18), mat('#5f9a5a'), -0.15 + (n % 2) * 0.3, 0.3 + Math.floor(n / 2) * 0.14, 0.1, false);
+    g.userData.door = hinge;
+    g.userData.dial = dial;
+    return g;
+}
+
+/** A shop sign with the business name, drawn right to left. */
+export function makeSign(text, color) {
+    const c = document.createElement('canvas');
+    c.width = 512; c.height = 128;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#0c1820'; ctx.fillRect(0, 0, 512, 128);
+    ctx.fillStyle = color; ctx.fillRect(0, 0, 512, 10); ctx.fillRect(0, 118, 512, 10);
+    ctx.fillStyle = '#f3e4c4';
+    ctx.font = '700 60px Rubik, Heebo, Arial, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.direction = 'rtl';
+    ctx.fillText(text, 256, 66, 480);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 8;
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 1.3), new THREE.MeshStandardMaterial({ map: tex, emissiveMap: tex, emissive: '#ffffff', emissiveIntensity: 0.35, roughness: 0.5 }));
+    return sign;
 }

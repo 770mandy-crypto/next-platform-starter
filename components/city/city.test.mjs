@@ -150,6 +150,14 @@ test('stages unlock weapons, cars and boats in order', () => {
     for (let n = 0; n < 9; n++) assert.equal(fire('kill'), null);
     assert.ok(fire('kill'));
     assert.deepEqual(s.weapons, ['pistol', 'smg', 'shotgun', 'sniper', 'rifle']);
+    for (let n = 0; n < 2; n++) assert.equal(fire('heist'), null);
+    assert.ok(fire('heist'));
+    assert.deepEqual(s.cars, ['sport', 'jeep', 'super']);
+    assert.equal(fire('escape', 2), null, 'a two-star escape is not enough');
+    const cash = s.cash;
+    assert.ok(fire('escape', 3));
+    assert.equal(s.cash, cash + 25000, 'cash bonus');
+    assert.equal(s.heists, 3);
     assert.equal(s.stage, STAGES.length);
     assert.ok(stageView(s, true).done);
     assert.equal(s.kills, 10);
