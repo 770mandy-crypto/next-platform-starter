@@ -1,0 +1,168 @@
+@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap');
+
+/* Night-navy glass panels with a warm gold accent. Everything is scoped under
+   .city-game so the rest of the site keeps its own look. */
+.city-game {
+    --hud-bg: rgba(10, 21, 31, 0.78);
+    --hud-border: rgba(219, 190, 132, 0.28);
+    --hud-fg: #f2f8fa;
+    --hud-accent: #dfc184;
+    --hud-accent-fg: #221b10;
+    --hud-gold-soft: #f3e4c4;
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background: #0b1720;
+    color: var(--hud-fg);
+    font-family: 'Rubik', system-ui, sans-serif;
+    font-synthesis: none;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+}
+.city-game *, .city-game *::before, .city-game *::after { box-sizing: border-box; }
+.city-game button, .city-game input, .city-game select { font: inherit; }
+.city-game .game-canvas { position: absolute; inset: 0; touch-action: none; cursor: grab; }
+.city-game .game-canvas:active { cursor: grabbing; }
+.city-game .game-canvas canvas { display: block; }
+.city-game .bubble-layer { position: absolute; inset: 0; z-index: 4; overflow: hidden; pointer-events: none; }
+
+.city-game .hud-panel {
+    position: absolute; z-index: 5; background: var(--hud-bg); border: 1px solid var(--hud-border);
+    border-radius: 14px; color: var(--hud-fg); backdrop-filter: blur(10px);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+.city-game .hud-loc {
+    top: max(14px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); padding: 8px 16px;
+    font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 8px;
+    max-width: min(80vw, 560px);
+}
+.city-game .hud-loc-text { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; min-width: 0; }
+.city-game .hud-dot { flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: var(--hud-accent); box-shadow: 0 0 10px var(--hud-accent); }
+.city-game .hud-help { top: max(14px, env(safe-area-inset-top)); right: 14px; padding: 10px 14px; font-size: 13px; width: 300px; max-width: 34vw; line-height: 1.7; }
+.city-game .hud-help ul { margin: 6px 0 0; padding: 0; list-style: none; }
+.city-game .hud-help b { color: var(--hud-accent); font-weight: 600; }
+.city-game .hud-btn { float: left; background: rgba(255, 255, 255, 0.1); border: 1px solid var(--hud-border); color: var(--hud-fg); border-radius: 8px; padding: 2px 8px; font-size: 12px; cursor: pointer; }
+.city-game .vehicle-hud { right: 16px; bottom: 18px; padding: 10px 14px; z-index: 10; font-size: 13px; line-height: 1.5; max-width: min(90vw, 440px); }
+.city-game .vehicle-hud b { color: var(--hud-accent); }
+
+.city-game .interaction-prompt {
+    left: 50%; bottom: max(24px, env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 30;
+    min-width: 190px; max-width: min(86vw, 520px); padding: 13px 20px; font-weight: 700; font-size: 15px;
+    cursor: pointer; border-color: rgba(223, 193, 132, 0.58); background: rgba(5, 23, 29, 0.92);
+}
+.city-game .interaction-prompt:active { transform: translateX(-50%) scale(0.97); }
+.city-game .prompt-key { display: inline-block; margin-inline-start: 8px; padding: 1px 7px; border-radius: 6px; font-size: 12px; color: var(--hud-accent-fg); background: var(--hud-accent); }
+
+/* Touch controls */
+.city-game .joy {
+    position: absolute; z-index: 6; left: max(24px, env(safe-area-inset-left)); bottom: max(24px, env(safe-area-inset-bottom));
+    width: 112px; height: 112px; border-radius: 50%; background: var(--hud-bg); border: 1px solid var(--hud-border);
+    display: none; align-items: center; justify-content: center; touch-action: none; isolation: isolate;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+}
+.city-game .joy-knob { position: relative; z-index: 1; width: 44px; height: 44px; border-radius: 50%; background: var(--hud-accent); pointer-events: none; box-shadow: 0 2px 14px rgba(0, 0, 0, 0.25); }
+.city-game .joy-direction { position: absolute; z-index: 0; color: rgba(255, 255, 255, 0.55); font-size: 11px; line-height: 1; pointer-events: none; }
+.city-game .joy-direction.up { top: 7px; left: 50%; transform: translateX(-50%); }
+.city-game .joy-direction.right { right: 8px; top: 50%; transform: translateY(-50%); }
+.city-game .joy-direction.down { bottom: 7px; left: 50%; transform: translateX(-50%); }
+.city-game .joy-direction.left { left: 8px; top: 50%; transform: translateY(-50%); }
+.city-game .jump-btn, .city-game .vehicle-down-btn {
+    position: absolute; z-index: 6; bottom: max(34px, env(safe-area-inset-bottom)); border-radius: 50%;
+    background: rgba(10, 21, 31, 0.86); border: 1px solid var(--hud-border); color: var(--hud-fg);
+    font-weight: 700; display: none; touch-action: none;
+}
+.city-game .jump-btn { right: max(24px, env(safe-area-inset-right)); width: 76px; height: 76px; }
+.city-game .vehicle-down-btn { right: max(112px, calc(env(safe-area-inset-right) + 112px)); width: 70px; height: 70px; }
+
+/* Climate panel */
+.city-game .climate-panel {
+    position: absolute; z-index: 12; top: max(14px, env(safe-area-inset-top)); left: max(14px, env(safe-area-inset-left));
+    width: min(226px, calc(100vw - 28px)); padding: 12px 13px; display: grid; gap: 9px; color: #eff8fb;
+    background: rgba(7, 20, 31, 0.78); border: 1px solid var(--hud-border); border-radius: 15px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.035);
+    backdrop-filter: blur(12px); font-size: 12px;
+}
+.city-game .climate-heading, .city-game .climate-time-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.city-game .climate-heading { font-size: 13px; font-weight: 800; }
+.city-game .climate-status { color: #ead5a5; font-size: 10px; font-weight: 600; }
+.city-game .climate-field { display: grid; grid-template-columns: 1fr 1.25fr; align-items: center; gap: 8px; }
+.city-game .climate-field select { min-width: 0; width: 100%; color: #edf7fa; background: rgba(255, 255, 255, 0.09); border: 1px solid rgba(255, 255, 255, 0.17); border-radius: 8px; padding: 6px 8px; outline: none; }
+.city-game .climate-field option { color: #17232d; background: #f3f7f8; }
+.city-game .climate-time-row strong { color: #ead5a5; font-size: 13px; font-variant-numeric: tabular-nums; direction: ltr; }
+.city-game .climate-range { width: 100%; height: 5px; margin: 0; accent-color: var(--hud-accent); cursor: pointer; direction: ltr; }
+.city-game .climate-cycle { width: 100%; padding: 7px 9px; border-radius: 9px; cursor: pointer; color: #f7e8c9; background: rgba(183, 145, 76, 0.15); border: 1px solid rgba(223, 193, 132, 0.3); font-size: 11px; font-weight: 700; }
+.city-game .climate-cycle:hover { background: rgba(183, 145, 76, 0.25); }
+
+/* Start screen */
+.city-game .start-overlay { position: absolute; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; background: linear-gradient(160deg, rgba(15, 42, 58, 0.55), rgba(9, 18, 32, 0.82)); padding: 20px; overflow-y: auto; }
+.city-game .start-card {
+    width: min(540px, 100%); margin: auto; text-align: center; border: 1px solid rgba(223, 193, 132, 0.34); border-radius: 24px;
+    padding: 32px 28px; backdrop-filter: blur(14px);
+    background: linear-gradient(145deg, rgba(25, 37, 45, 0.94), rgba(9, 19, 28, 0.92));
+    box-shadow: 0 28px 100px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.city-game .start-kicker { color: var(--hud-accent); font-size: 12px; font-weight: 600; letter-spacing: 0.04em; margin-bottom: 8px; }
+.city-game .start-card h1 { font-size: clamp(32px, 6vw, 46px); line-height: 1.15; font-weight: 800; margin: 0 0 10px; letter-spacing: -0.02em; color: var(--hud-gold-soft); text-shadow: 0 4px 22px rgba(223, 193, 132, 0.18); }
+.city-game .start-card p { margin: 0; line-height: 1.75; opacity: 0.92; }
+.city-game .start-features { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 18px 0 0; padding: 0; list-style: none; }
+.city-game .start-features li { padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 500; color: #f7e8c9; background: rgba(183, 145, 76, 0.15); border: 1px solid rgba(223, 193, 132, 0.3); }
+.city-game .start-btn { margin-top: 22px; background: var(--hud-accent); color: var(--hud-accent-fg); font-weight: 800; font-size: 18px; border: 0; border-radius: 14px; padding: 12px 32px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; box-shadow: 0 8px 26px rgba(223, 193, 132, 0.22); }
+.city-game .start-btn:hover { transform: translateY(-1px); box-shadow: 0 12px 32px rgba(223, 193, 132, 0.32); }
+.city-game .start-btn:focus-visible, .city-game .hud-btn:focus-visible, .city-game .climate-cycle:focus-visible { outline: 2px solid var(--hud-accent); outline-offset: 3px; }
+.city-game .privacy-note { margin-top: 14px; color: #c8d7df; font-size: 12px; }
+.city-game .start-error { margin: 16px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; direction: ltr; text-align: left; color: #ffc7c7; font-size: 12px; }
+
+/* Citizen chat */
+.city-game .npc-chat-panel {
+    z-index: 55; right: 16px; bottom: max(18px, env(safe-area-inset-bottom)); width: min(390px, calc(100vw - 32px));
+    max-height: min(54vh, 460px); padding: 13px; display: grid; grid-template-rows: auto minmax(70px, 1fr) auto; gap: 10px;
+    background: rgba(7, 19, 29, 0.96); border-color: rgba(223, 193, 132, 0.42); user-select: text;
+}
+.city-game .npc-chat-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.city-game .npc-chat-header strong { display: block; color: var(--hud-gold-soft); font-size: 15px; }
+.city-game .npc-chat-header span { display: block; margin-top: 3px; color: #aebfc8; font-size: 11px; }
+.city-game .npc-chat-close, .city-game .npc-chat-form button { min-height: 36px; padding: 7px 12px; border-radius: 9px; cursor: pointer; color: #f4ead6; background: rgba(183, 145, 76, 0.18); border: 1px solid rgba(223, 193, 132, 0.34); }
+.city-game .npc-chat-messages { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; min-height: 70px; max-height: 285px; padding: 4px 2px; }
+.city-game .npc-chat-bubble { max-width: 88%; padding: 8px 12px; border: 1px solid rgba(255, 255, 255, 0.11); border-radius: 14px; box-shadow: 0 3px 9px rgba(0, 0, 0, 0.16); }
+.city-game .npc-chat-bubble small { display: block; color: #d9c49d; font-size: 10px; font-weight: 700; }
+.city-game .npc-chat-bubble p { margin: 4px 0 0; color: #f1f6f6; font-size: 13px; line-height: 1.55; overflow-wrap: anywhere; }
+.city-game .npc-chat-bubble.player { align-self: flex-start; background: rgba(106, 77, 40, 0.48); border-bottom-left-radius: 4px; }
+.city-game .npc-chat-bubble.npc { align-self: flex-end; background: rgba(27, 73, 88, 0.72); border-bottom-right-radius: 4px; }
+.city-game .npc-chat-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.city-game .npc-chat-form input { width: 100%; min-width: 0; min-height: 40px; padding: 8px 11px; color: #f2f8fa; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 9px; outline: none; }
+.city-game .npc-chat-form input:focus { border-color: rgba(223, 193, 132, 0.72); }
+.city-game .npc-chat-form input::placeholder { color: #aebfc8; }
+.city-game .npc-chat-form button:disabled { opacity: 0.42; cursor: default; }
+
+/* Speech bubbles pinned above citizens in the 3D scene */
+.city-game .citizen-world-bubble {
+    position: absolute; top: -10px; left: 0; width: max-content; max-width: 190px; padding: 6px 10px; color: #f7f7f2;
+    background: rgba(9, 24, 33, 0.93); border: 1px solid rgba(223, 193, 132, 0.62); border-radius: 11px;
+    box-shadow: 0 5px 22px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    font-weight: 700; font-size: 12px; line-height: 1.35; text-align: center;
+}
+.city-game .citizen-world-bubble::after {
+    content: ''; position: absolute; left: 50%; bottom: -7px; width: 12px; height: 12px; background: rgba(9, 24, 33, 0.93);
+    border-right: 1px solid rgba(223, 193, 132, 0.62); border-bottom: 1px solid rgba(223, 193, 132, 0.62);
+    transform: translateX(-50%) rotate(45deg);
+}
+
+@media (pointer: coarse) {
+    .city-game .joy { display: flex; }
+    .city-game .jump-btn, .city-game .vehicle-down-btn { display: block; }
+    .city-game .hud-help, .city-game .prompt-key { display: none; }
+    .city-game .interaction-prompt { bottom: calc(max(24px, env(safe-area-inset-bottom)) + 108px); }
+    .city-game .vehicle-hud { bottom: calc(max(18px, env(safe-area-inset-bottom)) + 124px); }
+}
+@media (max-width: 700px) {
+    .city-game .hud-help { display: none; }
+    .city-game .hud-loc { top: 10px; font-size: 12px; padding: 7px 10px; left: auto; right: 10px; transform: none; max-width: calc(100vw - 20px); }
+    .city-game .climate-panel { top: 52px; left: 10px; width: 196px; padding: 9px 10px; gap: 7px; }
+    .city-game .start-card { padding: 26px 20px; }
+    .city-game .start-card p { font-size: 14px; }
+    .city-game .npc-chat-panel { right: 10px; bottom: max(10px, env(safe-area-inset-bottom)); width: calc(100vw - 20px); max-height: 48vh; padding: 10px; }
+    .city-game .npc-chat-messages { max-height: 155px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .city-game .start-btn { transition: none; }
+}
