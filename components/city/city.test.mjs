@@ -10,6 +10,8 @@ import { WEAPONS, WEAPON_ORDER, lineClear, rayActor, rayWorld, shoot } from './c
 import { STAGES, applyEvent, currentStage, initialProgress, loadProgress, saveProgress, stageView } from './progress.js';
 import { botLoadout, createBot, createBots, hurtBot, steerPoint, updateBot } from './bots.js';
 import { CITIZENS, greeting, replyFor } from './dialog.js';
+import { clearWanted, createForce, driveCar, escapeTime, hitOfficer, hostile, raiseWanted, reportGunfire, updateForce } from './police.js';
+import { BUSINESS_TYPES, LINES } from './world.js';
 
 const world = generateWorld(11);
 const walk = (a, tx, tz, seconds = 60) => {
@@ -266,4 +268,94 @@ test('citizens always have something to say', () => {
         assert.ok(greeting(c).includes(c.name));
         for (const q of ['שלום', 'איפה המסוק?', 'מה השעה', 'בלה בלה']) assert.ok(replyFor(c, q).length > 3);
     }
+});
+
+test('businesses: a safe in the back of the ground floor, reachable and named', () => {
+    assert.equal(world.businesses.length, 22);
+    assert.deepEqual(new Set(world.businesses.map((b) => b.type)), new Set(BUSINESS_TYPES.map((t) => t.id)));
+    for (const biz of world.businesses) {
+        const b = world.buildings[biz.building];
+        assert.equal(b.business, biz.id);
+        assert.ok(biz.safe.x < b.x1 && biz.safe.z > b.z0, 'safe inside');
+        assert.ok(resolveSolids(world, biz.safe.x, biz.safe.z, PAD_H, 0.35).hit, 'the safe is solid');
+        const a = actor(b.door.x, PAD_H, b.door.zOut + 1);
+        assert.ok(walk(a, b.door.x, b.cz, 8));
+        walk(a, biz.safe.x - 1.2, biz.safe.z + 1.2, 8);
+        assert.ok(Math.hypot(a.x - biz.safe.x, a.z - biz.safe.z) < 1.9, `${biz.name}: can stand at the safe`);
+        assert.match(locate(world, a.x, a.y, a.z), new RegExp(biz.name));
+        assert.ok(biz.cash[0] > 0 && biz.crack > 0 && biz.heat >= 1);
+    }
+    assert.ok(!world.pickups.some((p) => p.level === 0 && world.buildings[p.building].business !== null
+        && Math.hypot(p.x - world.businesses[world.buildings[p.building].business].safe.x, p.z - world.businesses[world.buildings[p.building].business].safe.z) < 2.5), 'no crate on the safe');
+});
+
+function runForce(force, player, seconds, hooks = {}) {
+    const rand = rng(21);
+    const log = { shots: 0, hits: 0, arrests: 0, escapes: [], rams: 0 };
+    for (let t = 0; t < seconds * 60; t++) {
+        updateForce(force, 1 / 60, {
+            world, player, target: player, time: t / 60, rand,
+            onShot: (_o, _origin, pellets) => { log.shots++; for (const p of pellets) if (p.target) log.hits++; },
+            onArrest: () => log.arrests++, onEscape: (l) => log.escapes.push(l), onRam: () => log.rams++
+        });
+        if (hooks.until?.(force, log)) break;
+    }
+    return log;
+}
+
+test('police cars drive the street grid to a crime scene', () => {
+    const car = { x: LINES[0], y: 0, z: LINES[0], yaw: 0, speed: 0, path: null, replan: 0, stuckT: 0, stuckX: 0, stuckZ: 0, reverseT: 0 };
+    const goal = { x: LINES[6], y: 0, z: LINES[5] };
+    let t = 0;
+    for (; t < 60 * 60 && Math.hypot(car.x - goal.x, car.z - goal.z) > 6; t++) driveCar(world, car, goal, 1 / 60, 27);
+    assert.ok(t < 60 * 60, `car stuck at ${car.x.toFixed(0)}, ${car.z.toFixed(0)}`);
+});
+
+test('a robbery brings the police; at one star they come to arrest, not to shoot', () => {
+    const force = createForce();
+    assert.equal(force.cars.length, 2, 'two patrol cars');
+    const player = { x: 22, y: 0, z: 0, dead: false, speed: 0, onFoot: true, vehicleSpeed: 0 };
+    raiseWanted(force, 1);
+    assert.equal(hostile(force), false);
+    const log = runForce(force, player, 90, { until: (_f, l) => l.arrests > 0 });
+    assert.equal(log.arrests, 1, 'arrested');
+    assert.equal(log.shots, 0, 'no shots at one star');
+    assert.equal(force.level, 0, 'wanted cleared by the arrest');
+});
+
+test('at three stars officers get out and open fire', () => {
+    const force = createForce();
+    const player = { x: 22, y: 0, z: 0, dead: false, speed: 0, onFoot: true, vehicleSpeed: 0 };
+    raiseWanted(force, 3);
+    assert.ok(hostile(force));
+    const log = runForce(force, player, 90, { until: (_f, l) => l.hits >= 3 });
+    assert.ok(log.hits >= 3, `only ${log.hits} hits`);
+    assert.ok(force.officers.length >= 2, 'officers on foot');
+});
+
+test('staying out of sight long enough loses the police', () => {
+    const force = createForce();
+    const player = { x: 0, y: -0.35, z: SEA_Z + 220, dead: false, speed: 10, onFoot: false, vehicleSpeed: 12 };
+    raiseWanted(force, 2);
+    const log = runForce(force, player, escapeTime(2) + 30, { until: (_f, l) => l.escapes.length > 0 });
+    assert.deepEqual(log.escapes, [2]);
+    assert.equal(force.level, 0);
+    runForce(force, player, 20);
+    assert.ok(force.cars.every((c) => c.patrol || c.parked) && force.officers.length === 0, 'units stand down');
+});
+
+test('shooting at the police makes it worse; gunfire near a patrol earns a star', () => {
+    const force = createForce();
+    const p = force.cars[0];
+    assert.ok(reportGunfire(force, p.x + 10, p.z));
+    assert.equal(force.level, 1);
+    assert.ok(!reportGunfire(createForce(0), 500, 500));
+    force.officers.push({ ...createBot(1, rng(1)), police: true, x: 0, z: 0 });
+    hitOfficer(force, force.officers[0], 30, 1, { x: 0, y: 0, z: 0 });
+    assert.ok(force.aggressive && force.level === 2 && hostile(force));
+    hitOfficer(force, force.officers[0], 200, 2, { x: 0, y: 0, z: 0 });
+    assert.equal(force.level, 3, 'killing an officer adds a star');
+    clearWanted(force);
+    assert.equal(force.level, 0);
+    assert.ok(!force.aggressive);
 });

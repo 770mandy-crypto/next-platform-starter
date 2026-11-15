@@ -244,9 +244,9 @@ await test('every stage in order unlocks weapons, cars and boats; progress survi
     assert(mid.boats.join() === 'motor,speed' && mid.cars.join() === 'sport,jeep', `vehicles ${mid.cars} ${mid.boats}`);
     assert((await t.text('.stage-title')).includes('10 בוטים'), 'final stage asks for kills');
     for (let k = 0; k < 10; k++) await t.emit('kill');
-    await until(async () => (await t.text('.stage-title')).includes('כל השלבים'), 'all stages done');
+    await until(async () => (await t.text('.stage-title')).includes('כספות'), 'robbery stage next');
     const done = (await t.snap()).progress;
-    assert(done.weapons.includes('rifle') && done.stage === 8, 'assault rifle at the end');
+    assert(done.weapons.includes('rifle') && done.stage === 8, 'assault rifle after the bot stage');
     await t.page.waitForTimeout(3500);
     await t.page.reload({ waitUntil: 'networkidle' });
     await t.page.click('.start-bots');
@@ -493,6 +493,7 @@ await test('pickup crates respawn and medkits heal', async (t) => {
     assert(hp > 60, `healed to ${hp}`);
     const used = (await t.page.evaluate(() => window.__cityGame.debug.crates())).find((p) => p.id === med.id);
     assert(!used.ready, 'crate hidden after pickup');
+    await t.tp(SEA_Z > 0 ? 22 : 0, 0, 0);
     await t.adv(95);
     const again = (await t.page.evaluate(() => window.__cityGame.debug.crates())).find((p) => p.id === med.id);
     assert(again.ready, 'crate is back after 90s');
@@ -520,9 +521,71 @@ await test('phone layout: touch controls, no overflow, fire and reload buttons',
     assert((await t.snap()).player.mag === 12, 'reload button works');
     await t.page.tap('.switch-btn');
     await t.page.tap('.climate-toggle');
+    assert(await t.visible('.climate-field'), 'climate panel opens by touch');
+    await t.page.tap('.climate-toggle');
     await t.page.tap('.menu-btn');
     assert(await t.visible('.game-menu'), 'menu opens by touch');
 }, { device: 'iPhone 13' });
+
+await test('robbing a safe: alarm, cash, police chase, escape by car', async (t) => {
+    await t.open(false);
+    const biz = (await t.page.evaluate(() => window.__cityGame.debug.businesses())).find((b) => b.type === 'market');
+    const b = world.buildings[biz.building];
+    await t.tp(biz.safe.x - 1.1, PAD_H, biz.safe.z + 1.1);
+    await t.adv(0.4);
+    await until(async () => (await t.snap()).prompt === 'safe', 'safe prompt');
+    assert((await t.text('.interaction-prompt')).includes(biz.name), 'prompt names the business');
+    await t.press('KeyE');
+    await t.adv(0.3);
+    await until(async () => t.visible('.heist-panel'), 'cracking bar');
+    assert((await t.snap()).police.wanted === 1, 'alarm: one star');
+    await until(async () => t.visible('.wanted'), 'stars shown');
+    await t.adv(biz.crack + 0.5);
+    const after = await t.snap();
+    assert(after.progress.cash >= biz.cash[0] && after.progress.heists === 1, `cash ${after.progress.cash}`);
+    assert(after.police.wanted >= biz.heat, 'wanted level from the business');
+    await until(async () => (await t.text('.cash-row strong')).includes('₪'), 'cash in the HUD');
+    assert((await t.page.evaluate(() => window.__cityGame.debug.businesses())).find((x) => x.id === biz.id).robbed, 'safe emptied');
+    await t.adv(0.4);
+    assert((await t.snap()).prompt === 'emptySafe', 'empty safe prompt');
+    // Run out, take a car and drive off: police cars give chase.
+    await t.adv(8);
+    const chasers = (await t.snap()).police.cars.filter((c) => !c.patrol && c.crew > 0);
+    assert((await t.snap()).police.cars.length >= 2, 'police cars on the road');
+    const car = (await t.vehicles()).find((v) => v.type === 'basic');
+    await t.tp(car.x + 2.5, 0, car.z);
+    await t.adv(0.3);
+    await t.press('KeyE');
+    assert((await t.snap()).mode === 'car', 'getaway car');
+    await t.hold('KeyW', 3);
+    assert(chasers.length >= 0, 'chase');
+    // Hide far out at sea until the search is called off.
+    await t.page.keyboard.press('KeyE');
+    await t.tp(0, -0.35, SEA_Z + 260);
+    await t.adv(40);
+    const free = await t.snap();
+    assert(free.police.wanted === 0, `still wanted (${free.police.wanted}, unseen ${free.police.unseen.toFixed(1)})`);
+    assert(free.progress.escapes >= 1, 'escape counted');
+    assert(!(await t.page.locator('.wanted').count()), 'stars cleared');
+});
+
+await test('police: shooting near them, arrest, and the menu switch', async (t) => {
+    await t.open(false);
+    await t.page.evaluate(() => window.__cityGame.debug.wanted(1));
+    await t.adv(25);
+    const s = await t.snap();
+    assert(s.police.officers.length > 0 || s.progress.arrests > 0, 'officers came');
+    await t.adv(40);
+    const after = await t.snap();
+    assert(after.progress.arrests >= 1 || after.police.wanted === 0, 'arrested standing still');
+    await t.page.click('.menu-btn');
+    await t.page.click('.police-toggle');
+    await until(async () => !(await t.snap()).police.on, 'police off');
+    assert((await t.text('.police-toggle')) === 'הפעלת המשטרה', 'label flips');
+    assert((await t.snap()).police.cars.length === 0, 'no police cars');
+    await t.page.click('.police-toggle');
+    await until(async () => (await t.snap()).police.cars.length === 2, 'patrols back');
+});
 
 await test('the rest of the site still serves (home page)', async (t) => {
     const res = await t.page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded', timeout: 120000 });

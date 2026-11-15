@@ -68,8 +68,12 @@ function HoldButton({ className, label, onHold }) {
             type="button"
             className={className}
             onPointerDown={(e) => {
-                e.currentTarget.setPointerCapture(e.pointerId);
                 onHold(true);
+                try {
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                } catch {
+                    // Synthetic or already-released pointers cannot be captured.
+                }
             }}
             onPointerUp={() => onHold(false)}
             onPointerCancel={() => onHold(false)}
@@ -210,6 +214,26 @@ export function CityGame() {
                         <span className="hud-loc-text">{location}</span>
                     </div>
 
+                    {status?.wanted > 0 && (
+                        <div className={`wanted${status.searching ? ' searching' : ''}`} role="status" aria-label={`רמת חיפוש ${status.wanted}`}>
+                            <span className="wanted-stars">
+                                {Array.from({ length: 5 }, (_, n) => (
+                                    <span key={n} className={n < status.wanted ? 'on' : ''}>★</span>
+                                ))}
+                            </span>
+                            <span className="wanted-text">
+                                {status.searching ? `מסתתרים מהמשטרה… ${Math.round(status.searching * 100)}%` : 'המשטרה רואה אתכם!'}
+                            </span>
+                        </div>
+                    )}
+
+                    {status?.heist && (
+                        <div className="hud-panel heist-panel" role="status">
+                            <span>פורצים את הכספת · {status.heist.name}</span>
+                            <div className="stage-bar"><span style={{ width: `${status.heist.pct}%` }} /><em>{status.heist.pct}%</em></div>
+                        </div>
+                    )}
+
                     <div className={`climate-panel${climateOpen ? '' : ' collapsed'}`}>
                         <div className="climate-heading">
                             <span>אקלים וזמן</span>
@@ -279,7 +303,7 @@ export function CityGame() {
                                     <li><b>לחיצה על המסך</b> — כיוון בעכבר · <b>Esc</b> — שחרור</li>
                                     <li><b>לחיצה / F</b> — ירי · <b>R</b> — טעינה · <b>Q, 1–5</b> — נשק</li>
                                     <li><b>רווח</b> — קפיצה / המראה · <b>Shift</b> — ריצה / הנמכה</li>
-                                    <li><b>E</b> — כניסה, יציאה, מעלית ושיחה</li>
+                                    <li><b>E</b> — כניסה, יציאה, מעלית, שיחה ופריצת כספת</li>
                                 </ul>
                             )}
                         </div>
@@ -311,6 +335,10 @@ export function CityGame() {
                                 <button type="button" className="hud-btn menu-btn" onClick={() => { game()?.releasePointer(); setMenuOpen(!menuOpen); }}>
                                     תפריט
                                 </button>
+                            </div>
+                            <div className="cash-row">
+                                <span>כסף</span>
+                                <strong>{status.cash.toLocaleString('he-IL')} ₪</strong>
                             </div>
                             <div className="weapon-row">
                                 <strong>{status.weaponName}</strong>
@@ -344,6 +372,9 @@ export function CityGame() {
                             <p>{status.bots ? 'עולם פתוח עם בוטים שמשחקים נגדכם.' : 'עולם פתוח שקט, בלי בוטים.'}</p>
                             <button type="button" className="menu-action bots-toggle" onClick={() => game()?.setBots(!status.bots)}>
                                 {status.bots ? 'כיבוי הבוטים' : 'הפעלת הבוטים'}
+                            </button>
+                            <button type="button" className="menu-action police-toggle" onClick={() => game()?.setPolice(!status.police)}>
+                                {status.police ? 'כיבוי המשטרה' : 'הפעלת המשטרה'}
                             </button>
                             <button type="button" className="menu-action reset-progress" onClick={() => game()?.resetProgress()}>
                                 איפוס ההתקדמות והשלבים
@@ -457,12 +488,13 @@ export function CityGame() {
                         <div className="start-kicker">עיר פתוחה · תלת־ממד</div>
                         <h1>עיר המעלות</h1>
                         <p>
-                            עיר שלמה שמחכה לכם: היכנסו לבניינים ועלו במעלית עד קומה 20, אספו נשקים בכל קומה, השלימו שלבים כדי
-                            לזכות במכוניות ובסירות, והתמודדו מול בוטים — או טיילו בשקט.
+                            עיר שלמה שמחכה לכם: היכנסו לבניינים ועלו במעלית עד קומה 20, אספו נשקים בכל קומה, פרצו כספות
+                            בעסקים וברחו מהמשטרה, השלימו שלבים כדי לזכות במכוניות ובסירות, והתמודדו מול בוטים — או טיילו בשקט.
                         </p>
                         <ul className="start-features">
                             <li>בניינים ומעליות</li>
                             <li>נשקים ושלבים</li>
+                            <li>כספות ומשטרה</li>
                             <li>מכוניות, סירות ומסוק</li>
                             <li>יום, לילה ומזג אוויר</li>
                         </ul>

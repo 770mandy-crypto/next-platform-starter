@@ -404,7 +404,7 @@ export function createGame(container, bubbleLayer, cb = {}) {
 
     // --- state ---------------------------------------------------------------
     const keys = new Set();
-    const input = { mx: 0, my: 0, jump: false, down: false, fire: false };
+    const input = { mx: 0, my: 0, jump: false, down: false, fire: false, fireQueued: false };
     const cam = { yaw: 0.6, pitch: 0.42, dist: 9, tx: 0, ty: 6, tz: 0, lastDrag: -10, actual: 9 };
     const env = { hour: 10, weather: 'clear', cycle: true };
     let started = false, mode = 'foot', vehicle = null, lift = null, chattingId = null, disposed = false;
@@ -679,8 +679,10 @@ export function createGame(container, bubbleLayer, cb = {}) {
         }
         // Semi-automatic weapons fire once per trigger pull; a pull during the
         // cooldown is remembered until the shot goes off.
-        if (i.fire && (w.auto || !fireLatch) && fire()) fireLatch = true;
-        if (!i.fire) fireLatch = false;
+        // A tap shorter than one frame is queued so it still fires.
+        const pull = i.fire || input.fireQueued;
+        if (pull && (w.auto || !fireLatch) && fire()) { fireLatch = true; input.fireQueued = false; }
+        if (!pull) fireLatch = false;
         collectCrates();
         updateHeist(dt);
 
@@ -1148,7 +1150,7 @@ export function createGame(container, bubbleLayer, cb = {}) {
         setMove(x, y) { input.mx = x; input.my = y; },
         setJump(v) { input.jump = v; },
         setDown(v) { input.down = v; },
-        setFire(v) { input.fire = v; },
+        setFire(v) { input.fire = v; if (v) input.fireQueued = true; },
         setWeather(v) { if (WEATHER[v]) env.weather = v; },
         setHour(v) { env.hour = clamp(v, 0, 23.99); },
         setCycle(v) { env.cycle = v; },
