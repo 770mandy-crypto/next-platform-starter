@@ -1,0 +1,524 @@
+// End-to-end tests for /city in a real browser: every button, every route
+// through the game (buildings and elevators, weapons, bots, stages, cars,
+// boats, helicopter, chat, phones). Needs a running server:
+//   npm run dev        (in one terminal)
+//   npm run test:e2e   (in another; BASE_URL defaults to http://localhost:3111)
+import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { PAD_H, SEA_Z, generateWorld, levelY } from './world.js';
+
+const { chromium, devices } = createRequire(import.meta.url)('playwright');
+const BASE = process.env.BASE_URL || 'http://localhost:3111';
+const ONLY = process.env.ONLY ? new RegExp(process.env.ONLY) : null;
+const world = generateWorld(11);
+const tower = world.buildings.find((b) => b.floors === 21);
+const hill = world.blocks.find((b) => b.type === 'hill');
+const padBlock = world.blocks.find((b) => b.type === 'helipad');
+
+const browser = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const results = [];
+
+function assert(cond, message) {
+    if (!cond) throw new Error(message);
+}
+async function until(fn, message, ms = 8000) {
+    const end = Date.now() + ms;
+    for (;;) {
+        const v = await fn();
+        if (v) return v;
+        if (Date.now() > end) throw new Error(`timed out: ${message}`);
+        await new Promise((r) => setTimeout(r, 100));
+    }
+}
+
+async function test(name, fn, opts = {}) {
+    if (ONLY && !ONLY.test(name)) return;
+    const started = Date.now();
+    const context = await browser.newContext(opts.device ? devices[opts.device] : { viewport: { width: 1100, height: 680 } });
+    const page = await context.newPage();
+    const problems = [];
+    page.on('pageerror', (e) => problems.push(`pageerror: ${e.message}`));
+    page.on('console', (m) => { if (m.type() === 'error') problems.push(`console: ${m.text().slice(0, 200)}`); });
+    const t = {
+        page,
+        snap: () => page.evaluate(() => window.__cityGame.snapshot()),
+        adv: (s) => page.evaluate((x) => window.__cityGame.debug.advance(x), s),
+        tp: (x, y, z) => page.evaluate(([a, b, c]) => window.__cityGame.debug.teleport(a, b, c), [x, y, z]),
+        emit: (e, v) => page.evaluate(([a, b]) => window.__cityGame.debug.emit(a, b), [e, v]),
+        vehicles: () => page.evaluate(() => window.__cityGame.debug.vehicles()),
+        text: (sel) => page.locator(sel).first().innerText(),
+        visible: (sel) => page.locator(sel).first().isVisible(),
+        open: async (bots = true, fresh = true) => {
+            await page.goto(`${BASE}/city`, { waitUntil: 'networkidle', timeout: 120000 });
+            if (fresh) await page.evaluate(() => localStorage.clear());
+            await page.waitForSelector('.start-bots');
+            await page.click(bots ? '.start-bots' : '.start-peace');
+            await page.waitForSelector('.hud-loc');
+            // Logic runs on test time from here on; drawing frames in a software
+            // GPU would only slow the run down.
+            if (!opts.render) await page.evaluate(() => window.__cityGame.debug.pause(true));
+        },
+        press: async (key) => { await page.keyboard.press(key); },
+        hold: async (key, seconds) => { await page.keyboard.down(key); await t.adv(seconds); await page.keyboard.up(key); }
+    };
+    try {
+        await fn(t);
+        assert(problems.length === 0, `browser errors:\n  ${problems.join('\n  ')}`);
+        results.push({ name, ok: true, ms: Date.now() - started });
+        console.log(`  ok   ${name} (${((Date.now() - started) / 1000).toFixed(1)}s)`);
+    } catch (err) {
+        results.push({ name, ok: false, err });
+        console.log(`  FAIL ${name}\n       ${String(err.message).split('\n').join('\n       ')}`);
+        await page.screenshot({ path: join(tmpdir(), `city-e2e-fail-${results.length}.png`) }).catch(() => {});
+    } finally {
+        await context.close();
+    }
+}
+
+console.log(`city e2e against ${BASE}`);
+
+await test('route /city serves the game and the start screen buttons exist', async (t) => {
+    const res = await t.page.goto(`${BASE}/city`, { waitUntil: 'networkidle', timeout: 120000 });
+    assert(res.status() === 200, `status ${res.status()}`);
+    assert((await t.page.title()).includes('עיר המעלות'), 'title');
+    assert(await t.page.locator('html').getAttribute('lang') !== null, 'lang');
+    assert(await t.visible('.start-bots'), 'bots button');
+    assert(await t.visible('.start-peace'), 'peace button');
+    assert((await t.text('.start-card h1')) === 'עיר המעלות', 'heading');
+    assert(await t.page.locator('canvas').count() === 1, 'one canvas');
+});
+
+await test('start with bots: HUD, 8 bots, weapon and stage panels', async (t) => {
+    await t.open(true);
+    const s = await t.snap();
+    assert(s.bots && s.botList.length === 8, `bots ${s.botList.length}`);
+    for (const sel of ['.hud-loc', '.climate-panel', '.hud-help', '.stage-panel', '.status-panel', '.crosshair']) assert(await t.visible(sel), `${sel} visible`);
+    assert((await t.text('.stage-title')).includes('גבעת המדרגות'), 'first stage');
+    assert((await t.text('.weapon-row strong')) === 'אקדח', 'starts with a pistol');
+    assert(await t.visible('.score-row'), 'score row with bots');
+});
+
+await test('start without bots: no opponents', async (t) => {
+    await t.open(false);
+    const s = await t.snap();
+    assert(!s.bots && s.botList.length === 0, 'no bots');
+    await t.adv(20);
+    assert((await t.snap()).player.hp === 100, 'nobody hurts the player');
+    assert(!(await t.page.locator('.score-row').count()), 'no score row');
+});
+
+await test('menu: toggle bots, reset progress, close', async (t) => {
+    await t.open(true);
+    await t.page.click('.menu-btn');
+    assert(await t.visible('.game-menu'), 'menu opens');
+    assert(!(await t.page.locator('.crosshair').count()), 'crosshair hidden while menu is open');
+    await t.page.click('.bots-toggle');
+    await until(async () => !(await t.snap()).bots, 'bots off');
+    assert((await t.snap()).botList.length === 0, 'bot list emptied');
+    assert((await t.text('.bots-toggle')) === 'הפעלת הבוטים', 'label flips');
+    await t.page.click('.bots-toggle');
+    await until(async () => (await t.snap()).botList.length === 8, 'bots back on');
+    await t.emit('summit');
+    assert((await t.snap()).progress.stage === 1, 'stage advanced');
+    await t.page.click('.reset-progress');
+    await until(async () => (await t.snap()).progress.stage === 0, 'reset');
+    assert((await t.snap()).progress.weapons.join() === 'pistol', 'weapons reset');
+    await t.page.click('.menu-close');
+    assert(!(await t.page.locator('.game-menu').count()), 'menu closes');
+});
+
+await test('climate panel: weather, time slider, cycle, collapse and help toggle', async (t) => {
+    await t.open(false);
+    for (const [value, label] of [['cloudy', 'מעונן'], ['rain', 'גשום'], ['fog', 'ערפל'], ['clear', 'בהיר']]) {
+        await t.page.selectOption('.climate-field select', value);
+        assert((await t.snap()).weather === value, `weather ${label}`);
+        await t.adv(1);
+    }
+    await t.page.click('.climate-cycle');
+    assert((await t.text('.climate-cycle')).includes('הפעלת'), 'cycle label flips');
+    await t.page.locator('.climate-range').fill('21.5');
+    await until(async () => Math.abs((await t.snap()).hour - 21.5) < 0.05, 'hour set');
+    assert((await t.text('.climate-time-row strong')) === '21:30', 'clock shows 21:30');
+    await t.adv(5);
+    assert(Math.abs((await t.snap()).hour - 21.5) < 0.05, 'time frozen while cycle is off');
+    await t.page.click('.climate-cycle');
+    await t.adv(10);
+    assert((await t.snap()).hour > 21.9, 'time moves again');
+    await t.page.click('.climate-toggle');
+    assert(!(await t.page.locator('.climate-field').count()), 'panel collapses');
+    await t.page.click('.climate-toggle');
+    assert(await t.visible('.climate-field'), 'panel expands');
+    await t.page.click('.hud-help .hud-btn');
+    assert(!(await t.page.locator('.hud-help li').count()), 'help hides');
+    await t.page.click('.hud-help .hud-btn');
+    assert(await t.visible('.hud-help li'), 'help shows');
+});
+
+await test('walls hold, the door leads in, floor crates hold better guns higher up', async (t) => {
+    await t.open(false);
+    const b = world.buildings.find((x) => x.floors >= 12);
+    await t.tp(b.x0 - 2, PAD_H, b.cz);
+    await t.page.keyboard.down('KeyD');
+    await t.page.evaluate(() => window.__cityGame.debug.look(Math.PI / 2, 0));
+    await t.adv(2);
+    await t.page.keyboard.up('KeyD');
+    assert((await t.snap()).player.x < b.x0 + 0.1, 'west wall stops the player');
+    await t.tp(b.door.x, PAD_H, b.door.zOut + 2);
+    await t.page.evaluate(() => window.__cityGame.debug.look(0, 0));
+    await t.hold('KeyW', 1.6);
+    const inside = await t.snap();
+    assert(inside.player.z < b.z1 - 0.5 && inside.player.z > b.z0, `walked through the door (z=${inside.player.z.toFixed(1)})`);
+    await until(async () => (await t.text('.hud-loc-text')).includes(b.name), 'location names the building');
+    const crates = world.pickups.filter((p) => p.building === b.index);
+    for (const p of crates.filter((c) => c.kind !== 'med')) {
+        await t.tp(p.x, p.y, p.z);
+        await t.adv(0.3);
+    }
+    const s = await t.snap();
+    assert(s.progress.crates >= crates.filter((c) => c.kind !== 'med').length - 1, 'crates collected');
+    const best = crates.filter((c) => c.kind !== 'med').map((c) => c.kind);
+    for (const k of new Set(best)) assert(s.progress.weapons.includes(k), `found a ${k}`);
+});
+
+await test('elevator to floor 20 and the roof, with the floor buttons', async (t) => {
+    await t.open(false);
+    await t.tp(tower.lift.x, PAD_H, tower.lift.z);
+    await t.adv(0.4);
+    await until(async () => (await t.snap()).prompt === 'lift', 'lift prompt');
+    assert((await t.text('.interaction-prompt')).includes('מעלית'), 'prompt text');
+    await t.press('KeyE');
+    await t.page.waitForSelector('.elevator-dialog');
+    assert((await t.page.locator('.elevator-floor-grid button').count()) === tower.floors + 1, 'one button per level');
+    assert(await t.page.getByRole('button', { name: 'קרקע' }).isDisabled(), 'current floor is disabled');
+    await t.page.getByRole('button', { name: '20', exact: true }).click();
+    assert(!(await t.page.locator('.elevator-dialog').count()), 'dialog closes');
+    await t.adv(6);
+    const s = await t.snap();
+    assert(Math.abs(s.player.y - levelY(tower, 20)) < 0.01, `arrived at y=${s.player.y}`);
+    await until(async () => (await t.text('.hud-loc-text')).includes('קומה 20'), 'location says floor 20');
+    await t.tp(tower.lift.x, levelY(tower, 20), tower.lift.z);
+    await t.adv(0.4);
+    await t.press('KeyE');
+    await t.page.getByRole('button', { name: 'גג' }).click();
+    await t.adv(3);
+    assert(Math.abs((await t.snap()).player.y - tower.h) < 0.01, 'reached the roof');
+    await t.tp(tower.lift.x, tower.h, tower.lift.z);
+    await t.adv(0.4);
+    await t.press('KeyE');
+    await t.page.getByRole('button', { name: 'ביטול' }).click();
+    assert(!(await t.page.locator('.elevator-dialog').count()), 'cancel closes');
+});
+
+await test('every stage in order unlocks weapons, cars and boats; progress survives reload', async (t) => {
+    await t.open(true);
+    await t.tp(hill.cx, hill.top, hill.cz);
+    await t.adv(0.5);
+    await until(async () => (await t.snap()).progress.stage === 1, 'summit stage');
+    await until(async () => (await t.page.locator('.weapon-slot').count()) === 2, 'submachine gun slot');
+    assert((await t.snap()).progress.weapons.includes('smg'), 'smg unlocked');
+    assert(await t.visible('.game-toast'), 'reward toast');
+    await t.tp(tower.lift.x, PAD_H, tower.lift.z);
+    await t.adv(0.4);
+    await t.press('KeyE');
+    await t.page.getByRole('button', { name: '5', exact: true }).click();
+    await t.adv(2);
+    await until(async () => (await t.snap()).progress.cars.includes('sport'), 'sport car unlocked on floor 5');
+    const crates = world.pickups.filter((p) => p.building === tower.index && p.level < 6);
+    let n = 0;
+    for (const p of crates) {
+        if (n >= 5) break;
+        await t.tp(p.x, p.y, p.z);
+        await t.adv(0.3);
+        n++;
+    }
+    await until(async () => (await t.snap()).progress.boats.includes('motor'), 'motor boat unlocked after 5 crates');
+    assert((await t.snap()).progress.stage === 3, 'on the roof stage');
+    await t.tp(tower.lift.x, PAD_H, tower.lift.z);
+    await t.emit('roof', 15);
+    await t.emit('sail', 300);
+    await t.emit('drive', 1000);
+    await t.emit('floor', 20);
+    const mid = (await t.snap()).progress;
+    assert(['pistol', 'smg', 'shotgun', 'sniper'].every((w) => mid.weapons.includes(w)), `weapons ${mid.weapons}`);
+    assert(mid.boats.join() === 'motor,speed' && mid.cars.join() === 'sport,jeep', `vehicles ${mid.cars} ${mid.boats}`);
+    assert((await t.text('.stage-title')).includes('10 בוטים'), 'final stage asks for kills');
+    for (let k = 0; k < 10; k++) await t.emit('kill');
+    await until(async () => (await t.text('.stage-title')).includes('כל השלבים'), 'all stages done');
+    const done = (await t.snap()).progress;
+    assert(done.weapons.includes('rifle') && done.stage === 8, 'assault rifle at the end');
+    await t.page.waitForTimeout(3500);
+    await t.page.reload({ waitUntil: 'networkidle' });
+    await t.page.click('.start-bots');
+    await t.page.waitForSelector('.hud-loc');
+    const saved = (await t.snap()).progress;
+    assert(saved.stage === 8 && saved.weapons.length === 5, `progress restored: stage ${saved.stage}`);
+});
+
+await test('the last stage swaps to crates when playing without bots', async (t) => {
+    await t.open(false);
+    for (const [e, v] of [['summit', 1], ['floor', 5], ['crate', 1], ['crate', 1], ['crate', 1], ['crate', 1], ['crate', 1], ['roof', 15], ['sail', 300], ['drive', 1000], ['floor', 20]]) await t.emit(e, v);
+    await until(async () => (await t.text('.stage-title')).includes('20 ארגזי ציוד'), 'peaceful last stage');
+    for (let k = 0; k < 20; k++) await t.emit('crate');
+    await until(async () => (await t.snap()).progress.weapons.includes('rifle'), 'rifle from crates');
+});
+
+await test('weapons: switch by key and button, fire, ammo, reload', async (t) => {
+    await t.open(false);
+    await t.emit('summit');
+    await t.page.keyboard.press('Digit2');
+    await until(async () => (await t.snap()).player.weapon === 'smg', 'key 2 selects the submachine gun');
+    await t.page.keyboard.press('Digit1');
+    await until(async () => (await t.snap()).player.weapon === 'pistol', 'key 1');
+    await t.page.keyboard.press('KeyQ');
+    await until(async () => (await t.snap()).player.weapon === 'smg', 'Q cycles');
+    await t.page.locator('.weapon-slot', { hasText: 'אקדח' }).click();
+    await until(async () => (await t.snap()).player.weapon === 'pistol', 'slot button');
+    const before = (await t.snap()).player;
+    await t.hold('KeyF', 1.4);
+    const after = (await t.snap()).player;
+    assert(after.mag < before.mag && before.mag - after.mag <= 6, `fired ${before.mag - after.mag} rounds`);
+    await t.press('KeyR');
+    await t.adv(2);
+    const reloaded = (await t.snap()).player;
+    assert(reloaded.mag === 12 && reloaded.reserve < before.reserve, `reloaded ${reloaded.mag}/${reloaded.reserve}`);
+    await t.page.mouse.click(640, 380);
+    await t.adv(0.5);
+});
+
+await test('shooting a bot hurts it, headshots count, kills are scored', async (t) => {
+    await t.open(true);
+    await t.page.evaluate(() => { const d = window.__cityGame.debug; d.teleport(22, 0, 0); [1, 2, 3, 4, 5, 6, 7].forEach((n) => d.moveBot(n, -150 + n * 20, 0, -150)); d.moveBot(0, 22, 0, -14); });
+    const result = await t.page.evaluate(() => {
+        const g = window.__cityGame, d = g.debug;
+        let shots = 0;
+        g.setFire(true);
+        for (let n = 0; n < 160 && !g.snapshot().botList[0].dead; n++) {
+            const s = g.snapshot(), b = s.botList[0];
+            d.look(Math.atan2(-(b.x - s.player.x), -(b.z - s.player.z)), 0);
+            d.advance(0.1);
+            shots++;
+        }
+        g.setFire(false);
+        const s = g.snapshot();
+        return { dead: s.botList[0].dead, hp: s.botList[0].hp, kills: s.progress.kills, ammo: s.player.mag, shots };
+    });
+    assert(result.dead && result.kills >= 1, `bot should be down: ${JSON.stringify(result)}`);
+    await until(async () => (await t.text('.score-row')).includes('1'), 'scoreboard shows the kill');
+});
+
+await test('a bot in the open shoots back; dying respawns the player', async (t) => {
+    await t.open(true);
+    await t.page.evaluate(() => { const d = window.__cityGame.debug; d.teleport(22, 0, 0); [1, 2, 3, 4, 5, 6, 7].forEach((n) => d.moveBot(n, -250, 0, -250)); d.moveBot(0, 22, 0, -16); });
+    await t.adv(12);
+    const hurt = await t.snap();
+    assert(hurt.player.hp < 100 || hurt.player.dead, `the bot never hit anything (hp ${hurt.player.hp})`);
+    await t.page.evaluate(() => window.__cityGame.debug.hurt(500));
+    assert((await t.snap()).player.dead, 'dead');
+    await until(async () => t.visible('.death-note'), 'death note');
+    await t.adv(4);
+    const back = await t.snap();
+    assert(!back.player.dead && back.player.hp === 100 && Math.abs(back.player.z - 20.5) < 1, 'respawned at the start');
+    assert(back.progress.deaths === 1, 'death counted');
+});
+
+await test('a bot hunts the player through the door and up the elevator', async (t) => {
+    await t.open(true);
+    const lvl = 8;
+    const b = world.buildings.find((x) => x.floors >= 12);
+    await t.page.evaluate(([bx, bz, y, doorX, doorZ]) => {
+        const d = window.__cityGame.debug;
+        d.teleport(bx, y, bz);
+        [1, 2, 3, 4, 5, 6, 7].forEach((n) => d.moveBot(n, -280, 0, -280));
+        d.moveBot(0, doorX + 5, 0, doorZ + 6);
+    }, [b.cx + 2, b.cz + 1, levelY(b, lvl), b.door.x, b.door.zOut]);
+    let reached = false;
+    for (let step = 0; step < 90 && !reached; step++) {
+        await t.adv(1);
+        const s = await t.snap();
+        reached = s.botList[0].y >= levelY(b, lvl) - 0.5 || s.player.hp < 100;
+    }
+    assert(reached, `bot got no further than y=${(await t.snap()).botList[0].y.toFixed(1)}`);
+});
+
+await test('cars: locked until the stage, then driveable', async (t) => {
+    await t.open(false);
+    const list = await t.vehicles();
+    const sport = list.find((v) => v.type === 'sport');
+    assert(sport && !sport.unlocked, 'sport car starts locked');
+    await t.tp(sport.x + 2.5, 0, sport.z);
+    await t.adv(0.4);
+    assert((await t.snap()).prompt === 'locked', 'locked prompt');
+    await t.press('KeyE');
+    await until(async () => (await t.text('.game-toast')).includes('נפתח'), 'locked toast');
+    assert((await t.snap()).mode === 'foot', 'did not get in');
+    const basic = list.find((v) => v.type === 'basic');
+    await t.tp(basic.x + 2.5, 0, basic.z);
+    await t.adv(0.4);
+    assert((await t.snap()).prompt === 'car', 'car prompt');
+    await t.press('KeyE');
+    assert((await t.snap()).mode === 'car', 'in the car');
+    await t.hold('KeyW', 3);
+    const v = (await t.snap()).vehicle;
+    assert(v && v.speed > 10, `drove at ${v?.speed}`);
+    assert((await t.text('.vehicle-hud')).includes('קמ״ש'), 'speedometer');
+    await t.hold('KeyS', 4);
+    await t.press('KeyE');
+    assert((await t.snap()).mode === 'foot', 'got out');
+    await t.emit('summit');
+    await t.emit('floor', 5);
+    await until(async () => (await t.vehicles()).find((x) => x.type === 'sport').unlocked, 'sport unlocked');
+    const sp = (await t.vehicles()).find((x) => x.type === 'sport');
+    await t.tp(sp.x + 2.5, 0, sp.z);
+    await t.adv(0.4);
+    await t.press('KeyE');
+    assert((await t.snap()).vehicle?.type === 'sport', 'in the sport car');
+    await t.hold('KeyW', 3.5);
+    assert((await t.snap()).vehicle.speed > v.speed, 'the sport car is faster');
+});
+
+await test('running a bot over with a car', async (t) => {
+    await t.open(true);
+    const basic = (await t.vehicles()).find((v) => v.type === 'basic');
+    await t.page.evaluate(([x, z]) => { const d = window.__cityGame.debug; d.teleport(x + 2.5, 0, z); [1, 2, 3, 4, 5, 6, 7].forEach((n) => d.moveBot(n, -250, 0, -250)); }, [basic.x, basic.z]);
+    await t.adv(0.4);
+    await t.press('KeyE');
+    assert((await t.snap()).mode === 'car', 'in the car');
+    // The bot stands in the car's path.
+    const ahead = await t.page.evaluate(() => {
+        const v = window.__cityGame.snapshot().vehicle;
+        return { x: v.x + 30, z: v.z };
+    });
+    await t.page.evaluate((a) => window.__cityGame.debug.moveBot(0, a.x, 0, a.z), ahead);
+    await t.hold('KeyW', 4);
+    const s = await t.snap();
+    assert(s.progress.kills >= 1, `bot not run over (hp ${s.botList[0].hp})`);
+});
+
+await test('boats: locked, then sailing from the pier', async (t) => {
+    await t.open(false);
+    const boats = (await t.vehicles()).filter((v) => v.kind === 'boat');
+    const motor = boats.find((v) => v.type === 'motor' && v.x > 0);
+    assert(motor && !motor.unlocked, 'motor boat starts locked');
+    await t.tp(2.4, world.pier.top, motor.z);
+    await t.adv(0.4);
+    assert((await t.snap()).prompt === 'locked', 'locked prompt on the pier');
+    for (const [e, v] of [['summit', 1], ['floor', 5], ['crate', 1], ['crate', 1], ['crate', 1], ['crate', 1], ['crate', 1]]) await t.emit(e, v);
+    await t.adv(0.4);
+    assert((await t.snap()).prompt === 'boat', 'boat prompt after the stage');
+    await t.press('KeyE');
+    assert((await t.snap()).mode === 'boat', 'aboard');
+    await t.hold('KeyW', 6);
+    const v = (await t.snap()).vehicle;
+    assert(v.z > motor.z + 10 && v.speed > 8, `sailed to z=${v.z.toFixed(0)}`);
+    assert(await t.visible('.vehicle-hud'), 'boat HUD');
+    await t.hold('KeyA', 2);
+    await t.press('KeyE');
+    assert((await t.snap()).mode === 'foot', 'left the boat');
+    assert((await t.text('.hud-loc-text')).length > 0, 'location');
+});
+
+await test('swimming in the sea is possible and the beach lets you out', async (t) => {
+    await t.open(false);
+    await t.tp(40, 0, SEA_Z - 1);
+    await t.page.evaluate(() => window.__cityGame.debug.look(Math.PI, 0));
+    await t.hold('KeyW', 3);
+    const wading = await t.snap();
+    assert(wading.player.y < -0.5 && wading.player.z > SEA_Z + 3, `wading at y=${wading.player.y.toFixed(2)}`);
+    await t.page.evaluate(() => window.__cityGame.debug.look(0, 0));
+    await t.hold('KeyW', 6);
+    assert((await t.snap()).player.y > -0.1, 'back on the beach');
+});
+
+await test('helicopter: take off, hover, land, get out', async (t) => {
+    await t.open(false);
+    const h = (await t.snap()).heli;
+    await t.tp(h.x + 2.5, PAD_H, h.z);
+    await t.adv(0.4);
+    assert((await t.snap()).prompt === 'heli', 'heli prompt');
+    await t.press('KeyE');
+    assert((await t.snap()).mode === 'heli', 'in the helicopter');
+    await t.hold('Space', 3);
+    const up = await t.snap();
+    assert(up.heli.y > 5, `climbed to ${up.heli.y.toFixed(1)}`);
+    await t.press('KeyE');
+    assert((await t.snap()).mode === 'heli', 'cannot jump out in the air');
+    await t.hold('KeyW', 2);
+    assert(Math.hypot((await t.snap()).heli.x - h.x, (await t.snap()).heli.z - h.z) > 5, 'flew forward');
+    assert((await t.text('.vehicle-hud')).includes('מסוק'), 'heli HUD');
+    await t.hold('ShiftLeft', 9);
+    await t.press('KeyE');
+    assert((await t.snap()).mode === 'foot', 'landed and stepped out');
+});
+
+await test('citizens: walk up, chat, scripted replies, close', async (t) => {
+    await t.open(false);
+    const c = (await t.page.evaluate(() => window.__cityGame.debug.citizens()))[0];
+    await t.tp(c.x + 1.2, PAD_H, c.z);
+    await t.adv(0.25);
+    await until(async () => (await t.snap()).prompt === 'citizen', 'citizen prompt');
+    await t.press('KeyE');
+    await t.page.waitForSelector('.npc-chat-panel');
+    assert((await t.text('.npc-chat-bubble.npc p')).includes('שלום'), 'greeting');
+    assert(await t.page.locator('.npc-chat-form button').isDisabled(), 'send disabled when empty');
+    await t.page.fill('.npc-chat-form input', 'איפה המסוק?');
+    await t.page.click('.npc-chat-form button');
+    await until(async () => (await t.page.locator('.npc-chat-bubble').count()) === 3, 'reply arrives');
+    assert((await t.page.locator('.npc-chat-bubble.npc p').last().innerText()).includes('מסוק'), 'on-topic reply');
+    const before = (await t.snap()).player;
+    await t.hold('KeyW', 1);
+    assert(Math.abs((await t.snap()).player.z - before.z) < 0.01, 'frozen while chatting');
+    await t.page.click('.npc-chat-close');
+    assert(!(await t.page.locator('.npc-chat-panel').count()), 'closed');
+});
+
+await test('pickup crates respawn and medkits heal', async (t) => {
+    await t.open(false);
+    const med = world.pickups.find((p) => p.kind === 'med' && p.level === 0);
+    await t.page.evaluate(() => window.__cityGame.debug.hurt(60));
+    await t.tp(med.x, med.y, med.z);
+    await t.adv(0.4);
+    const hp = (await t.snap()).player.hp;
+    assert(hp > 60, `healed to ${hp}`);
+    const used = (await t.page.evaluate(() => window.__cityGame.debug.crates())).find((p) => p.id === med.id);
+    assert(!used.ready, 'crate hidden after pickup');
+    await t.adv(95);
+    const again = (await t.page.evaluate(() => window.__cityGame.debug.crates())).find((p) => p.id === med.id);
+    assert(again.ready, 'crate is back after 90s');
+});
+
+await test('phone layout: touch controls, no overflow, fire and reload buttons', async (t) => {
+    await t.page.goto(`${BASE}/city`, { waitUntil: 'networkidle', timeout: 120000 });
+    await t.page.evaluate(() => localStorage.clear());
+    const fit = await t.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
+    assert(fit, 'start screen fits the width');
+    await t.page.tap('.start-bots');
+    await t.page.waitForSelector('.hud-loc');
+    for (const sel of ['.joy', '.jump-btn', '.fire-btn', '.reload-btn', '.switch-btn']) assert(await t.visible(sel), `${sel} visible`);
+    assert(await t.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'HUD fits the width');
+    const before = (await t.snap()).player.mag;
+    const box = await t.page.locator('.fire-btn').boundingBox();
+    await t.page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+    const fireBtn = t.page.locator('.fire-btn');
+    await fireBtn.dispatchEvent('pointerdown', { pointerId: 7, pointerType: 'touch' }).catch(() => {});
+    await t.adv(0.5);
+    await fireBtn.dispatchEvent('pointerup', { pointerId: 7, pointerType: 'touch' }).catch(() => {});
+    assert((await t.snap()).player.mag < before, 'fire button shoots');
+    await t.page.tap('.reload-btn');
+    await t.adv(2);
+    assert((await t.snap()).player.mag === 12, 'reload button works');
+    await t.page.tap('.switch-btn');
+    await t.page.tap('.climate-toggle');
+    await t.page.tap('.menu-btn');
+    assert(await t.visible('.game-menu'), 'menu opens by touch');
+}, { device: 'iPhone 13' });
+
+await test('the rest of the site still serves (home page)', async (t) => {
+    const res = await t.page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+    assert(res.status() === 200, `status ${res.status()}`);
+});
+
+await browser.close();
+const failed = results.filter((r) => !r.ok);
+console.log(`\n${results.length - failed.length}/${results.length} passed`);
+process.exit(failed.length ? 1 : 0);

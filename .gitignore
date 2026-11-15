@@ -41,3 +41,6 @@ yarn-error.log*
 
 # Maslul local data (MASLUL_STORE=file)
 /.data
+
+# failure screenshots from the city e2e run
+city-e2e-fail-*.png

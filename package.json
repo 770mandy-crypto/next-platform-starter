@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "node --test 'lib/*.test.mjs'"
+    "test": "node --test 'lib/*.test.mjs' 'components/city/*.test.mjs'",
+    "test:e2e": "node components/city/city.e2e.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.120.0",

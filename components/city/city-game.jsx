@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createGame } from './engine';
 import { greeting, replyFor } from './dialog';
+import { WEAPONS } from './combat';
 
 const WEATHER_OPTIONS = [
     ['clear', 'בהיר'],
@@ -84,6 +85,8 @@ export function CityGame() {
     const bubblesRef = useRef(null);
     const gameRef = useRef(null);
     const chatEndRef = useRef(null);
+    const toastTimer = useRef(null);
+    const flashTimer = useRef(null);
     const [error, setError] = useState(null);
     const [started, setStarted] = useState(false);
     const [location, setLocation] = useState('מרכז העיר');
@@ -93,17 +96,42 @@ export function CityGame() {
     const [weather, setWeather] = useState('clear');
     const [cycle, setCycle] = useState(true);
     const [helpOpen, setHelpOpen] = useState(true);
+    const [climateOpen, setClimateOpen] = useState(true);
+    const [menuOpen, setMenuOpen] = useState(false);
     const [chat, setChat] = useState(null);
     const [draft, setDraft] = useState('');
+    const [status, setStatus] = useState(null);
+    const [stage, setStage] = useState(null);
+    const [toast, setToast] = useState(null);
+    const [elevator, setElevator] = useState(null);
+    const [flash, setFlash] = useState(null);
 
     useEffect(() => {
         let game;
+        const pulse = (kind) => {
+            setFlash(kind);
+            clearTimeout(flashTimer.current);
+            flashTimer.current = setTimeout(() => setFlash(null), 220);
+        };
         try {
             game = createGame(canvasRef.current, bubblesRef.current, {
                 onLocation: setLocation,
                 onPrompt: setPrompt,
                 onHud: setHud,
                 onHour: setHour,
+                onStatus: setStatus,
+                onStage: setStage,
+                onToast: (text) => {
+                    setToast(text);
+                    clearTimeout(toastTimer.current);
+                    toastTimer.current = setTimeout(() => setToast(null), 3200);
+                },
+                onHurt: () => pulse('hurt'),
+                onHit: (kill) => pulse(kill ? 'kill' : 'hit'),
+                onElevator: (info) => {
+                    game.releasePointer();
+                    setElevator(info);
+                },
                 onChat: (citizen) => {
                     game.setChat(citizen.id);
                     setChat({ citizen, messages: [{ from: 'npc', text: greeting(citizen) }] });
@@ -116,7 +144,10 @@ export function CityGame() {
         }
         gameRef.current = game;
         window.__cityGame = game;
+        if (window.matchMedia('(max-width: 700px)').matches) setClimateOpen(false);
         return () => {
+            clearTimeout(toastTimer.current);
+            clearTimeout(flashTimer.current);
             game.dispose();
             gameRef.current = null;
             delete window.__cityGame;
@@ -128,6 +159,10 @@ export function CityGame() {
     }, [chat]);
 
     const game = () => gameRef.current;
+    const begin = (bots) => {
+        game()?.start({ bots });
+        setStarted(true);
+    };
     const closeChat = () => {
         game()?.setChat(null);
         setChat(null);
@@ -158,107 +193,225 @@ export function CityGame() {
         );
     }
 
+    const armed = status?.armed && !status?.dead;
+    const dialogOpen = Boolean(chat || elevator || menuOpen);
+
     return (
-        <div className="city-game game-root" dir="rtl" lang="he">
+        <div className={`city-game game-root${flash === 'hurt' ? ' is-hurt' : ''}`} dir="rtl" lang="he">
             <div className="game-canvas" ref={canvasRef} />
             <div className="bubble-layer" ref={bubblesRef} />
 
             {started && (
                 <>
+                    {armed && !dialogOpen && <div className={`crosshair${flash === 'hit' ? ' hit' : flash === 'kill' ? ' kill' : ''}`} aria-hidden="true" />}
+
                     <div className="hud-panel hud-loc" role="status">
                         <span className="hud-dot" />
                         <span className="hud-loc-text">{location}</span>
                     </div>
 
-                    <div className="climate-panel">
+                    <div className={`climate-panel${climateOpen ? '' : ' collapsed'}`}>
                         <div className="climate-heading">
                             <span>אקלים וזמן</span>
-                            <span className="climate-status">{cycle ? 'מחזור פעיל' : 'זמן קפוא'}</span>
+                            <button type="button" className="hud-btn climate-toggle" onClick={() => setClimateOpen(!climateOpen)}>
+                                {climateOpen ? 'הסתר' : formatHour(hour)}
+                            </button>
                         </div>
-                        <label className="climate-field">
-                            <span>מזג אוויר</span>
-                            <select
-                                value={weather}
-                                onChange={(e) => {
-                                    setWeather(e.target.value);
-                                    game()?.setWeather(e.target.value);
-                                }}
-                            >
-                                {WEATHER_OPTIONS.map(([value, label]) => (
-                                    <option key={value} value={value}>
-                                        {label}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-                        <div className="climate-time-row">
-                            <span>שעה</span>
-                            <strong>{formatHour(hour)}</strong>
-                        </div>
-                        <input
-                            className="climate-range"
-                            type="range"
-                            min="0"
-                            max="23.75"
-                            step="0.25"
-                            value={hour}
-                            aria-label="שעה ביום"
-                            onChange={(e) => {
-                                const value = Number(e.target.value);
-                                setHour(value);
-                                game()?.setHour(value);
-                            }}
-                        />
-                        <button
-                            type="button"
-                            className="climate-cycle"
-                            onClick={() => {
-                                game()?.setCycle(!cycle);
-                                setCycle(!cycle);
-                            }}
-                        >
-                            {cycle ? 'עצירת מחזור יום ולילה' : 'הפעלת מחזור יום ולילה'}
-                        </button>
-                    </div>
-
-                    <div className="hud-panel hud-help">
-                        <button type="button" className="hud-btn" onClick={() => setHelpOpen(!helpOpen)}>
-                            {helpOpen ? 'הסתר' : 'הצג'}
-                        </button>
-                        <strong>פקדים</strong>
-                        {helpOpen && (
-                            <ul>
-                                <li><b>W A S D</b> — תנועה ונהיגה</li>
-                                <li><b>גרירת עכבר</b> — סיבוב המבט · <b>גלגלת</b> — זום</li>
-                                <li><b>רווח</b> — קפיצה / המראה</li>
-                                <li><b>Shift</b> — ריצה / הנמכה</li>
-                                <li><b>E</b> — כניסה, יציאה ושיחה</li>
-                            </ul>
+                        {climateOpen && (
+                            <>
+                                <label className="climate-field">
+                                    <span>מזג אוויר</span>
+                                    <select
+                                        value={weather}
+                                        onChange={(e) => {
+                                            setWeather(e.target.value);
+                                            game()?.setWeather(e.target.value);
+                                        }}
+                                    >
+                                        {WEATHER_OPTIONS.map(([value, label]) => (
+                                            <option key={value} value={value}>
+                                                {label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+                                <div className="climate-time-row">
+                                    <span>שעה</span>
+                                    <strong>{formatHour(hour)}</strong>
+                                </div>
+                                <input
+                                    className="climate-range"
+                                    type="range"
+                                    min="0"
+                                    max="23.75"
+                                    step="0.25"
+                                    value={hour}
+                                    aria-label="שעה ביום"
+                                    onChange={(e) => {
+                                        const value = Number(e.target.value);
+                                        setHour(value);
+                                        game()?.setHour(value);
+                                    }}
+                                />
+                                <button
+                                    type="button"
+                                    className="climate-cycle"
+                                    onClick={() => {
+                                        game()?.setCycle(!cycle);
+                                        setCycle(!cycle);
+                                    }}
+                                >
+                                    {cycle ? 'עצירת מחזור יום ולילה' : 'הפעלת מחזור יום ולילה'}
+                                </button>
+                            </>
                         )}
                     </div>
 
-                    {hud && (
-                        <div className="hud-panel vehicle-hud">
-                            {hud.mode === 'car' ? (
-                                <><b>רכב</b> · {hud.speed} קמ״ש</>
-                            ) : (
-                                <><b>מסוק</b> · גובה {hud.alt} מ׳ · רווח להמראה, Shift להנמכה</>
+                    <div className="hud-side">
+                        <div className="hud-panel hud-help">
+                            <button type="button" className="hud-btn" onClick={() => setHelpOpen(!helpOpen)}>
+                                {helpOpen ? 'הסתר' : 'הצג'}
+                            </button>
+                            <strong>פקדים</strong>
+                            {helpOpen && (
+                                <ul>
+                                    <li><b>W A S D</b> — תנועה, נהיגה ושיט</li>
+                                    <li><b>לחיצה על המסך</b> — כיוון בעכבר · <b>Esc</b> — שחרור</li>
+                                    <li><b>לחיצה / F</b> — ירי · <b>R</b> — טעינה · <b>Q, 1–5</b> — נשק</li>
+                                    <li><b>רווח</b> — קפיצה / המראה · <b>Shift</b> — ריצה / הנמכה</li>
+                                    <li><b>E</b> — כניסה, יציאה, מעלית ושיחה</li>
+                                </ul>
+                            )}
+                        </div>
+
+                        {stage && (
+                            <div className="hud-panel stage-panel">
+                                <div className="stage-head">
+                                    <span>{stage.done ? 'המשימות' : `שלב ${stage.index} מתוך ${stage.total}`}</span>
+                                    {!stage.done && <span className="stage-reward">פרס: {stage.reward}</span>}
+                                </div>
+                                <div className="stage-title">{stage.title}</div>
+                                {stage.need > 0 && (
+                                    <div className="stage-bar" role="progressbar" aria-valuemin={0} aria-valuemax={stage.need} aria-valuenow={stage.progress}>
+                                        <span style={{ width: `${(stage.progress / stage.need) * 100}%` }} />
+                                        <em>{stage.progress} / {stage.need}</em>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    {status && (
+                        <div className="hud-panel status-panel">
+                            <div className="status-row">
+                                <div className="hp-bar" role="progressbar" aria-label="בריאות" aria-valuemin={0} aria-valuemax={100} aria-valuenow={status.hp}>
+                                    <span style={{ width: `${status.hp}%` }} className={status.hp < 35 ? 'low' : ''} />
+                                    <em>{status.hp}</em>
+                                </div>
+                                <button type="button" className="hud-btn menu-btn" onClick={() => { game()?.releasePointer(); setMenuOpen(!menuOpen); }}>
+                                    תפריט
+                                </button>
+                            </div>
+                            <div className="weapon-row">
+                                <strong>{status.weaponName}</strong>
+                                <span className="ammo">{status.reloading ? 'טוען…' : `${status.mag} / ${status.reserve}`}</span>
+                            </div>
+                            <div className="weapon-slots">
+                                {status.owned.map((id, n) => (
+                                    <button
+                                        key={id}
+                                        type="button"
+                                        className={`weapon-slot${id === status.weapon ? ' active' : ''}`}
+                                        onClick={() => game()?.setWeapon(id)}
+                                        title={WEAPONS[id].name}
+                                    >
+                                        <span>{n + 1}</span> {WEAPONS[id].name}
+                                    </button>
+                                ))}
+                            </div>
+                            {status.bots && (
+                                <div className="score-row">
+                                    <span>ניצחונות <b>{status.kills}</b></span>
+                                    <span>נפילות <b>{status.deaths}</b></span>
+                                </div>
                             )}
                         </div>
                     )}
 
-                    {prompt && !chat && (
+                    {menuOpen && status && (
+                        <div className="hud-panel game-menu" role="dialog" aria-label="תפריט">
+                            <h3>תפריט</h3>
+                            <p>{status.bots ? 'עולם פתוח עם בוטים שמשחקים נגדכם.' : 'עולם פתוח שקט, בלי בוטים.'}</p>
+                            <button type="button" className="menu-action bots-toggle" onClick={() => game()?.setBots(!status.bots)}>
+                                {status.bots ? 'כיבוי הבוטים' : 'הפעלת הבוטים'}
+                            </button>
+                            <button type="button" className="menu-action reset-progress" onClick={() => game()?.resetProgress()}>
+                                איפוס ההתקדמות והשלבים
+                            </button>
+                            <button type="button" className="menu-action menu-close" onClick={() => setMenuOpen(false)}>
+                                חזרה למשחק
+                            </button>
+                        </div>
+                    )}
+
+                    {toast && <div className="hud-panel game-toast" role="status">{toast}</div>}
+                    {status?.dead && <div className="death-note">נפלתם · חוזרים מיד…</div>}
+
+                    {hud && (
+                        <div className="hud-panel vehicle-hud">
+                            {hud.mode === 'heli' ? (
+                                <><b>מסוק</b> · גובה {hud.alt} מ׳ · רווח להמראה, Shift להנמכה</>
+                            ) : (
+                                <><b>{hud.label}</b> · {hud.speed} קמ״ש</>
+                            )}
+                        </div>
+                    )}
+
+                    {prompt && !dialogOpen && (
                         <button type="button" className="hud-panel interaction-prompt" onClick={() => game()?.interact()}>
                             {prompt} <span className="prompt-key">E</span>
                         </button>
                     )}
 
-                    {!chat && (
+                    {!dialogOpen && (
                         <>
                             <Joystick onMove={(x, y) => game()?.setMove(x, y)} />
                             <HoldButton className="jump-btn" label={hud?.mode === 'heli' ? 'עלה' : 'קפוץ'} onHold={(v) => game()?.setJump(v)} />
                             {hud?.mode === 'heli' && <HoldButton className="vehicle-down-btn" label="רד" onHold={(v) => game()?.setDown(v)} />}
+                            {armed && (
+                                <>
+                                    <HoldButton className="fire-btn" label="אש" onHold={(v) => game()?.setFire(v)} />
+                                    <button type="button" className="touch-btn reload-btn" onClick={() => game()?.reload()}>טען</button>
+                                    <button type="button" className="touch-btn switch-btn" onClick={() => game()?.nextWeapon()}>נשק</button>
+                                </>
+                            )}
                         </>
+                    )}
+
+                    {elevator && (
+                        <div className="elevator-dialog" role="dialog" aria-label="מעלית">
+                            <h3>מעלית · {elevator.name}</h3>
+                            <p>לאיזו קומה? (הבניין בן {elevator.floors} קומות)</p>
+                            <div className="elevator-floor-grid">
+                                {Array.from({ length: elevator.floors + 1 }, (_, k) => elevator.floors - k).map((k) => (
+                                    <button
+                                        key={k}
+                                        type="button"
+                                        className={k === elevator.level ? 'selected' : ''}
+                                        disabled={k === elevator.level}
+                                        onClick={() => {
+                                            game()?.rideTo(k);
+                                            setElevator(null);
+                                        }}
+                                    >
+                                        {k === elevator.floors ? 'גג' : k === 0 ? 'קרקע' : k}
+                                    </button>
+                                ))}
+                            </div>
+                            <button type="button" className="elevator-cancel" onClick={() => setElevator(null)}>
+                                ביטול
+                            </button>
+                        </div>
                     )}
 
                     {chat && (
@@ -304,26 +457,24 @@ export function CityGame() {
                         <div className="start-kicker">עיר פתוחה · תלת־ממד</div>
                         <h1>עיר המעלות</h1>
                         <p>
-                            עיר שלמה שמחכה לכם: טפסו בגרמי המדרגות עד הגגות, כבשו את גבעת המדרגות שבמרכז, נהגו ברחובות,
-                            הטיסו מסוק ופגשו את התושבים.
+                            עיר שלמה שמחכה לכם: היכנסו לבניינים ועלו במעלית עד קומה 20, אספו נשקים בכל קומה, השלימו שלבים כדי
+                            לזכות במכוניות ובסירות, והתמודדו מול בוטים — או טיילו בשקט.
                         </p>
                         <ul className="start-features">
-                            <li>מדרגות וגגות</li>
-                            <li>רכבים ומסוק</li>
+                            <li>בניינים ומעליות</li>
+                            <li>נשקים ושלבים</li>
+                            <li>מכוניות, סירות ומסוק</li>
                             <li>יום, לילה ומזג אוויר</li>
-                            <li>תושבים ושיחות</li>
                         </ul>
-                        <button
-                            type="button"
-                            className="start-btn"
-                            onClick={() => {
-                                game()?.start();
-                                setStarted(true);
-                            }}
-                        >
-                            התחילו לחקור
-                        </button>
-                        <div className="privacy-note">בלי חשבון ובלי מעקב — הכול רץ אצלכם בדפדפן.</div>
+                        <div className="start-actions">
+                            <button type="button" className="start-btn start-bots" onClick={() => begin(true)}>
+                                עולם פתוח עם בוטים
+                            </button>
+                            <button type="button" className="start-btn start-peace" onClick={() => begin(false)}>
+                                עולם פתוח בלי בוטים
+                            </button>
+                        </div>
+                        <div className="privacy-note">בלי חשבון ובלי מעקב — הכול רץ אצלכם בדפדפן. אפשר להחליף מצב בכל רגע בתפריט.</div>
                     </div>
                 </div>
             )}
