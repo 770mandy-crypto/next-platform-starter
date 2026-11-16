@@ -10,7 +10,7 @@ import { WEAPONS, WEAPON_ORDER, lineClear, rayActor, rayWorld, shoot } from './c
 import { STAGES, applyEvent, currentStage, heliUnlocked, initialProgress, loadProgress, saveProgress, stageView } from './progress.js';
 import { checkAdminCode } from './admin.js';
 import { botLoadout, createBot, createBots, hurtBot, steerPoint, updateBot } from './bots.js';
-import { CITIZENS, greeting, replyFor } from './dialog.js';
+import { CITIZENS, ambientLine, greeting, panicLine, replyFor } from './dialog.js';
 import { clearWanted, createForce, driveCar, escapeTime, hitOfficer, hostile, raiseWanted, reportGunfire, updateForce } from './police.js';
 import { BUSINESS_TYPES, LINES } from './world.js';
 
@@ -381,4 +381,13 @@ test('the admin code is checked against a digest', async () => {
     assert.equal(await checkAdminCode(''), false);
     assert.equal(await checkAdminCode(undefined), false);
     if (process.env.ADMIN_CODE) assert.equal(await checkAdminCode(` ${process.env.ADMIN_CODE} `), true);
+});
+
+test('citizens talk about what is happening around them', () => {
+    const seen = new Set();
+    for (let n = 0; n < 300; n++) seen.add(ambientLine({ wanted: true, rain: true, night: true }));
+    assert.ok([...seen].some((l) => l.includes('המשטרה')), 'mentions the police');
+    assert.ok([...seen].some((l) => l.includes('הגשם')), 'mentions the rain');
+    assert.ok([...seen].some((l) => l.includes('בלילה')), 'mentions the night');
+    assert.ok(panicLine().length > 2);
 });

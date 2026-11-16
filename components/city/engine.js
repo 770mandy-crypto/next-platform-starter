@@ -15,7 +15,7 @@ import { CRATE_COLORS, WEAPONS, WEAPON_ORDER, rayWorld, shoot } from './combat.j
 import { createBots, hurtBot, updateBot } from './bots.js';
 import { STAGES, addCash, applyEvent, currentStage, heliUnlocked, initialProgress, loadProgress, saveProgress, stageView } from './progress.js';
 import { clearWanted, createForce, escapeTime, hitOfficer, raiseWanted, reportGunfire, updateForce } from './police.js';
-import { AMBIENT_LINES, CITIZENS } from './dialog.js';
+import { CITIZENS, ambientLine, panicLine } from './dialog.js';
 import { instancedBoxes, makeBoat, makeCar, makeHeli, makeHuman, makeSafe, makeShip, makeSign, setGun, swingHuman, waterNormals, windowTextures } from './models.js';
 
 const SKY_KEYS = [
@@ -363,7 +363,7 @@ export function createGame(container, bubbleLayer, cb = {}) {
         safe.position.set(biz.safe.x, PAD_H, biz.safe.z);
         safe.rotation.y = Math.atan2(b.cx - biz.safe.x, b.cz - biz.safe.z);
         scene.add(safe);
-        return { biz, safe, robbedUntil: 0 };
+        return { biz, safe, sign, robbedUntil: 0 };
     });
     {
         const decor = [];
@@ -404,7 +404,7 @@ export function createGame(container, bubbleLayer, cb = {}) {
         bubble.className = 'citizen-world-bubble';
         bubble.style.display = 'none';
         bubbleLayer.appendChild(bubble);
-        return { id: n, ...info, block, p: rand() * 124, dir: rand() < 0.5 ? 1 : -1, speed: 1.2 + rand() * 0.9, pause: 0, phase: rand() * 6, mesh, bubble, bubbleTime: 0, x: 0, z: 0 };
+        return { id: n, panic: 0, ...info, block, p: rand() * 124, dir: rand() < 0.5 ? 1 : -1, speed: 1.2 + rand() * 0.9, pause: 0, phase: rand() * 6, mesh, bubble, bubbleTime: 0, x: 0, z: 0 };
     });
 
     // --- state ---------------------------------------------------------------
@@ -849,12 +849,20 @@ export function createGame(container, bubbleLayer, cb = {}) {
     }
 
     function updateCitizens(dt) {
+        // Shots and chases make the people close by run and shout.
+        const danger = force.level > 0 || clock - (noise?.time ?? -99) < 3;
         for (const c of citizens) {
+            if (c.panic > 0) c.panic -= dt;
+            if (danger && c.panic <= 0 && chattingId !== c.id && Math.hypot(c.x - player.x, c.z - player.z) < 28) {
+                c.panic = 4;
+                c.bubble.textContent = panicLine();
+                c.bubbleTime = 2.5;
+            }
             const talking = chattingId === c.id;
             if (talking) c.mesh.rotation.y = Math.atan2(player.x - c.x, player.z - c.z);
             else if (c.pause > 0) c.pause -= dt;
             else {
-                c.p = (c.p + c.dir * c.speed * dt + 124) % 124;
+                c.p = (c.p + c.dir * c.speed * (c.panic > 0 ? 3.2 : 1) * dt + 124) % 124;
                 c.phase += dt * c.speed * 5;
                 if (rand() < dt * 0.04) c.pause = 1.5 + rand() * 3;
                 if (rand() < dt * 0.015) c.dir *= -1;
@@ -877,7 +885,7 @@ export function createGame(container, bubbleLayer, cb = {}) {
             const near = citizens.filter((c) => c.bubbleTime <= 0 && c.id !== chattingId && Math.hypot(c.x - player.x, c.z - player.z) < 32);
             if (near.length) {
                 const c = near[Math.floor(rand() * near.length)];
-                c.bubble.textContent = AMBIENT_LINES[Math.floor(rand() * AMBIENT_LINES.length)];
+                c.bubble.textContent = ambientLine({ wanted: force.level > 0, rain: env.weather === 'rain', night: env.hour < 6 || env.hour > 19 });
                 c.bubbleTime = 3.6;
             }
         }
@@ -930,6 +938,7 @@ export function createGame(container, bubbleLayer, cb = {}) {
         const night = 1 - day;
         for (const m of glowMats) m.emissiveIntensity = night * 2.6;
         bulbMat.emissiveIntensity = night * 5;
+        for (const s0 of safes) s0.sign.material.emissiveIntensity = 0.3 + night * 1.1;
         beaconMat.emissiveIntensity = 0.4 + night * 2;
         beacon.rotation.y += dt * 0.8;
         ripples.offset.set(clock * 0.012, clock * 0.02);

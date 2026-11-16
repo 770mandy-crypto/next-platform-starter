@@ -35,6 +35,18 @@ export const AMBIENT_LINES = [
 
 const pick = (list) => list[Math.floor(Math.random() * list.length)];
 
+/** A small talk line that fits what is going on in the city right now. */
+export function ambientLine({ wanted = false, rain = false, night = false } = {}) {
+    const pool = [...AMBIENT_LINES];
+    if (wanted) pool.push('שמעתם? המשטרה במרדף!', 'אל תסתובבו ליד הבנקים הערב.', 'אני לא פותח את הדלת עד שזה ייגמר.');
+    if (rain) pool.push('הגשם הזה לא נגמר.', 'מישהו ראה את המטריה שלי?');
+    if (night) pool.push('בלילה העיר נראית אחרת לגמרי.', 'החלונות הדולקים מספרים סיפורים.');
+    return pick(pool);
+}
+
+/** What a citizen shouts when shots or a chase come close. */
+export const panicLine = () => pick(['!בורחים', 'מה קורה?!', 'הצילו!', 'לברוח!']);
+
 const INTENTS = [
     {
         test: /שלום|היי|הי |אהלן|בוקר טוב|ערב טוב|מה נשמע|מה שלומך/,
