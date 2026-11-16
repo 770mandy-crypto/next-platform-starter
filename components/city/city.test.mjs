@@ -7,7 +7,8 @@ import {
     resolveSolids, rng, stepActor, weaponForLevel
 } from './world.js';
 import { WEAPONS, WEAPON_ORDER, lineClear, rayActor, rayWorld, shoot } from './combat.js';
-import { STAGES, applyEvent, currentStage, initialProgress, loadProgress, saveProgress, stageView } from './progress.js';
+import { STAGES, applyEvent, currentStage, heliUnlocked, initialProgress, loadProgress, saveProgress, stageView } from './progress.js';
+import { checkAdminCode } from './admin.js';
 import { botLoadout, createBot, createBots, hurtBot, steerPoint, updateBot } from './bots.js';
 import { CITIZENS, greeting, replyFor } from './dialog.js';
 import { clearWanted, createForce, driveCar, escapeTime, hitOfficer, hostile, raiseWanted, reportGunfire, updateForce } from './police.js';
@@ -126,15 +127,17 @@ test('bullets stop at walls and floors, and hit actors', () => {
     for (const id of WEAPON_ORDER) assert.ok(WEAPONS[id].dmg > 0 && WEAPONS[id].mag > 0 && WEAPONS[id].rate > 0);
 });
 
-test('stages unlock weapons, cars and boats in order', () => {
+test('stages unlock weapons, boats, the helicopter and cash in order', () => {
     let s = initialProgress();
     const fire = (event, value, bots = true) => { const r = applyEvent(s, event, value, bots); s = r.state; return r.completed; };
+    assert.equal(heliUnlocked(s), false, 'no helicopter during stage 1');
     assert.equal(fire('floor', 9), null, 'wrong event does nothing');
     assert.ok(fire('summit', 1));
     assert.ok(s.weapons.includes('smg'));
+    assert.ok(heliUnlocked(s), 'helicopter from stage 2');
     assert.equal(fire('floor', 4), null);
     assert.ok(fire('floor', 5));
-    assert.deepEqual(s.cars, ['sport']);
+    assert.equal(s.cash, 5000);
     for (let n = 0; n < 4; n++) assert.equal(fire('crate'), null);
     assert.equal(stageView(s, true).progress, 4);
     assert.ok(fire('crate'));
@@ -145,24 +148,22 @@ test('stages unlock weapons, cars and boats in order', () => {
     assert.ok(fire('sail', 5));
     assert.deepEqual(s.boats, ['motor', 'speed']);
     assert.ok(fire('drive', 1000));
-    assert.deepEqual(s.cars, ['sport', 'jeep']);
+    assert.equal(s.cash, 15000);
     assert.ok(fire('floor', 20));
-    assert.equal(currentStage(s, true).event, 'kill');
-    assert.equal(currentStage(s, false).event, 'crate', 'no-bots mode swaps the last stage');
-    for (let n = 0; n < 9; n++) assert.equal(fire('kill'), null);
-    assert.ok(fire('kill'));
+    assert.equal(currentStage(s, true).event, 'crate');
+    for (let n = 0; n < 19; n++) assert.equal(fire('crate'), null);
+    assert.ok(fire('crate'));
     assert.deepEqual(s.weapons, ['pistol', 'smg', 'shotgun', 'sniper', 'rifle']);
     for (let n = 0; n < 2; n++) assert.equal(fire('heist'), null);
     assert.ok(fire('heist'));
-    assert.deepEqual(s.cars, ['sport', 'jeep', 'super']);
+    assert.equal(s.cash, 35000);
     assert.equal(fire('escape', 2), null, 'a two-star escape is not enough');
-    const cash = s.cash;
     assert.ok(fire('escape', 3));
-    assert.equal(s.cash, cash + 25000, 'cash bonus');
+    assert.equal(s.cash, 60000, 'cash bonus');
     assert.equal(s.heists, 3);
     assert.equal(s.stage, STAGES.length);
     assert.ok(stageView(s, true).done);
-    assert.equal(s.kills, 10);
+    assert.deepEqual(s.cars, [], 'cars are free, not rewards');
 });
 
 test('progress survives storage, and bad storage is ignored', () => {
@@ -271,7 +272,8 @@ test('citizens always have something to say', () => {
 });
 
 test('businesses: a safe in the back of the ground floor, reachable and named', () => {
-    assert.equal(world.businesses.length, 22);
+    assert.equal(world.businesses.length, 44, 'a business in every building');
+    assert.equal(new Set(world.businesses.map((b) => b.name)).size, 44, 'every business has its own name');
     assert.deepEqual(new Set(world.businesses.map((b) => b.type)), new Set(BUSINESS_TYPES.map((t) => t.id)));
     for (const biz of world.businesses) {
         const b = world.buildings[biz.building];
@@ -313,7 +315,8 @@ test('police cars drive the street grid to a crime scene', () => {
 
 test('a robbery brings the police; at one star they come to arrest, not to shoot', () => {
     const force = createForce();
-    assert.equal(force.cars.length, 2, 'two patrol cars');
+    assert.equal(force.cars.length, 5, 'five patrol cars');
+    assert.equal(force.officers.filter((o) => o.beat).length, 4, 'four officers on the beat');
     const player = { x: 22, y: 0, z: 0, dead: false, speed: 0, onFoot: true, vehicleSpeed: 0 };
     raiseWanted(force, 1);
     assert.equal(hostile(force), false);
@@ -341,7 +344,7 @@ test('staying out of sight long enough loses the police', () => {
     assert.deepEqual(log.escapes, [2]);
     assert.equal(force.level, 0);
     runForce(force, player, 20);
-    assert.ok(force.cars.every((c) => c.patrol || c.parked) && force.officers.length === 0, 'units stand down');
+    assert.ok(force.cars.every((c) => c.patrol || c.parked) && force.officers.every((o) => o.beat), 'units stand down');
 });
 
 test('shooting at the police makes it worse; gunfire near a patrol earns a star', () => {
@@ -358,4 +361,24 @@ test('shooting at the police makes it worse; gunfire near a patrol earns a star'
     clearWanted(force);
     assert.equal(force.level, 0);
     assert.ok(!force.aggressive);
+});
+
+test('with no crime the police patrol: cars drive, beat officers walk, nobody shoots', () => {
+    const force = createForce();
+    const start = force.cars.map((c) => ({ x: c.x, z: c.z }));
+    const feet = force.officers.map((o) => ({ x: o.x, z: o.z }));
+    const log = runForce(force, { x: 0, y: 0, z: 20.5, dead: false, speed: 0, onFoot: true, vehicleSpeed: 0 }, 30);
+    assert.equal(log.shots + log.arrests, 0);
+    assert.equal(force.level, 0);
+    assert.equal(force.cars.length, 5);
+    assert.ok(force.cars.every((c, n) => Math.hypot(c.x - start[n].x, c.z - start[n].z) > 20), 'patrol cars moved');
+    assert.ok(force.officers.every((o, n) => Math.hypot(o.x - feet[n].x, o.z - feet[n].z) > 10), 'beat officers walked');
+    assert.ok(force.cars.some((c) => Math.hypot(start[force.cars.indexOf(c)].x, start[force.cars.indexOf(c)].z - 20.5) < 40), 'a patrol car starts near the spawn point');
+});
+
+test('the admin code is checked against a digest', async () => {
+    assert.equal(await checkAdminCode('wrong'), false);
+    assert.equal(await checkAdminCode(''), false);
+    assert.equal(await checkAdminCode(undefined), false);
+    if (process.env.ADMIN_CODE) assert.equal(await checkAdminCode(` ${process.env.ADMIN_CODE} `), true);
 });

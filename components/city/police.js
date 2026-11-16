@@ -10,7 +10,9 @@ export const MAX_WANTED = 5;
 const OFFICERS_FOR = [0, 2, 4, 6, 8, 10];
 const CHASE_CARS_FOR = [0, 1, 2, 3, 3, 4];
 const OFFICER_WEAPON = ['pistol', 'pistol', 'pistol', 'smg', 'rifle', 'rifle'];
-const PATROL_SPOTS = [[2, 5], [6, 1]];
+const PATROL_SPOTS = [[4, 4], [2, 5], [6, 1], [1, 2], [5, 6]];
+const BEAT_SPOTS = [[3, 4], [4, 3], [2, 3], [5, 4]];
+const RESPONDERS = [0, 1, 2, 3, 4, 5];
 
 /** Seconds out of every officer's sight that it takes to lose the police. */
 export const escapeTime = (level) => 8 + level * 4;
@@ -31,9 +33,11 @@ function newCar(force, x, z, yaw, patrol) {
     };
 }
 
-export function createForce(patrols = PATROL_SPOTS.length) {
-    const force = { level: 0, unseen: 0, seen: false, seeT: 0, aggressive: false, cars: [], officers: [], spawnT: 0, nextId: 1, arrestT: 0, ramT: 0 };
+export function createForce(patrols = PATROL_SPOTS.length, rand = Math.random) {
+    const force = { level: 0, unseen: 0, seen: false, seeT: 0, aggressive: false, cars: [], officers: [], spawnT: 0, nextId: 1, arrestT: 0, ramT: 0, patrols, beats: patrols > 0 ? BEAT_SPOTS.length : 0 };
     for (const [i, j] of PATROL_SPOTS.slice(0, patrols)) force.cars.push(newCar(force, LINES[i], LINES[j], 0, true));
+    // Officers on the beat walk the streets all the time, so the police are always around.
+    for (const [i, j] of BEAT_SPOTS.slice(0, force.beats)) force.officers.push(Object.assign(createOfficer(force, LINES[i] + 3, LINES[j] + 3, 0, rand), { beat: true }));
     return force;
 }
 
@@ -160,8 +164,9 @@ export function updateForce(force, dt, ctx) {
     if (chasing) {
         force.spawnT -= dt;
         const crewedChase = force.cars.filter((c) => c.crew > 0 && !c.patrol).length;
-        const people = force.officers.filter((o) => !o.dead).length + force.cars.filter((c) => c.crew > 0).length * 2;
-        if (force.spawnT <= 0 && people < OFFICERS_FOR[force.level] && crewedChase < CHASE_CARS_FOR[force.level]) {
+        const crewed = force.cars.filter((c) => c.crew > 0).length;
+        const people = force.officers.filter((o) => !o.dead).length + Math.min(crewed, RESPONDERS[force.level]) * 2;
+        if (force.spawnT <= 0 && people < OFFICERS_FOR[force.level] && crewedChase < CHASE_CARS_FOR[force.level] && force.cars.length < 10) {
             const p = spawnPoint(world, player, rand);
             force.cars.push(newCar(force, p.x, p.z, Math.atan2(player.x - p.x, player.z - p.z), false));
             force.spawnT = 3.5;
@@ -170,13 +175,16 @@ export function updateForce(force, dt, ctx) {
 
     // Cars: chase, patrol, or stand parked.
     const goal = { x: player.x, y: 0, z: Math.min(player.z, SEA_Z - 2) };
+    // Only the nearest cars answer the call; the rest keep patrolling.
+    const crews = force.cars.filter((c) => c.crew > 0 && !c.parked).sort((a, b) => dist2(a, goal) - dist2(b, goal));
+    crews.forEach((c, n) => { c.responding = chasing && n < RESPONDERS[force.level]; });
     for (const car of force.cars) {
         if (car.parked) {
             car.emptyT += dt;
             continue;
         }
         if (car.crew <= 0) continue;
-        if (chasing) {
+        if (car.responding) {
             const d = dist2(car, goal);
             const canStop = player.onFoot || (player.vehicleSpeed ?? 0) < 5 || player.z > SEA_Z;
             if (d < 15 && canStop) {
@@ -206,8 +214,9 @@ export function updateForce(force, dt, ctx) {
             continue;
         }
         if (!chasing) {
-            o.leaveT = (o.leaveT ?? 6) - dt;
             o.sees = false;
+            if (o.beat) updateBot(o, dt, { world, target: { x: o.x, y: o.y, z: o.z, dead: true, speed: 0 }, time, rand, stage: 0, hostile: false });
+            else o.leaveT = (o.leaveT ?? 6) - dt;
             continue;
         }
         o.leaveT = null;
@@ -219,13 +228,20 @@ export function updateForce(force, dt, ctx) {
     }
     force.officers = force.officers.filter((o) => !(o.dead && o.removeT <= 0) && !(o.leaveT !== null && o.leaveT <= 0));
 
-    // Back to normal once the chase is over: two patrol cars stay on duty.
+    // Back to normal once the chase is over: patrol cars and beat officers are topped up.
     if (!chasing) {
-        let patrols = force.cars.filter((c) => c.crew > 0 && c.patrol).length;
-        for (const c of force.cars) {
-            if (c.crew > 0 && !c.patrol && patrols < PATROL_SPOTS.length) { c.patrol = true; c.goal = null; patrols++; }
+        force.spawnT -= dt;
+        const crewedCars = force.cars.filter((c) => c.crew > 0);
+        for (const c of crewedCars) c.patrol = true;
+        if (force.spawnT <= 0) {
+            const p = spawnPoint(world, player, rand);
+            if (crewedCars.length < force.patrols) { force.cars.push(newCar(force, p.x, p.z, 0, true)); force.spawnT = 4; }
+            else if (force.officers.filter((o) => o.beat && !o.dead).length < force.beats) {
+                force.officers.push(Object.assign(createOfficer(force, p.x + 3, p.z + 3, 0, rand), { beat: true }));
+                force.spawnT = 4;
+            }
         }
-        force.cars = force.cars.filter((c) => (c.crew > 0 && c.patrol) || (c.parked && c.emptyT < 12));
+        force.cars = force.cars.filter((c) => c.crew > 0 || (c.parked && c.emptyT < 12));
     }
     force.cars = force.cars.filter((c) => !c.parked || Math.hypot(c.x - player.x, c.z - player.z) < 160);
 

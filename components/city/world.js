@@ -152,8 +152,8 @@ export function generateWorld(seed = 11) {
         b.door = { x: b.cx, half: 1.2, h: 2.6, zOut: b.z1 + 1.6, zIn: b.z1 - 1.6 };
         b.lift = { x: b.x0 + 1.9, z: b.z0 + 1.9 };
         b.business = null;
-        if (b.index % 2 === 0) {
-            const type = BUSINESS_TYPES[(b.index / 2) % BUSINESS_TYPES.length];
+        {
+            const type = BUSINESS_TYPES[b.index % BUSINESS_TYPES.length];
             const safe = { x: b.x1 - 1.3, z: b.z0 + 1.3 };
             b.business = businesses.length;
             businesses.push({ id: businesses.length, building: b.index, type: type.id, name: `${type.name} ${b.name.split(' ').pop()}`, safe, y: PAD_H, crack: type.crack, heat: type.heat, cash: type.cash, color: type.color, label: type.name });

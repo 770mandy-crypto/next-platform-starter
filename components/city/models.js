@@ -296,3 +296,40 @@ export function makeSign(text, color) {
     const sign = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 1.3), new THREE.MeshStandardMaterial({ map: tex, emissiveMap: tex, emissive: '#ffffff', emissiveIntensity: 0.35, roughness: 0.5 }));
     return sign;
 }
+
+/** A cargo ship: long hull, bridge and funnel at the stern, containers on deck. */
+export function makeShip(color) {
+    const g = new THREE.Group();
+    const len = 26, wid = 7;
+    const shape = new THREE.Shape();
+    shape.moveTo(-wid / 2, -len / 2);
+    shape.lineTo(wid / 2, -len / 2);
+    shape.lineTo(wid / 2, len * 0.22);
+    shape.quadraticCurveTo(wid * 0.4, len * 0.42, 0, len / 2);
+    shape.quadraticCurveTo(-wid * 0.4, len * 0.42, -wid / 2, len * 0.22);
+    shape.closePath();
+    const hullGeo = new THREE.ExtrudeGeometry(shape, { depth: 3.2, bevelEnabled: false });
+    hullGeo.rotateX(Math.PI / 2);
+    const hull = new THREE.Mesh(hullGeo, new THREE.MeshPhysicalMaterial({ color, roughness: 0.45, metalness: 0.4, clearcoat: 0.4 }));
+    hull.position.y = 2.2;
+    hull.castShadow = true;
+    g.add(hull);
+    const deckGeo = new THREE.ShapeGeometry(shape);
+    deckGeo.rotateX(Math.PI / 2);
+    const deck = new THREE.Mesh(deckGeo, mat('#8c8f8a', { side: THREE.DoubleSide }));
+    deck.position.y = 2.22;
+    g.add(deck);
+    const white = mat('#ecebe4', { roughness: 0.5 });
+    const glass = mat('#16242e', { roughness: 0.1, metalness: 0.8 });
+    put(g, new THREE.BoxGeometry(5.6, 2.6, 5), white, 0, 3.5, -8.5);
+    put(g, new THREE.BoxGeometry(5, 2, 3.6), white, 0, 5.8, -8.8);
+    put(g, new THREE.BoxGeometry(5.05, 0.8, 0.1), glass, 0, 6.1, -6.97, false);
+    put(g, new THREE.BoxGeometry(5.65, 0.6, 0.1), glass, 0, 3.9, -5.97, false);
+    put(g, new THREE.CylinderGeometry(0.7, 0.9, 2.6, 16), mat('#dfc184', { metalness: 0.6, roughness: 0.4 }), 0, 8.1, -9.6);
+    put(g, new THREE.CylinderGeometry(0.72, 0.72, 0.5, 16), mat('#22262a'), 0, 9.2, -9.6);
+    put(g, new THREE.CylinderGeometry(0.06, 0.08, 4, 8), mat('#3b4348'), 0, 4.2, 9.5);
+    const colors = ['#b8443a', '#3d6f9e', '#d9b44a', '#4f8a5b', '#d97b3a'];
+    for (let n = 0; n < 9; n++) put(g, new THREE.BoxGeometry(1.9, 1.5, 3.8), mat(colors[n % 5], { roughness: 0.7 }), ((n % 3) - 1) * 2.05, 3, -2.5 + Math.floor(n / 3) * 4.1);
+    for (let n = 0; n < 3; n++) put(g, new THREE.BoxGeometry(1.9, 1.5, 3.8), mat(colors[(n + 2) % 5], { roughness: 0.7 }), (n - 1) * 2.05, 4.55, -2.5 + (n % 2) * 4.1);
+    return g;
+}

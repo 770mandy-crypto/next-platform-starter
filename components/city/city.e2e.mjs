@@ -49,12 +49,13 @@ async function test(name, fn, opts = {}) {
         vehicles: () => page.evaluate(() => window.__cityGame.debug.vehicles()),
         text: (sel) => page.locator(sel).first().innerText(),
         visible: (sel) => page.locator(sel).first().isVisible(),
-        open: async (bots = true, fresh = true) => {
+        open: async (bots = false, fresh = true) => {
             await page.goto(`${BASE}/city`, { waitUntil: 'networkidle', timeout: 120000 });
             if (fresh) await page.evaluate(() => localStorage.clear());
-            await page.waitForSelector('.start-bots');
-            await page.click(bots ? '.start-bots' : '.start-peace');
+            await page.waitForSelector('.start-play');
+            await page.click('.start-play');
             await page.waitForSelector('.hud-loc');
+            if (bots) await page.evaluate(() => window.__cityGame.setBots(true));
             // Logic runs on test time from here on; drawing frames in a software
             // GPU would only slow the run down.
             if (!opts.render) await page.evaluate(() => window.__cityGame.debug.pause(true));
@@ -83,42 +84,54 @@ await test('route /city serves the game and the start screen buttons exist', asy
     assert(res.status() === 200, `status ${res.status()}`);
     assert((await t.page.title()).includes('עיר המעלות'), 'title');
     assert(await t.page.locator('html').getAttribute('lang') !== null, 'lang');
-    assert(await t.visible('.start-bots'), 'bots button');
-    assert(await t.visible('.start-peace'), 'peace button');
+    assert(await t.visible('.start-play'), 'play button');
+    assert(await t.visible('.start-admin'), 'admin button');
     assert((await t.text('.start-card h1')) === 'עיר המעלות', 'heading');
     assert(await t.page.locator('canvas').count() === 1, 'one canvas');
 });
 
-await test('start with bots: HUD, 8 bots, weapon and stage panels', async (t) => {
+await test('teammates stay close, never hurt the player and fight the police', async (t) => {
     await t.open(true);
-    const s = await t.snap();
-    assert(s.bots && s.botList.length === 8, `bots ${s.botList.length}`);
-    for (const sel of ['.hud-loc', '.climate-panel', '.hud-help', '.stage-panel', '.status-panel', '.crosshair']) assert(await t.visible(sel), `${sel} visible`);
+    let s = await t.snap();
+    assert(s.bots && s.botList.length === 4, `teammates ${s.botList.length}`);
+    assert(s.botList.every((b) => Math.hypot(b.x - s.player.x, b.z - s.player.z) < 8), 'they start next to the player');
+    for (const sel of ['.hud-loc', '.climate-panel', '.hud-help', '.stage-panel', '.status-panel', '.crosshair', '.score-row']) assert(await t.visible(sel), `${sel} visible`);
     assert((await t.text('.stage-title')).includes('גבעת המדרגות'), 'first stage');
     assert((await t.text('.weapon-row strong')) === 'אקדח', 'starts with a pistol');
-    assert(await t.visible('.score-row'), 'score row with bots');
+    await t.adv(15);
+    assert((await t.snap()).player.hp === 100, 'teammates never shoot the player');
+    await t.tp(22, 0, 100);
+    await t.adv(25);
+    s = await t.snap();
+    assert(s.botList.some((b) => Math.hypot(b.x - 22, b.z - 100) < 25), 'they follow the player');
+    await t.page.evaluate(() => { const d = window.__cityGame.debug; d.wanted(3); d.moveOfficer(0, 22, 0, 84); });
+    let fought = false;
+    for (let n = 0; n < 20 && !fought; n++) {
+        await t.adv(1);
+        fought = (await t.snap()).police.officers.some((o) => o.dead || o.hp < 100);
+    }
+    assert(fought, 'teammates shot at the police');
 });
-
 await test('start without bots: no opponents', async (t) => {
     await t.open(false);
     const s = await t.snap();
     assert(!s.bots && s.botList.length === 0, 'no bots');
     await t.adv(20);
     assert((await t.snap()).player.hp === 100, 'nobody hurts the player');
-    assert(!(await t.page.locator('.score-row').count()), 'no score row');
 });
 
-await test('menu: toggle bots, reset progress, close', async (t) => {
-    await t.open(true);
+await test('menu: teammates on and off, reset progress, close', async (t) => {
+    await t.open(false);
     await t.page.click('.menu-btn');
     assert(await t.visible('.game-menu'), 'menu opens');
     assert(!(await t.page.locator('.crosshair').count()), 'crosshair hidden while menu is open');
+    assert(!(await t.page.locator('.admin-skip').count()), 'no admin buttons for a regular player');
+    assert((await t.text('.bots-toggle')) === 'צירוף חברי צוות', 'teammates are off by default');
     await t.page.click('.bots-toggle');
-    await until(async () => !(await t.snap()).bots, 'bots off');
-    assert((await t.snap()).botList.length === 0, 'bot list emptied');
-    assert((await t.text('.bots-toggle')) === 'הפעלת הבוטים', 'label flips');
+    await until(async () => (await t.snap()).botList.length === 4, 'teammates join');
+    assert((await t.text('.bots-toggle')) === 'שחרור חברי הצוות', 'label flips');
     await t.page.click('.bots-toggle');
-    await until(async () => (await t.snap()).botList.length === 8, 'bots back on');
+    await until(async () => (await t.snap()).botList.length === 0, 'teammates leave');
     await t.emit('summit');
     assert((await t.snap()).progress.stage === 1, 'stage advanced');
     await t.page.click('.reset-progress');
@@ -127,7 +140,6 @@ await test('menu: toggle bots, reset progress, close', async (t) => {
     await t.page.click('.menu-close');
     assert(!(await t.page.locator('.game-menu').count()), 'menu closes');
 });
-
 await test('climate panel: weather, time slider, cycle, collapse and help toggle', async (t) => {
     await t.open(false);
     for (const [value, label] of [['cloudy', 'מעונן'], ['rain', 'גשום'], ['fog', 'ערפל'], ['clear', 'בהיר']]) {
@@ -210,59 +222,45 @@ await test('elevator to floor 20 and the roof, with the floor buttons', async (t
     assert(!(await t.page.locator('.elevator-dialog').count()), 'cancel closes');
 });
 
-await test('every stage in order unlocks weapons, cars and boats; progress survives reload', async (t) => {
-    await t.open(true);
+await test('every stage in order: weapons, boats, helicopter and cash; progress survives reload', async (t) => {
+    await t.open(false);
     await t.tp(hill.cx, hill.top, hill.cz);
     await t.adv(0.5);
     await until(async () => (await t.snap()).progress.stage === 1, 'summit stage');
     await until(async () => (await t.page.locator('.weapon-slot').count()) === 2, 'submachine gun slot');
-    assert((await t.snap()).progress.weapons.includes('smg'), 'smg unlocked');
     assert(await t.visible('.game-toast'), 'reward toast');
     await t.tp(tower.lift.x, PAD_H, tower.lift.z);
     await t.adv(0.4);
     await t.press('KeyE');
     await t.page.getByRole('button', { name: '5', exact: true }).click();
     await t.adv(2);
-    await until(async () => (await t.snap()).progress.cars.includes('sport'), 'sport car unlocked on floor 5');
-    const crates = world.pickups.filter((p) => p.building === tower.index && p.level < 6);
-    let n = 0;
-    for (const p of crates) {
-        if (n >= 5) break;
+    await until(async () => (await t.snap()).progress.stage === 2, 'floor 5 stage');
+    assert((await t.snap()).progress.cash === 5000, 'cash reward');
+    for (const p of world.pickups.filter((c) => c.building === tower.index && c.level < 6).slice(0, 5)) {
         await t.tp(p.x, p.y, p.z);
         await t.adv(0.3);
-        n++;
     }
     await until(async () => (await t.snap()).progress.boats.includes('motor'), 'motor boat unlocked after 5 crates');
-    assert((await t.snap()).progress.stage === 3, 'on the roof stage');
     await t.tp(tower.lift.x, PAD_H, tower.lift.z);
-    await t.emit('roof', 15);
-    await t.emit('sail', 300);
-    await t.emit('drive', 1000);
-    await t.emit('floor', 20);
+    for (const [e, v] of [['roof', 15], ['sail', 300], ['drive', 1000], ['floor', 20]]) await t.emit(e, v);
     const mid = (await t.snap()).progress;
     assert(['pistol', 'smg', 'shotgun', 'sniper'].every((w) => mid.weapons.includes(w)), `weapons ${mid.weapons}`);
-    assert(mid.boats.join() === 'motor,speed' && mid.cars.join() === 'sport,jeep', `vehicles ${mid.cars} ${mid.boats}`);
-    assert((await t.text('.stage-title')).includes('10 בוטים'), 'final stage asks for kills');
-    for (let k = 0; k < 10; k++) await t.emit('kill');
-    await until(async () => (await t.text('.stage-title')).includes('כספות'), 'robbery stage next');
-    const done = (await t.snap()).progress;
-    assert(done.weapons.includes('rifle') && done.stage === 8, 'assault rifle after the bot stage');
-    await t.page.waitForTimeout(3500);
+    assert(mid.boats.join() === 'motor,speed' && mid.cash === 15000, `boats ${mid.boats}, cash ${mid.cash}`);
+    await until(async () => (await t.text('.stage-title')).includes('20 ארגזי'), 'crate stage');
+    for (let k = 0; k < 20; k++) await t.emit('crate');
+    await until(async () => (await t.text('.stage-title')).includes('כספות'), 'robbery stage');
+    assert((await t.snap()).progress.weapons.includes('rifle'), 'assault rifle');
+    for (let k = 0; k < 3; k++) await t.emit('heist');
+    await t.emit('escape', 3);
+    await until(async () => (await t.text('.stage-title')).includes('כל השלבים'), 'all stages done');
+    assert((await t.snap()).progress.cash === 60000, 'all cash rewards');
+    await t.page.waitForTimeout(500);
     await t.page.reload({ waitUntil: 'networkidle' });
-    await t.page.click('.start-bots');
+    await t.page.click('.start-play');
     await t.page.waitForSelector('.hud-loc');
     const saved = (await t.snap()).progress;
-    assert(saved.stage === 8 && saved.weapons.length === 5, `progress restored: stage ${saved.stage}`);
+    assert(saved.stage === 10 && saved.weapons.length === 5, `progress restored: stage ${saved.stage}`);
 });
-
-await test('the last stage swaps to crates when playing without bots', async (t) => {
-    await t.open(false);
-    for (const [e, v] of [['summit', 1], ['floor', 5], ['crate', 1], ['crate', 1], ['crate', 1], ['crate', 1], ['crate', 1], ['roof', 15], ['sail', 300], ['drive', 1000], ['floor', 20]]) await t.emit(e, v);
-    await until(async () => (await t.text('.stage-title')).includes('20 ארגזי ציוד'), 'peaceful last stage');
-    for (let k = 0; k < 20; k++) await t.emit('crate');
-    await until(async () => (await t.snap()).progress.weapons.includes('rifle'), 'rifle from crates');
-});
-
 await test('weapons: switch by key and button, fire, ammo, reload', async (t) => {
     await t.open(false);
     await t.emit('summit');
@@ -286,23 +284,24 @@ await test('weapons: switch by key and button, fire, ammo, reload', async (t) =>
     await t.adv(0.5);
 });
 
-await test('shooting a bot hurts it, headshots count, kills are scored', async (t) => {
-    await t.open(true);
-    await t.page.evaluate(() => { const d = window.__cityGame.debug; d.teleport(22, 0, 0); [1, 2, 3, 4, 5, 6, 7].forEach((n) => d.moveBot(n, -150 + n * 20, 0, -150)); d.moveBot(0, 22, 0, -14); });
+await test('shooting at an officer hurts them and raises the wanted level', async (t) => {
+    await t.open(false);
     const result = await t.page.evaluate(() => {
         const g = window.__cityGame, d = g.debug;
-        let shots = 0;
-        // Put the crosshair on the bot: the camera looks over the right shoulder.
+        d.teleport(22, 0, 0);
+        d.moveOfficer(0, 22, 0, -14);
+        // Put the crosshair on the officer: the camera looks over the right shoulder.
         const aim = () => {
-            const s = g.snapshot(), b = s.botList[0];
+            const s = g.snapshot(), b = s.police.officers[0];
             let yaw = Math.atan2(-(b.x - s.player.x), -(b.z - s.player.z));
             const sx = s.player.x + Math.cos(yaw) * 0.55, sz = s.player.z - Math.sin(yaw) * 0.55;
             yaw = Math.atan2(-(b.x - sx), -(b.z - sz));
             d.look(yaw, Math.atan2(0.35, Math.hypot(b.x - sx, b.z - sz)));
         };
-        aim();
-        d.advance(1);
-        for (let n = 0; n < 60 && !g.snapshot().botList[0].dead; n++) {
+        let shots = 0;
+        for (let n = 0; n < 60; n++) {
+            const o = g.snapshot().police.officers[0];
+            if (o.dead || o.hp < 100) break;
             aim();
             d.advance(0.05);
             g.setFire(true);
@@ -312,21 +311,19 @@ await test('shooting a bot hurts it, headshots count, kills are scored', async (
             shots++;
         }
         const s = g.snapshot();
-        return { dead: s.botList[0].dead, hp: s.botList[0].hp, kills: s.progress.kills, ammo: s.player.mag, shots };
+        return { wanted: s.police.wanted, aggressive: s.police.aggressive, shots, hp: s.police.officers[0].hp };
     });
-    assert(result.dead && result.kills >= 1, `bot should be down: ${JSON.stringify(result)}`);
-    await until(async () => (await t.text('.score-row')).includes('1'), 'scoreboard shows the kill');
+    assert(result.wanted >= 2 && result.aggressive, `shooting police should escalate: ${JSON.stringify(result)}`);
+    await until(async () => t.visible('.wanted'), 'wanted stars shown');
 });
-
-await test('a bot in the open shoots back; dying respawns the player', async (t) => {
-    await t.open(true);
-    await t.page.evaluate(() => { const d = window.__cityGame.debug; d.teleport(22, 0, 0); [1, 2, 3, 4, 5, 6, 7].forEach((n) => d.moveBot(n, -250, 0, -250)); d.moveBot(0, 22, 0, -16); });
+await test('police open fire at three stars; dying respawns the player', async (t) => {
+    await t.open(false);
+    await t.page.evaluate(() => { const d = window.__cityGame.debug; d.teleport(22, 0, 0); d.wanted(3); d.moveOfficer(0, 22, 0, -16); });
     await t.adv(12);
     const hurt = await t.snap();
-    // A good shot may already have won the fight, so count deaths as hits too.
-    assert(hurt.player.hp < 100 || hurt.player.dead || hurt.progress.deaths > 0, `the bot never hit anything (hp ${hurt.player.hp})`);
-    await t.page.evaluate(() => { const d = window.__cityGame.debug; [0, 1, 2, 3, 4, 5, 6, 7].forEach((n) => d.moveBot(n, -250, 0, -250)); });
-    await t.adv(4);
+    assert(hurt.player.hp < 100 || hurt.progress.deaths > 0, `the police never hit anything (hp ${hurt.player.hp})`);
+    await t.page.evaluate(() => window.__cityGame.debug.clearWanted());
+    await t.adv(6);
     const deathsBefore = (await t.snap()).progress.deaths;
     await t.page.evaluate(() => window.__cityGame.debug.hurt(500));
     assert((await t.snap()).player.dead, 'dead');
@@ -336,38 +333,29 @@ await test('a bot in the open shoots back; dying respawns the player', async (t)
     assert(!back.player.dead && back.player.hp === 100 && Math.abs(back.player.z - 20.5) < 1, 'respawned at the start');
     assert(back.progress.deaths === deathsBefore + 1, 'death counted');
 });
-
-await test('a bot hunts the player through the door and up the elevator', async (t) => {
-    await t.open(true);
+await test('officers follow the player through the door and up the elevator', async (t) => {
+    await t.open(false);
     const lvl = 8;
     const b = world.buildings.find((x) => x.floors >= 12);
     await t.page.evaluate(([bx, bz, y, doorX, doorZ]) => {
         const d = window.__cityGame.debug;
         d.teleport(bx, y, bz);
-        [1, 2, 3, 4, 5, 6, 7].forEach((n) => d.moveBot(n, -280, 0, -280));
-        d.moveBot(0, doorX + 5, 0, doorZ + 6);
+        d.wanted(3);
+        d.moveOfficer(0, doorX + 5, 0, doorZ + 6);
     }, [b.cx + 2, b.cz + 1, levelY(b, lvl), b.door.x, b.door.zOut]);
     let reached = false;
-    for (let step = 0; step < 90 && !reached; step++) {
+    for (let step = 0; step < 40 && !reached; step++) {
         await t.adv(1);
         const s = await t.snap();
-        reached = s.botList[0].y >= levelY(b, lvl) - 0.5 || s.player.hp < 100;
+        reached = s.police.officers.some((o) => o.y >= levelY(b, lvl) - 0.5) || s.player.hp < 100;
     }
-    assert(reached, `bot got no further than y=${(await t.snap()).botList[0].y.toFixed(1)}`);
+    assert(reached, 'no officer made it up to the player');
 });
-
-await test('cars: locked until the stage, then driveable', async (t) => {
+await test('cars: every car is open from the first stage', async (t) => {
     await t.open(false);
-    const list = await t.vehicles();
-    const sport = list.find((v) => v.type === 'sport');
-    assert(sport && !sport.unlocked, 'sport car starts locked');
-    await t.tp(sport.x + 2.5, 0, sport.z);
-    await t.adv(0.4);
-    assert((await t.snap()).prompt === 'locked', 'locked prompt');
-    await t.press('KeyE');
-    await until(async () => (await t.text('.game-toast')).includes('נפתח'), 'locked toast');
-    assert((await t.snap()).mode === 'foot', 'did not get in');
-    const basic = list.find((v) => v.type === 'basic');
+    const cars = (await t.vehicles()).filter((v) => v.kind === 'car');
+    assert(cars.length === 11 && cars.every((v) => v.unlocked), 'all cars are unlocked at stage 1');
+    const basic = cars.find((v) => v.type === 'basic');
     await t.tp(basic.x + 2.5, 0, basic.z);
     await t.adv(0.4);
     assert((await t.snap()).prompt === 'car', 'car prompt');
@@ -380,38 +368,32 @@ await test('cars: locked until the stage, then driveable', async (t) => {
     await t.hold('KeyS', 4);
     await t.press('KeyE');
     assert((await t.snap()).mode === 'foot', 'got out');
-    await t.emit('summit');
-    await t.emit('floor', 5);
-    await until(async () => (await t.vehicles()).find((x) => x.type === 'sport').unlocked, 'sport unlocked');
-    const sp = (await t.vehicles()).find((x) => x.type === 'sport');
-    await t.tp(sp.x + 2.5, 0, sp.z);
+    const fast = cars.find((x) => x.type === 'super');
+    await t.tp(fast.x + 2.5, 0, fast.z);
     await t.adv(0.4);
     await t.press('KeyE');
-    assert((await t.snap()).vehicle?.type === 'sport', 'in the sport car');
-    await t.hold('KeyW', 3.5);
-    assert((await t.snap()).vehicle.speed > v.speed, 'the sport car is faster');
+    assert((await t.snap()).vehicle?.type === 'super', 'in the super car without finishing any stage');
+    await t.hold('KeyW', 3);
+    assert((await t.snap()).vehicle.speed > v.speed, 'the super car is faster');
 });
-
-await test('running a bot over with a car', async (t) => {
-    await t.open(true);
+await test('running an officer over with a car raises the wanted level', async (t) => {
+    await t.open(false);
     const basic = (await t.vehicles()).find((v) => v.type === 'basic');
-    await t.page.evaluate(([x, z]) => { const d = window.__cityGame.debug; d.teleport(x + 2.5, 0, z); [1, 2, 3, 4, 5, 6, 7].forEach((n) => d.moveBot(n, -250, 0, -250)); }, [basic.x, basic.z]);
+    await t.tp(basic.x + 2.5, 0, basic.z);
     await t.adv(0.4);
     await t.press('KeyE');
     assert((await t.snap()).mode === 'car', 'in the car');
-    // Get up to speed, then a bot steps out right in front of the car.
     await t.page.keyboard.down('KeyW');
     await t.adv(1.8);
     await t.page.evaluate(() => {
         const g = window.__cityGame, v = g.snapshot().vehicle;
-        g.debug.moveBot(0, v.x + 3.5, 0, v.z);
+        g.debug.moveOfficer(0, v.x + 3.5, 0, v.z);
         g.debug.advance(0.5);
     });
     await t.page.keyboard.up('KeyW');
     const s = await t.snap();
-    assert(s.progress.kills >= 1, `bot not run over (hp ${s.botList[0].hp})`);
+    assert(s.police.wanted >= 2, `officer not run over (wanted ${s.police.wanted})`);
 });
-
 await test('boats: locked, then sailing from the pier', async (t) => {
     await t.open(false);
     const boats = (await t.vehicles()).filter((v) => v.kind === 'boat');
@@ -432,7 +414,20 @@ await test('boats: locked, then sailing from the pier', async (t) => {
     await t.hold('KeyA', 2);
     await t.press('KeyE');
     assert((await t.snap()).mode === 'foot', 'left the boat');
-    assert((await t.text('.hud-loc-text')).length > 0, 'location');
+    // The ship waits at the end of the pier and is open from the start.
+    await t.tp(0, world.pier.top, world.pier.z1 - 1);
+    await t.adv(0.4);
+    assert((await t.snap()).prompt === 'boat' && (await t.text('.interaction-prompt')).includes('אונייה'), 'ship prompt');
+    await t.press('KeyE');
+    const ship = (await t.snap()).vehicle;
+    assert(ship?.type === 'ship', 'aboard the ship');
+    await t.hold('KeyW', 8);
+    const sailed = (await t.snap()).vehicle;
+    assert(sailed.speed > 4 && Math.hypot(sailed.x - ship.x, sailed.z - ship.z) > 15, `the ship sailed ${Math.hypot(sailed.x - ship.x, sailed.z - ship.z).toFixed(0)}m`);
+    assert((await t.text('.vehicle-hud')).includes('אונייה'), 'ship HUD');
+    await t.press('KeyE');
+    assert((await t.snap()).mode === 'foot', 'left the ship');
+    assert((await t.vehicles()).filter((x) => x.type === 'ship').length === 2, 'two ships at sea');
 });
 
 await test('swimming in the sea is possible and the beach lets you out', async (t) => {
@@ -452,7 +447,13 @@ await test('helicopter: take off, hover, land, get out', async (t) => {
     const h = (await t.snap()).heli;
     await t.tp(h.x + 2.5, PAD_H, h.z);
     await t.adv(0.4);
-    assert((await t.snap()).prompt === 'heli', 'heli prompt');
+    assert((await t.snap()).prompt === 'locked', 'the helicopter is locked during stage 1');
+    await t.press('KeyE');
+    await until(async () => (await t.text('.game-toast')).includes('שלב 1'), 'locked toast');
+    assert((await t.snap()).mode === 'foot', 'did not get in');
+    await t.emit('summit');
+    await t.adv(0.4);
+    assert((await t.snap()).prompt === 'heli', 'the helicopter opens at stage 2');
     await t.press('KeyE');
     assert((await t.snap()).mode === 'heli', 'in the helicopter');
     await t.hold('Space', 3);
@@ -510,7 +511,7 @@ await test('phone layout: touch controls, no overflow, fire and reload buttons',
     await t.page.evaluate(() => localStorage.clear());
     const fit = await t.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
     assert(fit, 'start screen fits the width');
-    await t.page.tap('.start-bots');
+    await t.page.tap('.start-play');
     await t.page.waitForSelector('.hud-loc');
     for (const sel of ['.joy', '.jump-btn', '.fire-btn', '.reload-btn', '.switch-btn']) assert(await t.visible(sel), `${sel} visible`);
     assert(await t.page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'HUD fits the width');
@@ -554,17 +555,16 @@ await test('robbing a safe: alarm, cash, police chase, escape by car', async (t)
     assert((await t.page.evaluate(() => window.__cityGame.debug.businesses())).find((x) => x.id === biz.id).robbed, 'safe emptied');
     await t.adv(0.4);
     assert((await t.snap()).prompt === 'emptySafe', 'empty safe prompt');
-    // Run out, take a car and drive off: police cars give chase.
-    await t.adv(8);
-    const chasers = (await t.snap()).police.cars.filter((c) => !c.patrol && c.crew > 0);
-    assert((await t.snap()).police.cars.length >= 2, 'police cars on the road');
+    // Take a car and drive off with the police on their way.
+    assert((await t.snap()).police.cars.length >= 5, 'police cars on the road');
     const car = (await t.vehicles()).find((v) => v.type === 'basic');
     await t.tp(car.x + 2.5, 0, car.z);
     await t.adv(0.3);
     await t.press('KeyE');
     assert((await t.snap()).mode === 'car', 'getaway car');
     await t.hold('KeyW', 3);
-    assert(chasers.length >= 0, 'chase');
+    const chase = await t.snap();
+    assert(chase.police.wanted >= 1 && chase.police.cars.some((c) => Math.abs(c.speed) > 3), 'police cars are moving in');
     // Hide far out at sea until the search is called off.
     await t.page.keyboard.press('KeyE');
     await t.tp(0, -0.35, SEA_Z + 260);
@@ -590,7 +590,72 @@ await test('police: shooting near them, arrest, and the menu switch', async (t) 
     assert((await t.text('.police-toggle')) === 'הפעלת המשטרה', 'label flips');
     assert((await t.snap()).police.cars.length === 0, 'no police cars');
     await t.page.click('.police-toggle');
-    await until(async () => (await t.snap()).police.cars.length === 2, 'patrols back');
+    await until(async () => (await t.snap()).police.cars.length === 5, 'patrols back');
+    assert((await t.snap()).police.officers.length === 4, 'beat officers back');
+});
+
+await test('police are on the streets from the start, near the player', async (t) => {
+    await t.open(false);
+    const s = await t.snap();
+    assert(s.police.cars.length === 5 && s.police.officers.length === 4, `cars ${s.police.cars.length}, officers ${s.police.officers.length}`);
+    assert(s.police.cars.some((c) => Math.hypot(c.x - s.player.x, c.z - s.player.z) < 40), 'a patrol car near the start');
+    assert(s.police.officers.some((o) => Math.hypot(o.x - s.player.x, o.z - s.player.z) < 40), 'an officer near the start');
+    await t.adv(20);
+    const later = await t.snap();
+    assert(later.police.wanted === 0 && later.player.hp === 100, 'they leave an innocent player alone');
+    assert(later.police.cars.some((c, n) => Math.hypot(c.x - s.police.cars[n].x, c.z - s.police.cars[n].z) > 20), 'patrol cars drive around');
+});
+
+await test('every building has a business with a sign and a safe', async (t) => {
+    await t.open(false);
+    const list = await t.page.evaluate(() => window.__cityGame.debug.businesses());
+    assert(list.length === world.buildings.length && list.length === 44, `businesses ${list.length}`);
+    const biz = list[list.length - 1];
+    await t.tp(biz.safe.x - 1.1, PAD_H, biz.safe.z + 1.1);
+    await t.adv(0.4);
+    assert((await t.snap()).prompt === 'safe', 'the last building has a safe to crack too');
+    assert((await t.text('.hud-loc-text')).includes(biz.name), 'the location names the business');
+});
+
+await test('admin sign-in: wrong code refused; admin cannot be hurt and has everything', async (t) => {
+    await t.page.goto(`${BASE}/city`, { waitUntil: 'networkidle', timeout: 120000 });
+    await t.page.click('.start-admin');
+    await t.page.fill('.admin-code', 'not-the-code');
+    await t.page.click('.admin-enter');
+    await t.page.waitForSelector('.admin-error');
+    assert(!(await t.page.locator('.hud-loc').count()), 'a wrong code does not start the game');
+    const code = process.env.ADMIN_CODE;
+    if (!code) {
+        console.log('       (ADMIN_CODE is not set: the signed-in half of this test was skipped)');
+        return;
+    }
+    await t.page.fill('.admin-code', code);
+    await t.page.click('.admin-enter');
+    await t.page.waitForSelector('.hud-loc');
+    await t.page.evaluate(() => window.__cityGame.debug.pause(true));
+    await t.adv(0.5);
+    assert((await t.snap()).admin, 'signed in as admin');
+    await until(async () => t.visible('.admin-badge'), 'admin badge');
+    assert((await t.page.locator('.weapon-slot').count()) === 5, 'all five weapons');
+    await t.page.evaluate(() => window.__cityGame.debug.hurt(500));
+    const s = await t.snap();
+    assert(s.player.hp === 100 && !s.player.dead, 'the admin cannot be hurt');
+    await t.page.evaluate(() => { const d = window.__cityGame.debug; d.teleport(22, 0, 0); d.wanted(5); d.moveOfficer(0, 22, 0, -10); });
+    await t.adv(15);
+    const shot = await t.snap();
+    assert(shot.player.hp === 100 && shot.progress.deaths === 0 && shot.progress.arrests === 0, 'police cannot kill or arrest the admin');
+    assert((await t.vehicles()).every((v) => v.unlocked), 'every car, boat and ship is unlocked');
+    await t.tp(shot.heli.x + 2.5, PAD_H, shot.heli.z);
+    await t.adv(0.4);
+    assert((await t.snap()).prompt === 'heli', 'the helicopter is open at stage 1 for the admin');
+    await t.page.click('.menu-btn');
+    await t.page.click('.admin-clear');
+    await until(async () => (await t.snap()).police.wanted === 0, 'police called off');
+    await t.page.click('.admin-skip');
+    await until(async () => (await t.snap()).progress.stage === 1, 'stage skipped');
+    for (let n = 0; n < 9; n++) await t.page.click('.admin-skip');
+    await until(async () => (await t.snap()).progress.stage === 10, 'all stages skipped');
+    assert((await t.text('.stage-title')).includes('כל השלבים'), 'finished');
 });
 
 await test('the rest of the site still serves (home page)', async (t) => {

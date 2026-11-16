@@ -272,3 +272,11 @@
 @media (pointer: coarse) {
     .city-game .heist-panel { bottom: calc(max(24px, env(safe-area-inset-bottom)) + 250px); }
 }
+
+/* Admin sign-in */
+.city-game .admin-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; margin-top: 14px; }
+.city-game .admin-code { min-width: 0; min-height: 42px; padding: 8px 12px; border-radius: 10px; color: #f2f8fa; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2); outline: none; text-align: center; direction: ltr; }
+.city-game .admin-code:focus { border-color: rgba(223, 193, 132, 0.72); }
+.city-game .admin-enter { min-height: 42px; padding: 8px 18px; border-radius: 10px; cursor: pointer; font-weight: 700; color: var(--hud-accent-fg); background: var(--hud-accent); border: 0; }
+.city-game .admin-error { grid-column: 1 / -1; color: #ffb4a8; font-size: 13px; }
+.city-game .admin-badge { margin-inline-start: auto; padding: 0 7px; border-radius: 6px; font-weight: 700; color: var(--hud-accent-fg); background: var(--hud-accent); }

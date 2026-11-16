@@ -213,7 +213,7 @@ export function updateBot(bot, dt, ctx) {
             bot.roam = { x: LINES[Math.floor(rand() * LINES.length)], y: 0, z: LINES[Math.floor(rand() * LINES.length)] };
         }
         toward(steerPoint(world, bot, bot.roam, dt));
-        speed = 3.4;
+        speed = ctx.roamSpeed || 3.4;
     }
 
     // Unstick: if it meant to move and did not, sidestep and plan again.

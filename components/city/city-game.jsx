@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createGame } from './engine';
 import { greeting, replyFor } from './dialog';
 import { WEAPONS } from './combat';
+import { checkAdminCode } from './admin';
 
 const WEATHER_OPTIONS = [
     ['clear', 'בהיר'],
@@ -109,6 +110,9 @@ export function CityGame() {
     const [toast, setToast] = useState(null);
     const [elevator, setElevator] = useState(null);
     const [flash, setFlash] = useState(null);
+    const [adminOpen, setAdminOpen] = useState(false);
+    const [adminCode, setAdminCode] = useState('');
+    const [adminError, setAdminError] = useState(false);
 
     useEffect(() => {
         let game;
@@ -163,9 +167,14 @@ export function CityGame() {
     }, [chat]);
 
     const game = () => gameRef.current;
-    const begin = (bots) => {
-        game()?.start({ bots });
+    const begin = (options = {}) => {
+        game()?.start(options);
         setStarted(true);
+    };
+    const tryAdmin = async (e) => {
+        e.preventDefault();
+        if (await checkAdminCode(adminCode)) begin({ admin: true });
+        else setAdminError(true);
     };
     const closeChat = () => {
         game()?.setChat(null);
@@ -357,22 +366,31 @@ export function CityGame() {
                                     </button>
                                 ))}
                             </div>
-                            {status.bots && (
-                                <div className="score-row">
-                                    <span>ניצחונות <b>{status.kills}</b></span>
-                                    <span>נפילות <b>{status.deaths}</b></span>
-                                </div>
-                            )}
+                            <div className="score-row">
+                                <span>שודים <b>{status.heists}</b></span>
+                                <span>בריחות <b>{status.escapes}</b></span>
+                                {status.admin && <span className="admin-badge">מנהל</span>}
+                            </div>
                         </div>
                     )}
 
                     {menuOpen && status && (
                         <div className="hud-panel game-menu" role="dialog" aria-label="תפריט">
                             <h3>תפריט</h3>
-                            <p>{status.bots ? 'עולם פתוח עם בוטים שמשחקים נגדכם.' : 'עולם פתוח שקט, בלי בוטים.'}</p>
+                            <p>{status.bots ? 'חברי הצוות הולכים איתכם ומגינים עליכם מהמשטרה.' : 'אתם משחקים לבד. אפשר לצרף חברי צוות שילכו איתכם.'}</p>
                             <button type="button" className="menu-action bots-toggle" onClick={() => game()?.setBots(!status.bots)}>
-                                {status.bots ? 'כיבוי הבוטים' : 'הפעלת הבוטים'}
+                                {status.bots ? 'שחרור חברי הצוות' : 'צירוף חברי צוות'}
                             </button>
+                            {status.admin && (
+                                <>
+                                    <button type="button" className="menu-action admin-skip" onClick={() => game()?.skipStage()}>
+                                        מנהל: השלמת השלב הנוכחי
+                                    </button>
+                                    <button type="button" className="menu-action admin-clear" onClick={() => game()?.callOffPolice()}>
+                                        מנהל: ביטול החיפוש המשטרתי
+                                    </button>
+                                </>
+                            )}
                             <button type="button" className="menu-action police-toggle" onClick={() => game()?.setPolice(!status.police)}>
                                 {status.police ? 'כיבוי המשטרה' : 'הפעלת המשטרה'}
                             </button>
@@ -488,25 +506,46 @@ export function CityGame() {
                         <div className="start-kicker">עיר פתוחה · תלת־ממד</div>
                         <h1>עיר המעלות</h1>
                         <p>
-                            עיר שלמה שמחכה לכם: היכנסו לבניינים ועלו במעלית עד קומה 20, אספו נשקים בכל קומה, פרצו כספות
-                            בעסקים וברחו מהמשטרה, השלימו שלבים כדי לזכות במכוניות ובסירות, והתמודדו מול בוטים — או טיילו בשקט.
+                            עיר שלמה שמחכה לכם: בכל בניין יש עסק עם כספת לשדוד, מעלית עד קומה 20 ונשקים בכל קומה. ברחו
+                            מהמשטרה במכונית, בסירה או באונייה, והשלימו שלבים כדי לזכות בנשקים, בסירות ובמסוק.
                         </p>
                         <ul className="start-features">
                             <li>בניינים ומעליות</li>
                             <li>נשקים ושלבים</li>
                             <li>כספות ומשטרה</li>
-                            <li>מכוניות, סירות ומסוק</li>
+                            <li>מכוניות, אוניות ומסוק</li>
                             <li>יום, לילה ומזג אוויר</li>
                         </ul>
                         <div className="start-actions">
-                            <button type="button" className="start-btn start-bots" onClick={() => begin(true)}>
-                                עולם פתוח עם בוטים
+                            <button type="button" className="start-btn start-play" onClick={() => begin()}>
+                                התחילו לשחק
                             </button>
-                            <button type="button" className="start-btn start-peace" onClick={() => begin(false)}>
-                                עולם פתוח בלי בוטים
+                            <button type="button" className="start-btn start-peace start-admin" onClick={() => setAdminOpen(!adminOpen)}>
+                                כניסת מנהל
                             </button>
                         </div>
-                        <div className="privacy-note">בלי חשבון ובלי מעקב — הכול רץ אצלכם בדפדפן. אפשר להחליף מצב בכל רגע בתפריט.</div>
+                        {adminOpen && (
+                            <form className="admin-form" onSubmit={tryAdmin}>
+                                <input
+                                    id="admin-code"
+                                    className="admin-code"
+                                    type="password"
+                                    value={adminCode}
+                                    onChange={(e) => {
+                                        setAdminCode(e.target.value);
+                                        setAdminError(false);
+                                    }}
+                                    placeholder="קוד מנהל"
+                                    aria-label="קוד מנהל"
+                                    autoComplete="off"
+                                />
+                                <button type="submit" className="admin-enter">
+                                    כניסה
+                                </button>
+                                {adminError && <div className="admin-error" role="alert">הקוד שגוי. נסו שוב.</div>}
+                            </form>
+                        )}
+                        <div className="privacy-note">בלי חשבון ובלי מעקב. הכול רץ אצלכם בדפדפן.</div>
                     </div>
                 </div>
             )}

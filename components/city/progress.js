@@ -3,19 +3,15 @@
 // a boat. Pure functions over a plain state object, saved to localStorage.
 
 export const STAGES = [
-    { title: 'טפסו לפסגת גבעת המדרגות', event: 'summit', kind: 'reach', min: 1, reward: { type: 'weapon', id: 'smg', label: 'תת־מקלע' } },
-    { title: 'היכנסו לבניין ועלו במעלית לקומה 5', event: 'floor', kind: 'reach', min: 5, reward: { type: 'car', id: 'sport', label: 'מכונית ספורט' } },
+    { title: 'טפסו לפסגת גבעת המדרגות', event: 'summit', kind: 'reach', min: 1, reward: { type: 'weapon', id: 'smg', label: 'תת־מקלע ומסוק' } },
+    { title: 'היכנסו לבניין ועלו במעלית לקומה 5', event: 'floor', kind: 'reach', min: 5, reward: { type: 'cash', id: 'bonus', amount: 5000, label: 'מענק של 5,000 ₪' } },
     { title: 'אספו 5 ארגזי ציוד מהקומות', event: 'crate', kind: 'count', need: 5, reward: { type: 'boat', id: 'motor', label: 'סירת מנוע' } },
     { title: 'הגיעו לגג של בניין בן 15 קומות ומעלה', event: 'roof', kind: 'reach', min: 15, reward: { type: 'weapon', id: 'shotgun', label: 'רובה ציד' } },
-    { title: 'שוטו 300 מטר בסירה', event: 'sail', kind: 'count', need: 300, reward: { type: 'boat', id: 'speed', label: 'סירת מרוץ' } },
-    { title: 'נהגו קילומטר אחד ברחובות העיר', event: 'drive', kind: 'count', need: 1000, reward: { type: 'car', id: 'jeep', label: 'ג׳יפ משוריין' } },
+    { title: 'שוטו 300 מטר בסירה או באונייה', event: 'sail', kind: 'count', need: 300, reward: { type: 'boat', id: 'speed', label: 'סירת מרוץ' } },
+    { title: 'נהגו קילומטר אחד ברחובות העיר', event: 'drive', kind: 'count', need: 1000, reward: { type: 'cash', id: 'bonus', amount: 10000, label: 'מענק של 10,000 ₪' } },
     { title: 'עלו לקומה 20', event: 'floor', kind: 'reach', min: 20, reward: { type: 'weapon', id: 'sniper', label: 'רובה צלפים' } },
-    {
-        title: 'נצחו 10 בוטים', event: 'kill', kind: 'count', need: 10,
-        peaceful: { title: 'אספו 20 ארגזי ציוד', event: 'crate', need: 20 },
-        reward: { type: 'weapon', id: 'rifle', label: 'רובה סער' }
-    },
-    { title: 'פרצו 3 כספות בעסקים בעיר', event: 'heist', kind: 'count', need: 3, reward: { type: 'car', id: 'super', label: 'מכונית על' } },
+    { title: 'אספו 20 ארגזי ציוד', event: 'crate', kind: 'count', need: 20, reward: { type: 'weapon', id: 'rifle', label: 'רובה סער' } },
+    { title: 'פרצו 3 כספות בעסקים בעיר', event: 'heist', kind: 'count', need: 3, reward: { type: 'cash', id: 'bonus', amount: 20000, label: 'מענק של 20,000 ₪' } },
     { title: 'ברחו מהמשטרה ברמת חיפוש של 3 כוכבים ומעלה', event: 'escape', kind: 'reach', min: 3, reward: { type: 'cash', id: 'bonus', amount: 25000, label: 'מענק של 25,000 ₪' } }
 ];
 
@@ -109,3 +105,6 @@ export function saveProgress(storage, state) {
 export function addCash(state, amount) {
     return { ...state, cash: Math.max(0, Math.round(state.cash + amount)) };
 }
+
+/** The helicopter opens once the first stage is done (that is, from stage 2). */
+export const heliUnlocked = (state) => state.stage >= 1;

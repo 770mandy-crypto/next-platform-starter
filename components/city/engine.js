@@ -13,10 +13,10 @@ import {
 } from './world.js';
 import { CRATE_COLORS, WEAPONS, WEAPON_ORDER, rayWorld, shoot } from './combat.js';
 import { createBots, hurtBot, updateBot } from './bots.js';
-import { STAGES, addCash, applyEvent, initialProgress, loadProgress, saveProgress, stageView } from './progress.js';
+import { STAGES, addCash, applyEvent, currentStage, heliUnlocked, initialProgress, loadProgress, saveProgress, stageView } from './progress.js';
 import { clearWanted, createForce, escapeTime, hitOfficer, raiseWanted, reportGunfire, updateForce } from './police.js';
 import { AMBIENT_LINES, CITIZENS } from './dialog.js';
-import { instancedBoxes, makeBoat, makeCar, makeHeli, makeHuman, makeSafe, makeSign, setGun, swingHuman, waterNormals, windowTextures } from './models.js';
+import { instancedBoxes, makeBoat, makeCar, makeHeli, makeHuman, makeSafe, makeShip, makeSign, setGun, swingHuman, waterNormals, windowTextures } from './models.js';
 
 const SKY_KEYS = [
     [0, '#060b18'], [5, '#0b1426'], [6.5, '#e39a72'], [8, '#9ccbee'],
@@ -39,9 +39,10 @@ const CAR_TYPES = {
 };
 const BOAT_TYPES = {
     motor: { label: 'סירת מנוע', max: 16, accel: 8, turn: 1.2 },
-    speed: { label: 'סירת מרוץ', max: 31, accel: 16, turn: 1.5 }
+    speed: { label: 'סירת מרוץ', max: 31, accel: 16, turn: 1.5 },
+    ship: { label: 'אונייה', max: 11, accel: 3.2, turn: 0.5, r: 4.5, big: true }
 };
-const BOT_COUNT = 8;
+const BOT_COUNT = 4;
 
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const smooth = (a, b, v) => { const t = clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
@@ -314,7 +315,7 @@ export function createGame(container, bubbleLayer, cb = {}) {
 
     const vehicles = [];
     const addVehicle = (kind, type, x, z, yaw, color) => {
-        const mesh = kind === 'car' ? makeCar(type, color) : makeBoat(type, color);
+        const mesh = kind === 'car' ? makeCar(type, color) : type === 'ship' ? makeShip(color) : makeBoat(type, color);
         scene.add(mesh);
         const v = { kind, type, x, z, yaw, speed: 0, mesh, spec: (kind === 'car' ? CAR_TYPES : BOAT_TYPES)[type], home: { x, z, yaw }, phase: rand() * 6 };
         vehicles.push(v);
@@ -330,7 +331,11 @@ export function createGame(container, bubbleLayer, cb = {}) {
     addVehicle('boat', 'motor', 5.6, SEA_Z + 20, 0, '#e9e3d6');
     addVehicle('boat', 'motor', -5.6, SEA_Z + 20, 0, '#3d6f9e');
     addVehicle('boat', 'speed', 5.6, SEA_Z + 33, 0, '#b8281e');
-    const isUnlocked = (v) => v.type === 'basic' || (v.kind === 'car' ? progress.cars : progress.boats).includes(v.type);
+    addVehicle('boat', 'ship', 0, SEA_Z + 49, Math.PI / 2, '#27445f');
+    addVehicle('boat', 'ship', 75, SEA_Z + 85, 0.4, '#7a2f2a');
+    // Every car and the ships are open from the first stage; boats are stage rewards. The admin has everything.
+    const isUnlocked = (v) => admin || v.kind === 'car' || v.type === 'ship' || progress.boats.includes(v.type);
+    const owns = (id) => admin || progress.weapons.includes(id);
 
     const heli = { kind: 'heli', x: pad.cx, y: PAD_H, z: pad.cz, yaw: 0, vy: 0, spin: 0, mesh: makeHeli() };
     scene.add(heli.mesh);
@@ -339,8 +344,8 @@ export function createGame(container, bubbleLayer, cb = {}) {
     let bots = [];
     let botsOn = false;
     const botViews = Array.from({ length: BOT_COUNT }, () => {
-        const mesh = makeHuman({ shirt: '#3a3f46', pants: '#23262b', hair: '#111214', vest: '#8f2a22' });
-        const bar = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.09), new THREE.MeshBasicMaterial({ color: '#ff5a4a', fog: false, toneMapped: false }));
+        const mesh = makeHuman({ shirt: '#3a3f46', pants: '#23262b', hair: '#111214', vest: '#2f7a4a' });
+        const bar = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.09), new THREE.MeshBasicMaterial({ color: '#6fd08a', fog: false, toneMapped: false }));
         bar.position.y = 2.1;
         mesh.add(bar);
         mesh.visible = false;
@@ -374,13 +379,13 @@ export function createGame(container, bubbleLayer, cb = {}) {
     // The police: officers on foot and patrol or chase cars with light bars.
     let force = createForce();
     let policeOn = true;
-    const officerViews = Array.from({ length: 12 }, () => {
+    const officerViews = Array.from({ length: 16 }, () => {
         const mesh = makeHuman({ shirt: '#2c4a7a', pants: '#1a2233', vest: '#1b2a3f', hat: '#16233a', hair: '#1b1b1f' });
         mesh.visible = false;
         scene.add(mesh);
         return { mesh, weapon: null, phase: 0 };
     });
-    const policeCarViews = Array.from({ length: 8 }, () => {
+    const policeCarViews = Array.from({ length: 12 }, () => {
         const mesh = makeCar('police', '#f1f1ee');
         mesh.visible = false;
         scene.add(mesh);
@@ -410,7 +415,7 @@ export function createGame(container, bubbleLayer, cb = {}) {
     let started = false, mode = 'foot', vehicle = null, lift = null, chattingId = null, disposed = false;
     let promptTarget = null, lastPrompt, lastLocation, lastHud = '', lastHourSent = -1, lastStatus = '', lastStage = '';
     let clock = 0, slowTick = 0, bubbleTick = 3, raf = 0, last = performance.now();
-    let paused = false, fireLatch = false, noise = null, travelled = 0, lastLocKey = '', onSummit = false, dirty = false, saveTick = 0, locked = false;
+    let admin = false, paused = false, fireLatch = false, noise = null, travelled = 0, lastLocKey = '', onSummit = false, dirty = false, saveTick = 0, locked = false;
     const tmpColor = new THREE.Color(), grayColor = new THREE.Color(), topColor = new THREE.Color();
     const target = { x: 0, y: 0, z: 0, dead: false, speed: 0 };
 
@@ -456,9 +461,10 @@ export function createGame(container, bubbleLayer, cb = {}) {
         for (const v of vehicles) {
             const open = isUnlocked(v);
             const text = open ? (v.kind === 'car' ? `כניסה ל${v.spec.label}` : `עלייה ל${v.spec.label}`) : `${v.spec.label} · נעול עד שלב ${stageOfReward(v.kind, v.type)}`;
-            consider({ type: open ? v.kind : 'locked', ref: v, text }, v.x, v.z, v.kind === 'car' ? 4 : 6.5, v.kind === 'car' ? 0 : WATER_Y);
+            consider({ type: open ? v.kind : 'locked', ref: v, text }, v.x, v.z, v.kind === 'car' ? 4 : v.spec.big ? 11 : 6.5, v.kind === 'car' ? 0 : WATER_Y);
         }
-        consider({ type: 'heli', ref: heli, text: 'עלייה למסוק' }, heli.x, heli.z, 5, heli.y);
+        const heliOpen = admin || heliUnlocked(progress);
+        consider({ type: heliOpen ? 'heli' : 'locked', ref: heli, text: heliOpen ? 'עלייה למסוק' : 'המסוק · נעול עד שלב 2', lockText: 'המסוק נפתח כשמסיימים את שלב 1' }, heli.x, heli.z, 5, heli.y);
         for (const c of citizens) consider({ type: 'citizen', ref: c, text: `שיחה עם ${c.name}` }, c.x, c.z, 3, PAD_H);
         return best;
     }
@@ -469,7 +475,7 @@ export function createGame(container, bubbleLayer, cb = {}) {
             const out = resolveSolids(world, v.x - Math.cos(v.yaw) * 2.4, v.z + Math.sin(v.yaw) * 2.4, 0, 0.4);
             Object.assign(player, { x: out.x, z: out.z, y: groundAt(world, out.x, out.z, 1), vy: 0 });
         } else if (mode === 'boat') {
-            const nearPier = Math.abs(v.x) < 9.5 && v.z > pier.z0 && v.z < pier.z1 + 2;
+            const nearPier = Math.abs(v.x) < 9.5 && v.z > pier.z0 && v.z < pier.z1 + 2 + (v.spec.r || 0) * 2;
             if (nearPier) Object.assign(player, { x: clamp(v.x, pier.x0 + 0.6, pier.x1 - 0.6), z: clamp(v.z, pier.z0 + 1, pier.z1 - 1), y: pier.top, vy: 0 });
             else Object.assign(player, { x: v.x - Math.cos(v.yaw) * 2, z: v.z + Math.sin(v.yaw) * 2, y: groundAt(world, v.x, v.z, 0), vy: 0 });
         } else if (mode === 'heli') {
@@ -489,7 +495,7 @@ export function createGame(container, bubbleLayer, cb = {}) {
         if (t.type === 'lift') { cb.onElevator?.({ name: t.ref.name, floors: t.ref.floors, level: t.level }); return; }
         if (t.type === 'safe') { startHeist(t.ref); return; }
         if (t.type === 'emptySafe' || t.type === 'cracking') return;
-        if (t.type === 'locked') { toast(`${t.ref.spec.label} נפתח בסיום שלב ${stageOfReward(t.ref.kind, t.ref.type)}`); return; }
+        if (t.type === 'locked') { toast(t.lockText || `${t.ref.spec.label} נפתח בסיום שלב ${stageOfReward(t.ref.kind, t.ref.type)}`); return; }
         mode = t.type; vehicle = t.ref; player.mesh.visible = false;
     }
 
@@ -504,14 +510,14 @@ export function createGame(container, bubbleLayer, cb = {}) {
     }
 
     function setWeapon(id) {
-        if (!WEAPONS[id] || !progress.weapons.includes(id) || id === player.weapon) return false;
+        if (!WEAPONS[id] || !owns(id) || id === player.weapon) return false;
         player.weapon = id; player.reloading = 0; player.cooldown = 0.25;
         setGun(player.mesh, id);
         report();
         return true;
     }
     function nextWeapon() {
-        const owned = WEAPON_ORDER.filter((id) => progress.weapons.includes(id));
+        const owned = WEAPON_ORDER.filter((id) => owns(id));
         setWeapon(owned[(owned.indexOf(player.weapon) + 1) % owned.length]);
     }
     function reload() {
@@ -522,7 +528,7 @@ export function createGame(container, bubbleLayer, cb = {}) {
     }
 
     function damagePlayer(amount) {
-        if (player.dead || !started) return;
+        if (player.dead || !started || admin) return;
         const armor = mode === 'car' ? vehicle.spec.armor : mode === 'heli' || mode === 'boat' ? 0.6 : 1;
         player.hp -= amount * armor;
         player.lastHurt = clock;
@@ -545,6 +551,7 @@ export function createGame(container, bubbleLayer, cb = {}) {
     }
 
     function arrested() {
+        if (admin) { toast('מנהל: אי אפשר לעצור אתכם'); return; }
         const lost = Math.floor(progress.cash * 0.3);
         progress = addCash(progress, -lost);
         emit('arrest');
@@ -607,7 +614,7 @@ export function createGame(container, bubbleLayer, cb = {}) {
         camera.getWorldDirection(v3);
         const dir = [v3.x, v3.y, v3.z];
         const origin = [camera.position.x + v3.x * cam.actual, camera.position.y + v3.y * cam.actual, camera.position.z + v3.z * cam.actual];
-        const live = [...(botsOn ? bots : []), ...force.officers].filter((b) => !b.dead);
+        const live = force.officers.filter((b) => !b.dead);
         if (coarse) {
             // Touch aim assist: snap to an opponent close to the crosshair.
             let bestDot = 0.985;
@@ -641,7 +648,7 @@ export function createGame(container, bubbleLayer, cb = {}) {
             if (p.kind === 'med') { player.hp = Math.min(100, player.hp + 50); toast('ערכת עזרה ראשונה: +50 בריאות'); }
             else {
                 const w = WEAPONS[p.kind];
-                const fresh = !progress.weapons.includes(p.kind);
+                const fresh = !owns(p.kind);
                 if (fresh) emit('weapon', p.kind);
                 player.reserve[p.kind] = Math.min(w.mag * 8, player.reserve[p.kind] + w.mag * 2);
                 toast(fresh ? `נשק חדש: ${w.name}!` : `תחמושת ל${w.name}`);
@@ -675,7 +682,7 @@ export function createGame(container, bubbleLayer, cb = {}) {
         player.cooldown -= dt;
         if (player.reloading > 0 && (player.reloading -= dt) <= 0) {
             const take = Math.min(w.mag - player.mags[w.id], player.reserve[w.id]);
-            player.mags[w.id] += take; player.reserve[w.id] -= take;
+            player.mags[w.id] += take; if (!admin) player.reserve[w.id] -= take;
         }
         // Semi-automatic weapons fire once per trigger pull; a pull during the
         // cooldown is remembered until the shot goes off.
@@ -722,9 +729,6 @@ export function createGame(container, bubbleLayer, cb = {}) {
         if (Math.abs(c.speed) > 7) for (const o of force.officers) {
             if (!o.dead && o.y < 1 && Math.hypot(o.x - c.x, o.z - c.z) < 1.9) hitBot(o, 150);
         }
-        if (botsOn && Math.abs(c.speed) > 7) for (const b of bots) {
-            if (!b.dead && b.y < 1 && Math.hypot(b.x - c.x, b.z - c.z) < 1.9) hitBot(b, 150);
-        }
         Object.assign(player, { x: c.x, y: 0, z: c.z, speed: Math.abs(c.speed) });
     }
 
@@ -735,8 +739,8 @@ export function createGame(container, bubbleLayer, cb = {}) {
         b.speed = clamp(b.speed, -5, s.max);
         b.yaw -= i.mx * s.turn * dt * clamp(b.speed / 4, -1, 1);
         const nx = b.x + Math.sin(b.yaw) * b.speed * dt, nz = b.z + Math.cos(b.yaw) * b.speed * dt;
-        const out = resolveSolids(world, nx, nz, WATER_Y, 1.5);
-        const bx = clamp(out.x, -800, 800), bz = clamp(out.z, SEA_Z + 8, SEA_Z + 800);
+        const out = resolveSolids(world, nx, nz, WATER_Y, s.r || 1.5);
+        const bx = clamp(out.x, -800, 800), bz = clamp(out.z, SEA_Z + (s.big ? 22 : 8), SEA_Z + 800);
         if (out.hit || bz !== out.z || bx !== out.x) b.speed *= 0.3;
         travelled += Math.hypot(bx - b.x, bz - b.z);
         b.x = bx; b.z = bz;
@@ -760,19 +764,28 @@ export function createGame(container, bubbleLayer, cb = {}) {
         Object.assign(player, { x: h.x, y: h.y, z: h.z, speed: Math.abs(i.my) * 20 });
     }
 
+    // The bots are teammates: they stay close to the player and fire back at
+    // police who are chasing. They never shoot the player.
+    const idle = { x: 0, y: 0, z: 0, dead: true, speed: 0 };
     function updateBots(dt) {
-        target.x = player.x; target.y = player.y; target.z = player.z; target.dead = player.dead; target.speed = player.speed;
-        const ctx = {
-            world, target, time: clock, rand: Math.random, stage: progress.stage, noise,
-            onShot: (bot, origin, pellets) => {
-                for (const p of pellets) {
-                    drawShot([origin[0] + Math.sin(bot.heading) * 0.6, origin[1] - 0.1, origin[2] + Math.cos(bot.heading) * 0.6], p.end, !!p.target);
-                    if (p.target) damagePlayer(p.damage);
-                }
-            }
-        };
+        const foes = force.level > 0 ? force.officers.filter((o) => !o.dead) : [];
         bots.forEach((b, n) => {
-            updateBot(b, dt, ctx);
+            let foe = null, fd = 70;
+            for (const o of foes) {
+                const d = Math.hypot(o.x - b.x, o.z - b.z);
+                if (d < fd && Math.abs(o.y - b.y) < 6) { fd = d; foe = o; }
+            }
+            const away = Math.hypot(player.x - b.x, player.z - b.z);
+            if (!foe && away > 9) b.roam = { x: player.x + Math.cos(n * 1.7) * 3, y: player.y, z: player.z + Math.sin(n * 1.7) * 3 };
+            updateBot(b, dt, {
+                world, target: foe || idle, time: clock, rand: Math.random, stage: progress.stage, roamSpeed: away > 20 ? 9.5 : 6.5,
+                onShot: (bot, origin, pellets) => {
+                    for (const p of pellets) {
+                        drawShot([origin[0] + Math.sin(bot.heading) * 0.6, origin[1] - 0.1, origin[2] + Math.cos(bot.heading) * 0.6], p.end, !!p.target);
+                        if (p.target && hurtBot(p.target, p.damage, clock, bot)) p.target.removeT = 5;
+                    }
+                }
+            });
             const view = botViews[n];
             view.mesh.visible = !b.dead;
             if (b.dead) return;
@@ -952,7 +965,7 @@ export function createGame(container, bubbleLayer, cb = {}) {
             const side = onFoot ? 0.55 : 0;
             tx = player.x + Math.cos(cam.yaw) * side; ty = player.y + (onFoot ? 1.6 : 1.9); tz = player.z - Math.sin(cam.yaw) * side;
             if (!onFoot && Math.abs(vehicle.speed ?? 2) > 1 && clock - cam.lastDrag > 1.8) cam.yaw = angleLerp(cam.yaw, vehicle.yaw + Math.PI, Math.min(1, dt * 2.2));
-            want = cam.dist * (mode === 'heli' ? 1.9 : mode === 'boat' ? 1.5 : mode === 'car' ? 1.35 : 1);
+            want = cam.dist * (mode === 'heli' ? 1.9 : mode === 'boat' ? (vehicle.spec.big ? 4.5 : 1.5) : mode === 'car' ? 1.35 : 1);
         }
         const f = Math.min(1, dt * 12);
         cam.tx += (tx - cam.tx) * f; cam.ty += (ty - cam.ty) * f; cam.tz += (tz - cam.tz) * f;
@@ -998,9 +1011,9 @@ export function createGame(container, bubbleLayer, cb = {}) {
         const w = WEAPONS[player.weapon];
         const status = {
             hp: Math.ceil(player.hp), dead: player.dead, weapon: w.id, weaponName: w.name, mag: player.mags[w.id], reserve: player.reserve[w.id],
-            reloading: player.reloading > 0, owned: WEAPON_ORDER.filter((id) => progress.weapons.includes(id)), kills: progress.kills, deaths: progress.deaths,
+            reloading: player.reloading > 0, owned: WEAPON_ORDER.filter((id) => owns(id)), kills: progress.kills, deaths: progress.deaths,
             bots: botsOn, armed: mode === 'foot', locked,
-            cash: progress.cash, wanted: force.level, police: policeOn,
+            cash: progress.cash, wanted: force.level, police: policeOn, admin, heists: progress.heists, escapes: progress.escapes,
             searching: force.level > 0 && !force.seen && force.unseen > 0 ? Math.min(1, force.unseen / escapeTime(force.level)) : 0,
             heist: heist ? { name: heist.s.biz.name, pct: Math.floor((heist.t / heist.need) * 100) } : null
         };
@@ -1135,15 +1148,40 @@ export function createGame(container, bubbleLayer, cb = {}) {
     function setBots(on) {
         botsOn = !!on;
         bots = botsOn ? createBots(BOT_COUNT, Math.random, progress.stage, player) : [];
+        // Teammates start right next to the player.
+        bots.forEach((b, n) => {
+            const o = resolveSolids(world, player.x + Math.cos(n * 1.6) * 3, player.z + Math.sin(n * 1.6) * 3, player.y, 0.4);
+            Object.assign(b, { x: o.x, y: player.y, z: o.z, hunter: false, weapon: 'smg', mag: WEAPONS.smg.mag, skill: 0.025 });
+        });
         if (!botsOn) for (const v of botViews) v.mesh.visible = false;
         lastStage = ''; lastStatus = '';
         report();
     }
 
     return {
-        start({ bots: withBots = true } = {}) {
+        start({ bots: withBots = false, admin: asAdmin = false } = {}) {
             started = true; cam.dist = 7; cam.yaw = 0; cam.pitch = 0.3;
+            admin = !!asAdmin;
+            if (admin) {
+                for (const id of WEAPON_ORDER) player.reserve[id] = 999;
+                toast('שלום מנהל: הכול פתוח ואי אפשר לפגוע בכם');
+            }
             setBots(withBots);
+        },
+        /** Admin only: finish the current stage on the spot. */
+        skipStage() {
+            const st = currentStage(progress, true);
+            if (!admin || !st) return false;
+            emit(st.event, st.kind === 'reach' ? st.min : st.need);
+            report();
+            return true;
+        },
+        /** Admin only: call the police off. */
+        callOffPolice() {
+            if (!admin) return false;
+            clearWanted(force);
+            report();
+            return true;
         },
         interact, rideTo, reload, nextWeapon, setWeapon, setBots, releasePointer,
         setPolice(on) {
@@ -1172,7 +1210,7 @@ export function createGame(container, bubbleLayer, cb = {}) {
         },
         /** Read-only snapshot, used by tests and debugging. */
         snapshot: () => ({
-            mode, started, hour: env.hour, weather: env.weather, bots: botsOn, prompt: promptTarget?.type || null,
+            mode, started, admin, hour: env.hour, weather: env.weather, bots: botsOn, prompt: promptTarget?.type || null,
             player: { x: player.x, y: player.y, z: player.z, hp: player.hp, dead: player.dead, weapon: player.weapon, mag: player.mags[player.weapon], reserve: player.reserve[player.weapon] },
             progress: { ...progress },
             botList: bots.map((b) => ({ x: b.x, y: b.y, z: b.z, hp: b.hp, dead: b.dead, weapon: b.weapon })),
