@@ -323,14 +323,18 @@ await test('a bot in the open shoots back; dying respawns the player', async (t)
     await t.page.evaluate(() => { const d = window.__cityGame.debug; d.teleport(22, 0, 0); [1, 2, 3, 4, 5, 6, 7].forEach((n) => d.moveBot(n, -250, 0, -250)); d.moveBot(0, 22, 0, -16); });
     await t.adv(12);
     const hurt = await t.snap();
-    assert(hurt.player.hp < 100 || hurt.player.dead, `the bot never hit anything (hp ${hurt.player.hp})`);
+    // A good shot may already have won the fight, so count deaths as hits too.
+    assert(hurt.player.hp < 100 || hurt.player.dead || hurt.progress.deaths > 0, `the bot never hit anything (hp ${hurt.player.hp})`);
+    await t.page.evaluate(() => { const d = window.__cityGame.debug; [0, 1, 2, 3, 4, 5, 6, 7].forEach((n) => d.moveBot(n, -250, 0, -250)); });
+    await t.adv(4);
+    const deathsBefore = (await t.snap()).progress.deaths;
     await t.page.evaluate(() => window.__cityGame.debug.hurt(500));
     assert((await t.snap()).player.dead, 'dead');
     await until(async () => t.visible('.death-note'), 'death note');
     await t.adv(4);
     const back = await t.snap();
     assert(!back.player.dead && back.player.hp === 100 && Math.abs(back.player.z - 20.5) < 1, 'respawned at the start');
-    assert(back.progress.deaths === 1, 'death counted');
+    assert(back.progress.deaths === deathsBefore + 1, 'death counted');
 });
 
 await test('a bot hunts the player through the door and up the elevator', async (t) => {
@@ -395,13 +399,15 @@ await test('running a bot over with a car', async (t) => {
     await t.adv(0.4);
     await t.press('KeyE');
     assert((await t.snap()).mode === 'car', 'in the car');
-    // The bot stands in the car's path.
-    const ahead = await t.page.evaluate(() => {
-        const v = window.__cityGame.snapshot().vehicle;
-        return { x: v.x + 30, z: v.z };
+    // Get up to speed, then a bot steps out right in front of the car.
+    await t.page.keyboard.down('KeyW');
+    await t.adv(1.8);
+    await t.page.evaluate(() => {
+        const g = window.__cityGame, v = g.snapshot().vehicle;
+        g.debug.moveBot(0, v.x + 3.5, 0, v.z);
+        g.debug.advance(0.5);
     });
-    await t.page.evaluate((a) => window.__cityGame.debug.moveBot(0, a.x, 0, a.z), ahead);
-    await t.hold('KeyW', 4);
+    await t.page.keyboard.up('KeyW');
     const s = await t.snap();
     assert(s.progress.kills >= 1, `bot not run over (hp ${s.botList[0].hp})`);
 });

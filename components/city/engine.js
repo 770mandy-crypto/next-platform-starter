@@ -1078,7 +1078,7 @@ export function createGame(container, bubbleLayer, cb = {}) {
     };
     const onKeyUp = (e) => keys.delete(e.code);
     const onBlur = () => { keys.clear(); input.fire = false; };
-    let dragId = null, px = 0, py = 0;
+    let dragId = null, px = 0, py = 0, downX = 0, downY = 0, downAt = 0;
     const look = (dx, dy) => {
         cam.yaw -= dx * 0.0052;
         cam.pitch = clamp(cam.pitch + dy * 0.004, -0.5, 1.35);
@@ -1086,7 +1086,7 @@ export function createGame(container, bubbleLayer, cb = {}) {
     };
     const onDown = (e) => {
         if (locked) { if (e.button === 0) input.fire = true; return; }
-        dragId = e.pointerId; px = e.clientX; py = e.clientY;
+        dragId = e.pointerId; px = downX = e.clientX; py = downY = e.clientY; downAt = performance.now();
         canvas.setPointerCapture(e.pointerId);
         // With a mouse, a click captures the pointer: move to aim, click to shoot.
         if (started && e.pointerType === 'mouse' && e.button === 0 && canvas.requestPointerLock) {
@@ -1099,7 +1099,13 @@ export function createGame(container, bubbleLayer, cb = {}) {
         look(e.clientX - px, e.clientY - py);
         px = e.clientX; py = e.clientY;
     };
-    const onUp = (e) => { if (locked) input.fire = false; if (e.pointerId === dragId) dragId = null; };
+    const onUp = (e) => {
+        if (locked) input.fire = false;
+        if (e.pointerId !== dragId) return;
+        dragId = null;
+        // Where the mouse cannot be captured (an embedded page), a click still shoots.
+        if (e.pointerType === 'mouse' && e.button === 0 && performance.now() - downAt < 300 && Math.hypot(e.clientX - downX, e.clientY - downY) < 5) input.fireQueued = true;
+    };
     const onWheel = (e) => { e.preventDefault(); cam.dist = clamp(cam.dist * (e.deltaY > 0 ? 1.1 : 0.9), 3, 40); };
     const onLock = () => { locked = document.pointerLockElement === canvas; if (!locked) input.fire = false; };
     window.addEventListener('keydown', onKeyDown);
@@ -1194,7 +1200,7 @@ export function createGame(container, bubbleLayer, cb = {}) {
             clearWanted() { clearWanted(force); report(); },
             moveOfficer(n, x, y, z) { if (force.officers[n]) Object.assign(force.officers[n], { x, y, z, vy: 0, path: null }); },
             freezeBots(v) { for (const b of bots) { b.hunter = !v; if (v) { b.known = null; b.knownAt = -99; } } },
-            hurt: damagePlayer,
+            hurt(amount) { damagePlayer(amount); report(); },
             citizens: () => citizens.map((c) => ({ id: c.id, name: c.name, x: c.x, z: c.z })),
             crates: () => world.pickups.map((p) => ({ ...p, ready: crateReady[p.id] <= clock })),
             vehicles: () => vehicles.map((v) => ({ kind: v.kind, type: v.type, x: v.x, z: v.z, unlocked: isUnlocked(v) })),
