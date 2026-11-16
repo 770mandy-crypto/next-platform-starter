@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { addCoins, loadout, newSave, normalizeSave, recordScore } from 'lib/game/catalog';
-import { BLOCK, CABLE, COIN_RADIUS, DRONE_RADIUS, GRID, newGame, step, WORLD } from 'lib/game/engine';
+import { BLOCK, CABLE, COIN_RADIUS, DRONE_RADIUS, GRID, newGame, RING, step, WORLD } from 'lib/game/engine';
 import { Shop } from './shop';
 
 const SAVE_KEY = 'neon-city-save';
@@ -61,6 +61,7 @@ export function NeonCity() {
         const down = (e) => {
             if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) e.preventDefault();
             keys.add(e.key.toLowerCase());
+            if (e.key.toLowerCase() === 'e') input.current.exitRide = true;
             if (e.key === 'Escape') setPhase((p) => (p === 'playing' ? 'paused' : p === 'paused' ? 'playing' : p));
         };
         const up = (e) => keys.delete(e.key.toLowerCase());
@@ -101,7 +102,7 @@ export function NeonCity() {
             hudTimer -= dt;
             if (hudTimer <= 0 || game.over) {
                 hudTimer = 0.1;
-                setHud({ coins: saveRef.current.coins, health: game.car.health / game.car.maxHealth, wave: game.wave, score: Math.floor(game.score), run: Math.floor(game.coinsThisRun), riding: Boolean(game.ride), nearStation: game.nearStation });
+                setHud({ coins: saveRef.current.coins, health: game.car.health / game.car.maxHealth, wave: game.wave, score: Math.floor(game.score), run: Math.floor(game.coinsThisRun), riding: game.ride?.line ?? null, nearStation: game.nearStation });
             }
             if (game.over) {
                 const next = recordScore(saveRef.current, game.score);
@@ -206,10 +207,23 @@ export function NeonCity() {
             )}
 
             {phase === 'playing' && (hud.riding || hud.nearStation) && (
-                <div className="pointer-events-none absolute inset-x-0 top-20 text-center">
-                    <span className="rounded-full bg-amber-500/90 px-4 py-2 text-sm font-black text-slate-950">
-                        {hud.riding ? '🚡 ברכבל: הרחפנים לא יכולים לפגוע בך' : '🚡 עצרו על התחנה כדי לעלות לרכבל'}
+                <div className="pointer-events-none absolute inset-x-0 top-20 flex flex-col items-center gap-2 text-center">
+                    <span className={`rounded-full px-4 py-2 text-sm font-black text-slate-950 ${hud.riding === 'ring' ? 'bg-cyan-400/90' : 'bg-amber-500/90'}`}>
+                        {hud.riding === 'ring'
+                            ? '🚡 קו הטבעת: עוצר על כל גג ואוסף את המטבעות שעליו'
+                            : hud.riding
+                              ? '🚡 ברכבל: הרחפנים לא יכולים לפגוע בך'
+                              : '🚡 עצרו על התחנה כדי לעלות לרכבל'}
                     </span>
+                    {hud.riding === 'ring' && (
+                        <button
+                            type="button"
+                            onClick={() => (input.current.exitRide = true)}
+                            className="pointer-events-auto rounded-full bg-slate-900/90 px-5 py-2 text-sm font-black ring-2 ring-cyan-400"
+                        >
+                            ⬇ לרדת לרחוב (E)
+                        </button>
+                    )}
                 </div>
             )}
             {phase === 'playing' && input.current.usingTouch && (
@@ -240,7 +254,7 @@ export function NeonCity() {
             {phase === 'menu' && (
                 <Overlay>
                     <h1 className="mb-2 bg-gradient-to-l from-fuchsia-400 via-pink-400 to-cyan-300 bg-clip-text text-5xl font-black text-transparent sm:text-6xl">עיר הניאון</h1>
-                    <p className="mb-6 text-slate-300">רחפנים רובוטיים השתלטו על העיר. נוהגים, יורים, אוספים מטבעות ומשדרגים. ויש רכבל 🚡 שחוצה את העיר מעל הגגות.</p>
+                    <p className="mb-6 text-slate-300">רחפנים רובוטיים השתלטו על העיר. נוהגים, יורים, אוספים מטבעות ומשדרגים. ויש שני קווי רכבל 🚡: אחד חוצה את העיר, והשני מקיף אותה ועוצר על כל גג.</p>
                     <Kit kit={kit} />
                     <div className="flex flex-wrap justify-center gap-3">
                         <BigButton onClick={start}>▶ להתחיל</BigButton>
@@ -343,7 +357,8 @@ function readInput(state, canvas, game) {
     const throttle = (k.has('arrowup') || k.has('w') ? 1 : 0) - (k.has('arrowdown') || k.has('s') ? 1 : 0);
     // The car turns the way the arrow points on screen.
     const turn = (k.has('arrowright') || k.has('d') ? 1 : 0) - (k.has('arrowleft') || k.has('a') ? 1 : 0);
-    const result = { throttle, turn, steerAngle: 0, steerPower: 0, aimAngle: null, firing: false };
+    const result = { throttle, turn, steerAngle: 0, steerPower: 0, aimAngle: null, firing: false, exitRide: Boolean(state.exitRide) };
+    state.exitRide = false;
 
     if (state.stick) {
         const dx = state.stick.x - state.stick.ox;
@@ -414,13 +429,35 @@ function draw(ctx, canvas, game) {
         }
     }
 
-    // Cable-car stations: glowing pads on the road.
-    for (const st of CABLE.stations) {
-        ctx.fillStyle = 'rgba(251, 191, 36, 0.12)';
+    // Ring-line roofs: a landing pad on each, with the coins waiting there.
+    for (const roof of RING.roofs) {
+        if (roof.x < view.x0 - 60 || roof.x > view.x1 + 60 || roof.y < view.y0 - 60 || roof.y > view.y1 + 60) continue;
+        ctx.fillStyle = 'rgba(34, 211, 238, 0.12)';
+        ctx.strokeStyle = 'rgba(34, 211, 238, 0.7)';
+        ctx.lineWidth = 2;
+        roundRect(ctx, roof.x - 42, roof.y - 42, 84, 84, 10);
+        ctx.fill();
+        ctx.stroke();
+        const count = game.roofCoins[roof.id].count;
+        for (let i = 0; i < count; i += 1) {
+            ctx.fillStyle = '#facc15';
+            ctx.strokeStyle = '#a16207';
+            ctx.beginPath();
+            ctx.ellipse(roof.x - 18 + i * 18, roof.y + 4, 9, 9 * (0.4 + 0.6 * Math.abs(Math.sin(game.time * 3 + i))), 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+        }
+    }
+
+    // Cable-car stations: glowing pads on the road (amber: cross line,
+    // cyan: ring line).
+    for (const st of [...CABLE.stations, ...RING.stations]) {
+        const ring = RING.stations.includes(st);
+        ctx.fillStyle = ring ? 'rgba(34, 211, 238, 0.12)' : 'rgba(251, 191, 36, 0.12)';
         ctx.beginPath();
         ctx.arc(st.x, st.y, CABLE.radius, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = '#fbbf24';
+        ctx.strokeStyle = ring ? '#22d3ee' : '#fbbf24';
         ctx.lineWidth = 3;
         ctx.setLineDash([10, 8]);
         ctx.stroke();
@@ -430,7 +467,7 @@ function draw(ctx, canvas, game) {
         ctx.textBaseline = 'middle';
         ctx.fillText('🚡', st.x, st.y - CABLE.radius - 22);
         ctx.font = 'bold 14px Heebo, sans-serif';
-        ctx.fillStyle = '#fde68a';
+        ctx.fillStyle = ring ? '#a5f3fc' : '#fde68a';
         ctx.fillText(st.name, st.x, st.y + CABLE.radius + 16);
     }
 
@@ -558,7 +595,28 @@ function drawCable(ctx, game) {
         ctx.lineWidth = 2;
         ctx.strokeRect(x - 9, y - 9, 18, 18);
     }
+    // The ring line: a closed loop through every edge roof, with a pylon on each.
+    ctx.strokeStyle = 'rgba(165, 243, 252, 0.6)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    RING.roofs.forEach((roof, i) => (i ? ctx.lineTo(roof.x, roof.y) : ctx.moveTo(roof.x, roof.y)));
+    ctx.closePath();
+    ctx.stroke();
+    for (const roof of RING.roofs) {
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(roof.x - 6, roof.y - 6, 12, 12);
+    }
+    for (const st of RING.stations) {
+        // The short cable from each ring station up to its first roof.
+        const entry = RING.roofs.reduce((best, roof) => (Math.hypot(roof.x - st.x, roof.y - st.y) < Math.hypot(best.x - st.x, best.y - st.y) ? roof : best));
+        ctx.beginPath();
+        ctx.moveTo(st.x, st.y);
+        ctx.lineTo(entry.x, entry.y);
+        ctx.stroke();
+    }
+
     if (!game.ride) return;
+    const ringRide = game.ride.line === 'ring';
     const { x, y } = game.car;
     ctx.save();
     ctx.translate(x, y);
@@ -567,13 +625,13 @@ function drawCable(ctx, game) {
     ctx.beginPath();
     ctx.ellipse(18, 26, 30, 16, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.shadowColor = '#fbbf24';
+    ctx.shadowColor = ringRide ? '#22d3ee' : '#fbbf24';
     ctx.shadowBlur = 20;
-    ctx.fillStyle = '#f59e0b';
+    ctx.fillStyle = ringRide ? '#06b6d4' : '#f59e0b';
     roundRect(ctx, -30, -22, 60, 44, 9);
     ctx.fill();
     ctx.shadowBlur = 0;
-    ctx.fillStyle = '#7dd3fc';
+    ctx.fillStyle = ringRide ? '#ecfeff' : '#7dd3fc';
     for (const wx of [-22, -4, 14]) {
         roundRect(ctx, wx, -14, 12, 12, 2);
         ctx.fill();
@@ -603,6 +661,13 @@ function drawMinimap(ctx, game, w) {
     ctx.stroke();
     ctx.fillStyle = '#fbbf24';
     for (const st of CABLE.stations) ctx.fillRect(x0 + st.x * scale - 2.5, y0 + st.y * scale - 2.5, 5, 5);
+    ctx.strokeStyle = '#22d3ee';
+    ctx.beginPath();
+    RING.roofs.forEach((roof, i) => (i ? ctx.lineTo(x0 + roof.x * scale, y0 + roof.y * scale) : ctx.moveTo(x0 + roof.x * scale, y0 + roof.y * scale)));
+    ctx.closePath();
+    ctx.stroke();
+    ctx.fillStyle = '#22d3ee';
+    for (const st of RING.stations) ctx.fillRect(x0 + st.x * scale - 2.5, y0 + st.y * scale - 2.5, 5, 5);
     ctx.fillStyle = 'rgba(244, 63, 94, 0.9)';
     for (const d of game.drones) ctx.fillRect(x0 + d.x * scale - 1.5, y0 + d.y * scale - 1.5, 3, 3);
     ctx.fillStyle = '#22d3ee';
