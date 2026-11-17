@@ -110,6 +110,10 @@ export function CityGame() {
     const [toast, setToast] = useState(null);
     const [elevator, setElevator] = useState(null);
     const [flash, setFlash] = useState(null);
+    const [shopOpen, setShopOpen] = useState(false);
+    const [shopTab, setShopTab] = useState('weapon');
+    const [shopItems, setShopItems] = useState([]);
+    const [shopMsg, setShopMsg] = useState(null);
     const [adminOpen, setAdminOpen] = useState(false);
     const [adminCode, setAdminCode] = useState('');
     const [adminError, setAdminError] = useState(false);
@@ -133,6 +137,12 @@ export function CityGame() {
                     setToast(text);
                     clearTimeout(toastTimer.current);
                     toastTimer.current = setTimeout(() => setToast(null), 3200);
+                },
+                onShop: () => {
+                    game.setShop(true);
+                    setShopItems(game.shopList());
+                    setShopMsg(null);
+                    setShopOpen(true);
                 },
                 onHurt: () => pulse('hurt'),
                 onHit: (kill) => pulse(kill ? 'kill' : 'hit'),
@@ -180,6 +190,16 @@ export function CityGame() {
         game()?.setChat(null);
         setChat(null);
         setDraft('');
+    };
+    const SHOP_TABS = [['weapon', 'נשקים'], ['ammo', 'תחמושת'], ['car', 'רכבים'], ['costume', 'דמויות']];
+    const closeShop = () => {
+        game()?.setShop(false);
+        setShopOpen(false);
+    };
+    const buyShop = (item) => {
+        const r = game()?.shopBuy(item.kind, item.id);
+        if (r) setShopMsg({ ok: r.ok, text: r.message });
+        setShopItems(game()?.shopList() ?? []);
     };
     const send = (e) => {
         e.preventDefault();
@@ -408,7 +428,7 @@ export function CityGame() {
 
                     {hud && (
                         <div className="hud-panel vehicle-hud">
-                            {hud.mode === 'heli' ? (
+                            {hud.mode === 'cable' ? (<><b>רכבל</b> · עוצר בכל גג · תחנה: {hud.stop}</>) : hud.mode === 'heli' ? (
                                 <><b>מסוק</b> · גובה {hud.alt} מ׳ · רווח להמראה, Shift להנמכה</>
                             ) : (
                                 <><b>{hud.label}</b> · {hud.speed} קמ״ש</>
@@ -463,6 +483,37 @@ export function CityGame() {
                         </div>
                     )}
 
+                    {shopOpen && (
+                        <div className="shop-dialog" role="dialog" aria-label="חנות העיר">
+                            <div className="shop-head">
+                                <h3>חנות העיר</h3>
+                                <span className="shop-cash">כסף: {(status?.cash ?? 0).toLocaleString('he-IL')} ₪</span>
+                            </div>
+                            <div className="shop-tabs" role="tablist">
+                                {SHOP_TABS.map(([id, label]) => (
+                                    <button key={id} type="button" role="tab" aria-selected={shopTab === id} className={shopTab === id ? 'active' : ''} onClick={() => setShopTab(id)}>
+                                        {label}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="shop-list">
+                                {shopItems.filter((item) => item.kind === shopTab).map((item) => (
+                                    <div key={`${item.kind}-${item.id}`} className="shop-item">
+                                        <div>
+                                            <strong>{item.name}</strong>
+                                            <span>{item.detail}</span>
+                                        </div>
+                                        <button type="button" disabled={!item.canBuy} onClick={() => buyShop(item)}>
+                                            {item.kind === 'costume' && item.owned ? (item.equipped ? 'לבוש עכשיו' : 'לבישה') : item.kind !== 'ammo' && item.owned ? 'בבעלותכם' : `${item.price.toLocaleString('he-IL')} ₪`}
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                            {shopMsg && <div className={`shop-msg${shopMsg.ok ? ' ok' : ''}`} role="status">{shopMsg.text}</div>}
+                            <button type="button" className="shop-close" onClick={closeShop}>סגירה</button>
+                        </div>
+                    )}
+
                     {chat && (
                         <div className="hud-panel npc-chat-panel">
                             <div className="npc-chat-header">
@@ -513,6 +564,7 @@ export function CityGame() {
                             <li>בניינים ומעליות</li>
                             <li>נשקים ושלבים</li>
                             <li>כספות ומשטרה</li>
+                            <li>חנות ורכבל</li>
                             <li>מכוניות, אוניות ומסוק</li>
                             <li>יום, לילה ומזג אוויר</li>
                         </ul>

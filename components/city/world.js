@@ -205,6 +205,11 @@ export function generateWorld(seed = 11) {
         if (r() < 0.6) trees.push({ x: cx - 14.5, z: cz - 14.5, s: 0.8 + r() * 0.4 });
     }
 
+    // A kiosk in the park: the shop where weapons, ammo, cars and looks are bought.
+    const park = blocks.find((b) => b.i === 2 && b.j === 2);
+    const shop = { x: park.cx + 4, z: park.cz + 4, name: 'חנות העיר' };
+    solid(shop.x - 2.5, shop.z - 1.5, shop.x + 2.5, shop.z + 1.5, 3.6);
+
     // The sea lies south of the city: a sloping beach and a pier to moor boats at.
     const pier = { x0: -3, x1: 3, z0: SEA_Z - 3, z1: SEA_Z + 42, top: 0.5 };
     surfaces.push({ x0: -900, x1: 900, z0: SEA_Z, z1: SEA_Z + 12, axis: 'z', a: 0, b: SEABED });
@@ -216,7 +221,7 @@ export function generateWorld(seed = 11) {
     for (const s of solids) rayBoxes.push([s.x0, s.y0, s.z0, s.x1, s.h, s.z1]);
     for (const s of surfaces) if (s.slab) rayBoxes.push([s.x0, s.a - 0.25, s.z0, s.x1, s.a, s.z1]);
 
-    return { surfaces, solids, blocks, buildings, stepBoxes, hillBoxes, trees, lamps, pickups, pier, rayBoxes, businesses };
+    return { surfaces, solids, blocks, buildings, stepBoxes, hillBoxes, trees, lamps, pickups, pier, rayBoxes, businesses, shop };
 }
 
 /** Highest walkable surface under (x, z) that can be reached from height y. */

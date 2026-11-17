@@ -13,10 +13,11 @@ import {
 } from './world.js';
 import { CRATE_COLORS, WEAPONS, WEAPON_ORDER, rayWorld, shoot } from './combat.js';
 import { createBots, hurtBot, updateBot } from './bots.js';
-import { STAGES, addCash, applyEvent, currentStage, heliUnlocked, initialProgress, loadProgress, saveProgress, stageView } from './progress.js';
+import { COSTUMES, STAGES, addCash, applyEvent, buyItem, currentStage, heliUnlocked, initialProgress, loadProgress, saveProgress, shopList, stageView } from './progress.js';
+import { DWELL, cablePose, cableSamples, cableSegments, cableStops } from './cable.js';
 import { clearWanted, createForce, escapeTime, hitOfficer, raiseWanted, reportGunfire, updateForce } from './police.js';
 import { CITIZENS, ambientLine, panicLine } from './dialog.js';
-import { instancedBoxes, makeBoat, makeCar, makeHeli, makeHuman, makeSafe, makeShip, makeSign, setGun, swingHuman, waterNormals, windowTextures } from './models.js';
+import { instancedBoxes, makeBoat, makeCar, makeHeli, makeHuman, makeSafe, makeShip, makeSign, setGun, swingHuman, waterNormals, windowTextures, makeCabin, makeCableLine } from './models.js';
 
 const SKY_KEYS = [
     [0, '#060b18'], [5, '#0b1426'], [6.5, '#e39a72'], [8, '#9ccbee'],
@@ -334,7 +335,8 @@ export function createGame(container, bubbleLayer, cb = {}) {
     addVehicle('boat', 'ship', 0, SEA_Z + 49, Math.PI / 2, '#27445f');
     addVehicle('boat', 'ship', 75, SEA_Z + 85, 0.4, '#7a2f2a');
     // Every car and the ships are open from the first stage; boats are stage rewards. The admin has everything.
-    const isUnlocked = (v) => admin || v.kind === 'car' || v.type === 'ship' || progress.boats.includes(v.type);
+    // Basic cars are free, better cars are bought in the shop, ships and boats are stage rewards. The admin has everything.
+    const isUnlocked = (v) => admin || v.type === 'basic' || v.type === 'ship' || (v.kind === 'car' ? progress.cars : progress.boats).includes(v.type);
     const owns = (id) => admin || progress.weapons.includes(id);
 
     const heli = { kind: 'heli', x: pad.cx, y: PAD_H, z: pad.cz, yaw: 0, vy: 0, spin: 0, mesh: makeHeli() };
@@ -393,6 +395,29 @@ export function createGame(container, bubbleLayer, cb = {}) {
     });
     let heist = null;
 
+    // The kiosk in the park and the cable car over the whole city.
+    {
+        const k = world.shop;
+        scene.add(instancedBoxes([
+            { x: k.x, y: PAD_H + 1.7, z: k.z, sx: 5, sy: 3.4, sz: 3, color: '#2b3a46' },
+            { x: k.x, y: PAD_H + 3.55, z: k.z, sx: 5.5, sy: 0.3, sz: 3.5, color: '#dfc184' }
+        ], std('#ffffff', { roughness: 0.6 })));
+        const sign = makeSign(k.name, '#dfc184');
+        sign.position.set(k.x, PAD_H + 2.9, k.z + 1.56);
+        scene.add(sign);
+    }
+    const cable = { segs: cableSegments(cableStops(world)), seg: 0, t: 0, dwell: DWELL };
+    const cabinMesh = makeCabin();
+    scene.add(cabinMesh);
+    {
+        const stops = cable.segs.map((s0) => s0.a);
+        scene.add(makeCableLine(cableSamples(cable.segs)));
+        scene.add(instancedBoxes([
+            ...stops.map((p) => ({ x: p.x, y: p.roof - 0.25, z: p.z, sx: 3, sy: 0.5, sz: 3, color: '#dfc184' })),
+            ...stops.map((p) => ({ x: p.x + 3, y: (p.roof + p.y) / 2, z: p.z, sx: 0.25, sy: p.y - p.roof, sz: 0.25, color: '#3b4348' }))
+        ], std('#ffffff', { metalness: 0.5, roughness: 0.4 })));
+    }
+
     const walkBlocks = world.blocks.filter((b) => b.type !== 'hill');
     const citizens = CITIZENS.map((info, n) => {
         const block = n < 4
@@ -415,7 +440,7 @@ export function createGame(container, bubbleLayer, cb = {}) {
     let started = false, mode = 'foot', vehicle = null, lift = null, chattingId = null, disposed = false;
     let promptTarget = null, lastPrompt, lastLocation, lastHud = '', lastHourSent = -1, lastStatus = '', lastStage = '';
     let clock = 0, slowTick = 0, bubbleTick = 3, raf = 0, last = performance.now();
-    let admin = false, paused = false, fireLatch = false, noise = null, travelled = 0, lastLocKey = '', onSummit = false, dirty = false, saveTick = 0, locked = false;
+    let admin = false, shopOpen = false, paused = false, fireLatch = false, noise = null, travelled = 0, lastLocKey = '', onSummit = false, dirty = false, saveTick = 0, locked = false;
     const tmpColor = new THREE.Color(), grayColor = new THREE.Color(), topColor = new THREE.Color();
     const target = { x: 0, y: 0, z: 0, dead: false, speed: 0 };
 
@@ -439,9 +464,56 @@ export function createGame(container, bubbleLayer, cb = {}) {
         if (chattingId !== c.id) c.mesh.rotation.y = Math.atan2(hx * c.dir, hz * c.dir);
     }
 
+    // --- the cable car ---------------------------------------------------------
+    const cableStop = () => cable.segs[cable.seg].a;
+    function boardCable() {
+        mode = 'cable';
+        player.mesh.visible = false;
+        player.speed = 0;
+    }
+    function exitCable() {
+        const s0 = cableStop();
+        mode = 'foot';
+        Object.assign(player, { x: s0.x + 2, y: s0.roof, z: s0.z, vy: 0, grounded: true, speed: 0 });
+        player.mesh.visible = true;
+    }
+    function updateCable(dt) {
+        if (cable.dwell > 0) cable.dwell -= dt;
+        else {
+            cable.t += dt / cable.segs[cable.seg].dur;
+            if (cable.t >= 1) {
+                cable.t = 0;
+                cable.seg = (cable.seg + 1) % cable.segs.length;
+                cable.dwell = DWELL;
+            }
+        }
+        const p = cablePose(cable.segs, cable.seg, cable.t);
+        cabinMesh.position.set(p.x, p.y - 1.4, p.z);
+        cabinMesh.rotation.y = p.yaw;
+        if (mode === 'cable') Object.assign(player, { x: p.x, y: p.y - 2.6, z: p.z, speed: 0 });
+    }
+
+    // --- the shop and the wardrobe ------------------------------------------------
+    function applyCostume() {
+        const look = COSTUMES[progress.costume] || COSTUMES.default;
+        const fresh = makeHuman({ shirt: look.shirt, pants: look.pants, hat: look.hat, vest: look.vest, hair: look.hair });
+        fresh.position.copy(player.mesh.position);
+        fresh.rotation.copy(player.mesh.rotation);
+        fresh.visible = player.mesh.visible;
+        scene.remove(player.mesh);
+        player.mesh = fresh;
+        scene.add(fresh);
+        setGun(fresh, player.weapon);
+    }
+
     function nearest() {
+        if (mode === 'cable') return cable.t === 0 && cable.dwell > 0 ? { type: 'cableExit', text: `ירידה מהרכבל · ${cableStop().name}` } : null;
         if (mode !== 'foot' || player.dead) return null;
         const loc = locationOf(world, player.x, player.y, player.z);
+        if (loc.b && cable.t === 0 && cable.dwell > 0 && loc.level >= loc.b.floors) {
+            const stop = cableStop();
+            if (stop.id === loc.b.index && Math.hypot(player.x - stop.x, player.z - stop.z) < 6) return { type: 'cableBoard', text: `עלייה לרכבל · ${stop.name}` };
+        }
         if (loc.b && Math.hypot(player.x - loc.b.lift.x, player.z - loc.b.lift.z) < 1.5) {
             return { type: 'lift', ref: loc.b, level: loc.level, text: `מעלית · ${levelName(loc.b, loc.level)}` };
         }
@@ -460,12 +532,13 @@ export function createGame(container, bubbleLayer, cb = {}) {
         };
         for (const v of vehicles) {
             const open = isUnlocked(v);
-            const text = open ? (v.kind === 'car' ? `כניסה ל${v.spec.label}` : `עלייה ל${v.spec.label}`) : `${v.spec.label} · נעול עד שלב ${stageOfReward(v.kind, v.type)}`;
-            consider({ type: open ? v.kind : 'locked', ref: v, text }, v.x, v.z, v.kind === 'car' ? 4 : v.spec.big ? 11 : 6.5, v.kind === 'car' ? 0 : WATER_Y);
+            const text = open ? (v.kind === 'car' ? `כניסה ל${v.spec.label}` : `עלייה ל${v.spec.label}`) : (v.kind === 'car' ? `${v.spec.label} · נקנה בחנות העיר` : `${v.spec.label} · נעול עד שלב ${stageOfReward(v.kind, v.type)}`);
+            consider({ type: open ? v.kind : 'locked', ref: v, text, lockText: v.kind === 'car' ? 'הרכב נקנה בחנות העיר' : undefined }, v.x, v.z, v.kind === 'car' ? 4 : v.spec.big ? 11 : 6.5, v.kind === 'car' ? 0 : WATER_Y);
         }
         const heliOpen = admin || heliUnlocked(progress);
         consider({ type: heliOpen ? 'heli' : 'locked', ref: heli, text: heliOpen ? 'עלייה למסוק' : 'המסוק · נעול עד שלב 2', lockText: 'המסוק נפתח כשמסיימים את שלב 1' }, heli.x, heli.z, 5, heli.y);
         for (const c of citizens) consider({ type: 'citizen', ref: c, text: `שיחה עם ${c.name}` }, c.x, c.z, 3, PAD_H);
+        if (!best && Math.hypot(player.x - world.shop.x, player.z - world.shop.z) < 4.5) return { type: 'shop', text: `${world.shop.name} · קנייה ונשק` };
         return best;
     }
 
@@ -487,12 +560,15 @@ export function createGame(container, bubbleLayer, cb = {}) {
 
     function interact() {
         if (!started || player.dead || mode === 'lift') return;
+        if (mode === 'cable') { if (cable.t === 0 && cable.dwell > 0) exitCable(); return; }
         if (mode === 'heli' && heli.y - groundAt(world, heli.x, heli.z, heli.y) > 0.4) return;
         if (mode !== 'foot') { leaveVehicle(); return; }
         const t = nearest();
         if (!t) return;
         if (t.type === 'citizen') { cb.onChat?.({ id: t.ref.id, name: t.ref.name, role: t.ref.role }); return; }
         if (t.type === 'lift') { cb.onElevator?.({ name: t.ref.name, floors: t.ref.floors, level: t.level }); return; }
+        if (t.type === 'cableBoard') { boardCable(); return; }
+        if (t.type === 'shop') { cb.onShop?.(); return; }
         if (t.type === 'safe') { startHeist(t.ref); return; }
         if (t.type === 'emptySafe' || t.type === 'cracking') return;
         if (t.type === 'locked') { toast(t.lockText || `${t.ref.spec.label} נפתח בסיום שלב ${stageOfReward(t.ref.kind, t.ref.type)}`); return; }
@@ -973,7 +1049,7 @@ export function createGame(container, bubbleLayer, cb = {}) {
             // On foot the camera sits over the right shoulder so the crosshair is clear.
             const side = onFoot ? 0.55 : 0;
             tx = player.x + Math.cos(cam.yaw) * side; ty = player.y + (onFoot ? 1.6 : 1.9); tz = player.z - Math.sin(cam.yaw) * side;
-            if (!onFoot && Math.abs(vehicle.speed ?? 2) > 1 && clock - cam.lastDrag > 1.8) cam.yaw = angleLerp(cam.yaw, vehicle.yaw + Math.PI, Math.min(1, dt * 2.2));
+            if (!onFoot && vehicle && Math.abs(vehicle.speed ?? 2) > 1 && clock - cam.lastDrag > 1.8) cam.yaw = angleLerp(cam.yaw, vehicle.yaw + Math.PI, Math.min(1, dt * 2.2));
             want = cam.dist * (mode === 'heli' ? 1.9 : mode === 'boat' ? (vehicle.spec.big ? 4.5 : 1.5) : mode === 'car' ? 1.35 : 1);
         }
         const f = Math.min(1, dt * 12);
@@ -1011,7 +1087,7 @@ export function createGame(container, bubbleLayer, cb = {}) {
         }
 
         const hud = mode === 'car' || mode === 'boat' ? { mode, label: vehicle.spec.label, speed: Math.round(Math.abs(vehicle.speed) * 3.6) }
-            : mode === 'heli' ? { mode, alt: Math.round(heli.y) } : null;
+            : mode === 'heli' ? { mode, alt: Math.round(heli.y) } : mode === 'cable' ? { mode, label: 'רכבל', stop: cableStop().name } : null;
         const hudKey = JSON.stringify(hud);
         if (hudKey !== lastHud) { lastHud = hudKey; cb.onHud?.(hud); }
         const shown = Math.round(env.hour * 12);
@@ -1041,10 +1117,11 @@ export function createGame(container, bubbleLayer, cb = {}) {
             if (player.dead) {
                 if ((player.deadT -= dt) <= 0) respawn();
             } else if (mode === 'lift') updateLift(dt);
-            else if (chattingId !== null) { player.speed = 0; }
+            else if (chattingId !== null || shopOpen) { player.speed = 0; }
             else if (mode === 'foot') updateFoot(dt, i);
             else if (mode === 'car') updateCar(dt, i);
             else if (mode === 'boat') updateBoat(dt, i);
+            else if (mode === 'cable') { /* the cabin carries the player */ }
             else updateHeli(dt, i);
             if (!player.dead && clock - player.lastHurt > 6 && player.hp < 100) player.hp = Math.min(100, player.hp + 6 * dt);
             if (botsOn) updateBots(dt);
@@ -1065,6 +1142,7 @@ export function createGame(container, bubbleLayer, cb = {}) {
         heli.mesh.userData.rotor.rotation.y += heli.spin * dt;
         heli.mesh.userData.tailRotor.rotation.x += heli.spin * 2 * dt;
         heli.mesh.position.set(heli.x, heli.y, heli.z); heli.mesh.rotation.y = heli.yaw;
+        updateCable(dt);
         updateCamera(dt);
         updateCitizens(dt);
         updateEnvironment(dt);
@@ -1171,6 +1249,7 @@ export function createGame(container, bubbleLayer, cb = {}) {
         start({ bots: withBots = false, admin: asAdmin = false } = {}) {
             started = true; cam.dist = 7; cam.yaw = 0; cam.pitch = 0.3;
             admin = !!asAdmin;
+            applyCostume();
             if (admin) {
                 for (const id of WEAPON_ORDER) player.reserve[id] = 999;
                 toast('שלום מנהל: הכול פתוח ואי אפשר לפגוע בכם');
@@ -1191,6 +1270,21 @@ export function createGame(container, bubbleLayer, cb = {}) {
             clearWanted(force);
             report();
             return true;
+        },
+        setShop(v) { shopOpen = !!v; if (shopOpen) releasePointer(); report(); },
+        shopList: () => shopList(progress, admin),
+        shopBuy(kind, id) {
+            const r = buyItem(progress, kind, id, admin);
+            if (!r.ok) return r;
+            progress = r.state;
+            if (kind === 'weapon') player.reserve[id] = Math.max(player.reserve[id] || 0, WEAPONS[id].mag * 3);
+            if (kind === 'ammo') player.reserve[id] = (player.reserve[id] || 0) + WEAPONS[id].mag * 3;
+            if (kind === 'costume') applyCostume();
+            if (storage) saveProgress(storage, progress);
+            dirty = false;
+            report();
+            toast(r.message);
+            return r;
         },
         interact, rideTo, reload, nextWeapon, setWeapon, setBots, releasePointer,
         setPolice(on) {
@@ -1248,6 +1342,8 @@ export function createGame(container, bubbleLayer, cb = {}) {
             moveOfficer(n, x, y, z) { if (force.officers[n]) Object.assign(force.officers[n], { x, y, z, vy: 0, path: null }); },
             freezeBots(v) { for (const b of bots) { b.hunter = !v; if (v) { b.known = null; b.knownAt = -99; } } },
             hurt(amount) { damagePlayer(amount); report(); },
+            setCash(n) { progress = { ...progress, cash: n }; report(); },
+            cable: () => { const s0 = cableStop(); return { stops: cable.segs.length, seg: cable.seg, t: cable.t, dwell: cable.dwell, atStop: cable.t === 0 && cable.dwell > 0, stop: s0.name, stopId: s0.id, x: s0.x, y: s0.roof, z: s0.z, riding: mode === 'cable' }; },
             citizens: () => citizens.map((c) => ({ id: c.id, name: c.name, x: c.x, z: c.z })),
             crates: () => world.pickups.map((p) => ({ ...p, ready: crateReady[p.id] <= clock })),
             vehicles: () => vehicles.map((v) => ({ kind: v.kind, type: v.type, x: v.x, z: v.z, unlocked: isUnlocked(v) })),

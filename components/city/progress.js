@@ -1,3 +1,4 @@
+import { WEAPONS } from './combat.js';
 // Stages and rewards. A stage is finished by game events (reaching a place,
 // collecting, driving, sailing, winning fights) and unlocks a weapon, a car or
 // a boat. Pure functions over a plain state object, saved to localStorage.
@@ -18,7 +19,7 @@ export const STAGES = [
 export const STORAGE_KEY = 'city-game-v2';
 
 export function initialProgress() {
-    return { stage: 0, count: 0, weapons: ['pistol'], cars: [], boats: [], kills: 0, deaths: 0, crates: 0, cash: 0, heists: 0, escapes: 0, arrests: 0 };
+    return { stage: 0, count: 0, weapons: ['pistol'], cars: [], boats: [], kills: 0, deaths: 0, crates: 0, cash: 0, heists: 0, escapes: 0, arrests: 0, costumes: ['default'], costume: 'default' };
 }
 
 /** The current stage as the player sees it, depending on whether bots are on. */
@@ -86,7 +87,9 @@ export function loadProgress(storage) {
             cash: Math.max(0, Math.floor(Number(raw.cash) || 0)),
             heists: Number(raw.heists) || 0,
             escapes: Number(raw.escapes) || 0,
-            arrests: Number(raw.arrests) || 0
+            arrests: Number(raw.arrests) || 0,
+            costumes: [...new Set(['default', ...list(raw.costumes, [])])],
+            costume: COSTUMES[raw.costume] ? raw.costume : 'default'
         };
     } catch {
         return initialProgress();
@@ -108,3 +111,67 @@ export function addCash(state, amount) {
 
 /** The helicopter opens once the first stage is done (that is, from stage 2). */
 export const heliUnlocked = (state) => state.stage >= 1;
+
+/** Looks for the player: the colours of the clothes. */
+export const COSTUMES = {
+    default: { label: 'ברירת מחדל', shirt: '#dfc184', pants: '#22303c' },
+    suit: { label: 'חליפה', shirt: '#f0ede4', pants: '#1b2430', vest: '#20262e', hair: '#1b1b1f' },
+    ranger: { label: 'שומר פארק', shirt: '#5d6b3a', pants: '#3a3327', hat: '#4a4a3a', hair: '#4a3420' },
+    shadow: { label: 'צללים', shirt: '#15161a', pants: '#0c0d10', hat: '#0c0d10', hair: '#0c0d10', vest: '#23252b' }
+};
+
+const AMMO = ['pistol', 'smg', 'shotgun', 'rifle', 'sniper'].map((id) => ({
+    kind: 'ammo', id, name: `תחמושת ל${WEAPONS[id].name}`, price: WEAPONS[id].mag * 20, detail: `${WEAPONS[id].mag * 3} כדורים נוספים`
+}));
+
+/** Everything the shop sells, with prices in the game's cash. */
+export const CATALOG = [
+    { kind: 'weapon', id: 'smg', name: 'תת־מקלע', price: 2500, detail: 'ירי רצוף, מחסנית של 30 כדורים' },
+    { kind: 'weapon', id: 'shotgun', name: 'רובה ציד', price: 6000, detail: 'פיזור של 8 כדורים, טווח קצר' },
+    { kind: 'weapon', id: 'rifle', name: 'רובה סער', price: 14000, detail: 'ירי רצוף, טווח ארוך' },
+    { kind: 'weapon', id: 'sniper', name: 'רובה צלפים', price: 22000, detail: 'נזק גבוה מאוד, דיוק מרבי' },
+    ...AMMO,
+    { kind: 'car', id: 'sport', name: 'מכונית ספורט', price: 30000, detail: 'עד 155 קמ״ש' },
+    { kind: 'car', id: 'jeep', name: 'ג׳יפ משוריין', price: 20000, detail: 'שריון כבד, חוסם יריות' },
+    { kind: 'car', id: 'super', name: 'מכונית על', price: 80000, detail: 'המהירה ביותר בעיר, עד 194 קמ״ש' },
+    { kind: 'costume', id: 'default', name: 'ברירת מחדל', price: 0, detail: 'הלבוש המקורי שלכם' },
+    { kind: 'costume', id: 'suit', name: 'חליפה', price: 4000, detail: 'מראה של איש עסקים' },
+    { kind: 'costume', id: 'ranger', name: 'שומר פארק', price: 8000, detail: 'מדי שומר וכובע רחב' },
+    { kind: 'costume', id: 'shadow', name: 'צללים', price: 15000, detail: 'שחור מוחלט וכובע כהה' }
+];
+
+function ownedHere(state, item) {
+    if (item.kind === 'weapon') return state.weapons.includes(item.id);
+    if (item.kind === 'car') return state.cars.includes(item.id);
+    if (item.kind === 'costume') return state.costumes.includes(item.id);
+    return false;
+}
+
+/** The shop as the player sees it right now. Ammo needs the gun first. */
+export function shopList(state, free = false) {
+    return CATALOG.map((item) => {
+        const owned = ownedHere(state, item);
+        const price = free ? 0 : item.price;
+        const canBuy = item.kind === 'ammo' ? state.weapons.includes(item.id) && (free || state.cash >= price)
+            : item.kind === 'costume' && owned ? true
+                : !owned && (free || state.cash >= price);
+        return { ...item, owned, price, canBuy, equipped: item.kind === 'costume' && state.costume === item.id };
+    });
+}
+
+/** Buy one item (or put on an owned look). Returns the new state and a message for the player. */
+export function buyItem(state, kind, id, free = false) {
+    const item = CATALOG.find((i) => i.kind === kind && i.id === id);
+    if (!item) return { state, ok: false, message: 'הפריט לא קיים' };
+    const owned = ownedHere(state, item);
+    if (item.kind === 'costume' && owned) return { state: { ...state, costume: id }, ok: true, message: `לבשתם: ${item.name}` };
+    if (item.kind === 'ammo' && !state.weapons.includes(id)) return { state, ok: false, message: 'קודם קנו את הנשק' };
+    if (item.kind !== 'ammo' && owned) return { state, ok: false, message: 'כבר בבעלותכם' };
+    const price = free ? 0 : item.price;
+    if (state.cash < price) return { state, ok: false, message: 'אין מספיק כסף' };
+    let next = { ...state, cash: state.cash - price };
+    if (item.kind === 'weapon') next = { ...next, weapons: [...state.weapons, id] };
+    if (item.kind === 'car') next = { ...next, cars: [...state.cars, id] };
+    if (item.kind === 'costume') next = { ...next, costumes: [...state.costumes, id], costume: id };
+    return { state: next, ok: true, message: `נרכש: ${item.name}` };
+}

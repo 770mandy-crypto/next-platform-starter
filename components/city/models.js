@@ -333,3 +333,23 @@ export function makeShip(color) {
     for (let n = 0; n < 3; n++) put(g, new THREE.BoxGeometry(1.9, 1.5, 3.8), mat(colors[(n + 2) % 5], { roughness: 0.7 }), (n - 1) * 2.05, 4.55, -2.5 + (n % 2) * 4.1);
     return g;
 }
+
+/** The cabin: a gold box with a dark window band, hung from the cable by an arm. */
+export function makeCabin() {
+    const g = new THREE.Group();
+    const gold = new THREE.MeshPhysicalMaterial({ color: '#dfc184', roughness: 0.3, metalness: 0.6, clearcoat: 0.8 });
+    const glass = mat('#16242e', { roughness: 0.08, metalness: 0.8 });
+    const dark = mat('#2b2f33', { metalness: 0.5 });
+    put(g, new THREE.BoxGeometry(2.2, 1.8, 2.2), gold, 0, 0, 0);
+    put(g, new THREE.BoxGeometry(2.24, 0.8, 1.7), glass, 0, 0.15, 0, false);
+    put(g, new THREE.BoxGeometry(2.4, 0.16, 2.4), dark, 0, 1.0, 0);
+    put(g, new THREE.BoxGeometry(0.14, 0.5, 0.14), dark, 0, 1.15, 0, false);
+    return g;
+}
+
+/** The cable itself, drawn as one closed line through the sampled points. */
+export function makeCableLine(points) {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
+    return new THREE.LineLoop(geo, new THREE.LineBasicMaterial({ color: '#dfc184' }));
+}

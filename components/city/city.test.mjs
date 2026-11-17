@@ -1,3 +1,5 @@
+import { buyItem, shopList } from './progress.js';
+import { CABLE_HEIGHT, cablePose, cableSamples, cableSegments, cableStops } from './cable.js';
 // Logic tests for the city game: world layout, physics, combat, bots, stages.
 // Run with: npm test
 import test from 'node:test';
@@ -390,4 +392,49 @@ test('citizens talk about what is happening around them', () => {
     assert.ok([...seen].some((l) => l.includes('הגשם')), 'mentions the rain');
     assert.ok([...seen].some((l) => l.includes('בלילה')), 'mentions the night');
     assert.ok(panicLine().length > 2);
+});
+
+test('the cable car loops the whole city and stops on every roof', () => {
+    const stops = cableStops(world);
+    assert.equal(stops.length, world.buildings.length, 'one stop per building');
+    assert.equal(new Set(stops.map((st) => st.id)).size, stops.length, 'each roof once');
+    for (let n = 1; n < stops.length; n++) assert.ok(stops[n].angle >= stops[n - 1].angle, 'ordered round the city');
+    const segs = cableSegments(stops);
+    assert.equal(segs.length, stops.length);
+    assert.equal(segs[segs.length - 1].b, stops[0], 'the loop closes');
+    for (const st of stops) {
+        const b = world.buildings[st.id];
+        assert.ok(Math.abs(st.roof - (b.h + 0.2)) < 1e-9, 'stands on the roof');
+        assert.ok(st.y > st.roof, 'the cable runs above the roof');
+    }
+    const at = cablePose(segs, 3, 0);
+    assert.equal(at.x, segs[3].a.x);
+    assert.equal(at.y, segs[3].a.y);
+    const mid = cablePose(segs, 3, 0.5);
+    assert.ok(Math.abs(mid.y - CABLE_HEIGHT) < 1e-6, 'the cabin rises above the city between stops');
+    assert.equal(cableSamples(segs).length, segs.length * 8 * 3);
+});
+
+test('the shop sells weapons, ammo, cars and looks for in-game cash', () => {
+    const poor = { ...initialProgress(), cash: 1000 };
+    assert.equal(buyItem(poor, 'weapon', 'rifle').ok, false, 'not enough cash');
+    const rich = { ...initialProgress(), cash: 10000 };
+    const smg = buyItem(rich, 'weapon', 'smg');
+    assert.ok(smg.ok && smg.state.cash === 7500 && smg.state.weapons.includes('smg'), 'bought a submachine gun');
+    assert.equal(buyItem(smg.state, 'weapon', 'smg').ok, false, 'already owned');
+    assert.equal(buyItem(rich, 'ammo', 'smg').ok, false, 'ammo needs the gun first');
+    const ammo = buyItem(smg.state, 'ammo', 'smg');
+    assert.ok(ammo.ok && ammo.state.cash === 6900, 'a full magazine costs 600');
+    const car = buyItem({ ...rich, cash: 30000 }, 'car', 'sport');
+    assert.ok(car.ok && car.state.cars.includes('sport') && car.state.cash === 0, 'bought a sport car');
+    const look = buyItem(rich, 'costume', 'suit');
+    assert.ok(look.ok && look.state.costume === 'suit' && look.state.costumes.includes('suit'), 'bought a suit and put it on');
+    const back = buyItem(look.state, 'costume', 'default');
+    assert.ok(back.ok && back.state.costume === 'default' && back.state.cash === look.state.cash, 'putting on an owned look is free');
+    const free = buyItem(poor, 'car', 'super', true);
+    assert.ok(free.ok && free.state.cash === 1000 && free.state.cars.includes('super'), 'the admin pays nothing');
+    const list = shopList(rich);
+    assert.equal(list.find((i) => i.kind === 'weapon' && i.id === 'rifle').canBuy, false, 'too expensive');
+    assert.equal(list.find((i) => i.kind === 'ammo' && i.id === 'smg').canBuy, false, 'no gun, no ammo');
+    assert.equal(list.find((i) => i.kind === 'weapon' && i.id === 'smg').canBuy, true, 'affordable');
 });

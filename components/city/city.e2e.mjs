@@ -351,10 +351,11 @@ await test('officers follow the player through the door and up the elevator', as
     }
     assert(reached, 'no officer made it up to the player');
 });
-await test('cars: every car is open from the first stage', async (t) => {
+await test('cars: the basic car is free, better cars are sold in the shop', async (t) => {
     await t.open(false);
     const cars = (await t.vehicles()).filter((v) => v.kind === 'car');
-    assert(cars.length === 11 && cars.every((v) => v.unlocked), 'all cars are unlocked at stage 1');
+    assert(cars.find((v) => v.type === 'basic').unlocked, 'the basic car is free');
+    assert(!cars.find((v) => v.type === 'super').unlocked, 'the super car is sold in the shop');
     const basic = cars.find((v) => v.type === 'basic');
     await t.tp(basic.x + 2.5, 0, basic.z);
     await t.adv(0.4);
@@ -368,11 +369,14 @@ await test('cars: every car is open from the first stage', async (t) => {
     await t.hold('KeyS', 4);
     await t.press('KeyE');
     assert((await t.snap()).mode === 'foot', 'got out');
-    const fast = cars.find((x) => x.type === 'super');
+    await t.page.evaluate(() => window.__cityGame.debug.setCash(90000));
+    assert(await t.page.evaluate(() => window.__cityGame.shopBuy('car', 'super').ok), 'bought the super car');
+    const fast = (await t.vehicles()).find((x) => x.type === 'super');
+    assert(fast.unlocked, 'now unlocked');
     await t.tp(fast.x + 2.5, 0, fast.z);
     await t.adv(0.4);
     await t.press('KeyE');
-    assert((await t.snap()).vehicle?.type === 'super', 'in the super car without finishing any stage');
+    assert((await t.snap()).vehicle?.type === 'super', 'in the super car');
     await t.hold('KeyW', 3);
     assert((await t.snap()).vehicle.speed > v.speed, 'the super car is faster');
 });
@@ -656,6 +660,47 @@ await test('admin sign-in: wrong code refused; admin cannot be hurt and has ever
     for (let n = 0; n < 9; n++) await t.page.click('.admin-skip');
     await until(async () => (await t.snap()).progress.stage === 10, 'all stages skipped');
     assert((await t.text('.stage-title')).includes('כל השלבים'), 'finished');
+});
+
+await test('shop: a kiosk in the park sells a weapon for cash', async (t) => {
+    await t.open(false);
+    const k = await t.page.evaluate(() => window.__cityGame.debug.world.shop);
+    await t.page.evaluate(() => window.__cityGame.debug.setCash(5000));
+    await t.tp(k.x + 3, PAD_H, k.z + 0.5);
+    await t.adv(0.4);
+    assert((await t.snap()).prompt === 'shop', 'shop prompt');
+    await t.press('KeyE');
+    await t.page.waitForSelector('.shop-dialog');
+    assert((await t.text('.shop-cash')).includes('5,000'), 'cash shown in the shop');
+    await t.page.locator('.shop-item', { hasText: 'תת־מקלע' }).locator('button').click();
+    await until(async () => (await t.snap()).progress.weapons.includes('smg'), 'submachine gun bought');
+    assert((await t.text('.shop-msg')).includes('נרכש'), 'purchase message');
+    assert((await t.snap()).progress.cash === 2500, 'paid 2500');
+    await t.page.click('.shop-close');
+    assert(!(await t.page.locator('.shop-dialog').count()), 'shop closes');
+});
+
+await test('the cable car stops on every roof and takes passengers', async (t) => {
+    await t.open(false);
+    const c0 = await t.page.evaluate(() => window.__cityGame.debug.cable());
+    assert(c0.stops === 44, `stops ${c0.stops}`);
+    await t.tp(c0.x, c0.y, c0.z);
+    await t.adv(0.4);
+    assert((await t.snap()).prompt === 'cableBoard', `prompt ${(await t.snap()).prompt}`);
+    await t.press('KeyE');
+    assert((await t.snap()).mode === 'cable', 'boarded');
+    let c1 = c0;
+    for (let n = 0; n < 120; n++) {
+        await t.adv(0.5);
+        c1 = await t.page.evaluate(() => window.__cityGame.debug.cable());
+        if (c1.atStop && c1.stopId !== c0.stopId) break;
+    }
+    assert(c1.atStop && c1.stopId !== c0.stopId, 'the cabin stopped at another roof');
+    assert((await t.snap()).prompt === 'cableExit', `exit prompt ${(await t.snap()).prompt}`);
+    await t.press('KeyE');
+    const s = await t.snap();
+    assert(s.mode === 'foot', 'got off');
+    assert(Math.abs(s.player.y - c1.y) < 0.3, `on the roof (y ${s.player.y.toFixed(1)}, roof ${c1.y.toFixed(1)})`);
 });
 
 await test('the rest of the site still serves (home page)', async (t) => {
