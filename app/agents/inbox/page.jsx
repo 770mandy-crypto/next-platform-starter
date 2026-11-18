@@ -174,6 +174,12 @@ function DraftCard({ draft, busy, onSave, onSend, onDiscard }) {
             <div className="text-sm">
                 אל: <span dir="ltr">{draft.to}</span>
             </div>
+            {draft.summary && (
+                <details className="text-sm text-slate-600">
+                    <summary className="cursor-pointer">סיכום הסוכן</summary>
+                    <p className="whitespace-pre-line pt-2">{draft.summary}</p>
+                </details>
+            )}
             <textarea
                 value={text}
                 onChange={(event) => setText(event.target.value)}
@@ -181,9 +187,7 @@ function DraftCard({ draft, busy, onSave, onSend, onDiscard }) {
                 rows={10}
                 className="w-full rounded-lg border border-slate-300 p-3 text-sm"
             />
-            <p className="text-xs text-slate-500">
-                הטקסט מתחיל בסיכום של הסוכן. מחק את הסיכום והשאר רק את התשובה לפני השליחה.
-            </p>
+            <p className="text-xs text-slate-500">זו התשובה שתישלח. ערוך אותה ושמור לפני השליחה.</p>
             {draft.status === 'sent' && <p className="font-medium text-emerald-700">נשלח</p>}
             {draft.status !== 'pending' && draft.status !== 'sent' && <p className="text-slate-500">סטטוס: {draft.status}</p>}
             {draft.lastError && <p className="text-sm text-rose-700">השליחה האחרונה נכשלה: {draft.lastError}</p>}
