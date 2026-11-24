@@ -312,7 +312,7 @@ function speak(text, then) {
   if (!$("optSpeak").checked || !("speechSynthesis" in window)) { then && then(); return; }
   try {
     speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text.replace(/[*_`#>]/g, ""));
+    const u = new SpeechSynthesisUtterance(speechText(text));
     const heb = /[֐-׿]/.test(text);
     u.lang = heb ? "he-IL" : "en-US";
     const v = pickVoice(heb ? "he" : "en");
@@ -380,9 +380,48 @@ async function listen() {
   try { rec.start(); } catch (e) { listening = false; }
 }
 
-const STOP_WORDS = /^(עצור|תעצור|תפסיק|הפסק|ביטול|בטל|stop|cancel)[.!]?$/i;
+/* ---------------- spoken Hebrew ---------------- */
+// Natural spoken phrases; one is picked at random so it doesn't sound robotic.
+const SAY = window.SAY = {
+  ack:    ["קיבלתי, אני על זה.", "סגור, מתחיל.", "אין בעיה, כבר עושה.", "בסדר גמור, עובד על זה.", "יאללה, מתחיל."],
+  done:   ["סיימתי.", "זהו, זה מוכן.", "בוצע.", "סיימתי, תבדוק אם זה מה שרצית."],
+  stop:   ["עצרתי.", "בסדר, הפסקתי.", "עצרתי את המשימה."],
+  cancel: ["המשימה בוטלה.", "ביטלתי."],
+  wake:   ["כן? אני מקשיב.", "כן, מה צריך?", "אני פה, מה לעשות?", "הקשבתי. מה תרצה?"],
+};
+const pick = (list) => list[Math.floor(Math.random() * list.length)];
+
+// "Stop" in the many ways people say it.
+const STOP_WORDS = window.STOP_WORDS =
+  /^(תעצור|עצור|תפסיק|הפסק|די|מספיק|עזוב|תעזוב|בטל|תבטל|ביטול|חכה|רגע|stop|cancel)(\s+(את\s+)?(זה|הכל|הכול|המשימה|כבר|רגע|עכשיו|בבקשה))*\s*[.!,]*\s*$/i;
+
+// Clean text so the voice reads it the way a person would say it.
+const ABBR = [
+  [/וכו['׳]/g, "וכולי"], [/בע"מ|בע״מ/g, "בע מ"], [/ש"ח|ש״ח/g, "שקלים"], [/ת"א|ת״א/g, "תל אביב"],
+  [/ד"ש|ד״ש/g, "דרישת שלום"], [/בס"ד|בס״ד/g, ""], [/עו"ד|עו״ד/g, "עורך דין"], [/רח['׳]/g, "רחוב"],
+  [/מס['׳]/g, "מספר"], [/דק['׳]/g, "דקות"], [/ק"מ|ק״מ/g, "קילומטר"], [/ק"ג|ק״ג/g, "קילו"],
+  [/צה"ל|צה״ל/g, "צהל"], [/ארה"ב|ארה״ב/g, "ארצות הברית"], [/בי"ס|בי״ס/g, "בית ספר"], [/נ"ב|נ״ב/g, "נ ב"],
+];
+function speechText(text) {
+  let t = String(text);
+  t = t.replace(/```[\s\S]*?```/g, " (קוד) ");                // code blocks aren't read aloud
+  t = t.replace(/https?:\/\/\S+|www\.\S+/g, "קישור");           // URLs
+  t = t.replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, (m) => m.replace("@", " שטרודל ").replace(/\./g, " נקודה "));
+  for (const [re, rep] of ABBR) t = t.replace(re, rep);
+  t = t.replace(/₪\s?(\d[\d,.]*)/g, "$1 שקלים").replace(/(\d[\d,.]*)\s?₪/g, "$1 שקלים");
+  t = t.replace(/\$\s?(\d[\d,.]*)/g, "$1 דולר").replace(/(\d[\d,.]*)\s?%/g, "$1 אחוז");
+  t = t.replace(/(\d),(\d{3})/g, "$1$2");                       // 1,200 -> 1200
+  t = t.replace(/(\d+)\s*-\s*(\d+)/g, "$1 עד $2");               // 3-5 -> 3 עד 5
+  t = t.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");                 // markdown links
+  t = t.replace(/[*_`#>|~]/g, "").replace(/^\s*[-•]\s+/gm, "");   // markdown symbols, bullets
+  t = t.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, "");  // emoji
+  t = t.replace(/\s*\n+\s*/g, ". ").replace(/\.{2,}/g, ".").replace(/\s{2,}/g, " ").replace(/\s+([.,!?])/g, "$1");
+  return t.trim().replace(/^\.\s*/, "");
+}
+window.speechText = speechText;
+
 function handleUtterance(text) {
-  if (STOP_WORDS.test(text)) { post("/api/stop"); speak("עצרתי."); return; }
+  if (STOP_WORDS.test(text.trim())) { post("/api/stop"); speak(pick(SAY.stop)); return; }
   submitTask(text);
 }
 
@@ -407,7 +446,7 @@ function submitTask(text) {
   text = text.trim(); if (!text) return;
   $("taskInput").value = "";
   post("/api/task", { text });
-  speak("קיבלתי. מתחיל לעבוד על זה.");
+  speak(pick(SAY.ack));
 }
 
 $("composer").addEventListener("submit", (e) => { e.preventDefault(); submitTask($("taskInput").value); });
@@ -513,8 +552,8 @@ function render(s) {
     const d = document.createElement("div"); d.className = ev.kind;
     d.textContent = (ev.kind === "reply" ? "Claude: " : "") + ev.text; log.appendChild(d);
     if (ev.kind === "reply") speak(ev.text, () => { if ($("optConvo").checked && !lastRunningAfter()) listen(); });
-    if (ev.kind === "done" && !s.events.some((x) => x.kind === "reply" && x.task === ev.task)) speak("סיימתי.");
-    if (ev.kind === "cancelled" && /cancelled/.test(ev.text)) speak("המשימה בוטלה.");
+    if (ev.kind === "done" && !s.events.some((x) => x.kind === "reply" && x.task === ev.task)) speak(pick(SAY.done));
+    if (ev.kind === "cancelled" && /cancelled/.test(ev.text)) speak(pick(SAY.cancel));
   }
   while (log.children.length > 400) log.firstChild.remove();
   if (atBottom) log.scrollTop = log.scrollHeight;
@@ -535,7 +574,7 @@ const lastRunningAfter = () => pendingRunning;
 function onWake() {
   avatar.wake();
   const f = $("flash"); f.classList.add("on"); setTimeout(() => f.classList.remove("on"), 80);
-  speak("כן? אני מקשיב.", () => listen());
+  speak(pick(SAY.wake), () => listen());
 }
 
 function chip(id, ok, text) {

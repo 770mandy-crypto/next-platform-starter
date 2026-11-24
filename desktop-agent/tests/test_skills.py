@@ -28,7 +28,7 @@ def tool(name, inp, id="c1"):
 def test_tool_schemas_are_valid():
     for t in skills.TOOLS:
         assert t["input_schema"]["type"] == "object"
-        assert set(t["input_schema"]["required"]) <= set(t["input_schema"]["properties"])
+        assert set(t["input_schema"].get("required", [])) <= set(t["input_schema"]["properties"])
     names = [t.get("name") for t in agent.TOOLS if "name" in t]
     assert len(names) == len(set(names))
     assert agent.TOOLS[0] == {"type": "computer_toolset_20260801"}

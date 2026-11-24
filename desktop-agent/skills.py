@@ -125,6 +125,90 @@ TOOLS = [
     },
 ]
 
+TOOLS += [
+    {
+        "name": "calendar_list",
+        "description": "List the user's calendar events for a date range (default: today and the next 7 days).",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "start_date": {"type": "string", "description": "YYYY-MM-DD, default today."},
+                "days": {"type": "integer", "description": "How many days, default 7, max 90."},
+            },
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "calendar_add",
+        "description": (
+            "Add an event to the user's calendar. Opens a prefilled event the user saves with one click "
+            "(Google Calendar, or the computer's calendar app for other accounts)."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "title": {"type": "string"},
+                "start": {"type": "string", "description": "Local time, YYYY-MM-DDTHH:MM"},
+                "end": {"type": "string", "description": "Local time, YYYY-MM-DDTHH:MM (default start + 1 hour)."},
+                "location": {"type": "string"},
+                "description": {"type": "string"},
+            },
+            "required": ["title", "start"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "document_read",
+        "description": "Read the text of a document: Word (.docx), PDF, Excel (.xlsx), PowerPoint (.pptx), or text/CSV/Markdown.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"path": {"type": "string", "description": "Full path, or a file name from file_search."}},
+            "required": ["path"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "document_write",
+        "description": "Create a Word (.docx) document and open it. Set rtl true for Hebrew. Use headings for structure.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "filename": {"type": "string"},
+                "title": {"type": "string"},
+                "rtl": {"type": "boolean"},
+                "sections": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "heading": {"type": "string"},
+                            "paragraphs": {"type": "array", "items": {"type": "string"}},
+                            "bullets": {"type": "array", "items": {"type": "string"}},
+                        },
+                        "additionalProperties": False,
+                    },
+                },
+            },
+            "required": ["filename", "title", "sections"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "file_search",
+        "description": "Find files by name in the user's Documents, Desktop and Downloads (or a given folder). Newest first.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "name_contains": {"type": "string"},
+                "extension": {"type": "string", "description": "e.g. .docx, .pdf"},
+                "folder": {"type": "string"},
+                "limit": {"type": "integer"},
+            },
+            "additionalProperties": False,
+        },
+    },
+]
+
 NAMES = {t["name"] for t in TOOLS}
 
 
@@ -369,6 +453,210 @@ def email_send(inp: dict, approve, cancel: threading.Event) -> str:
     return f"Sent to {inp['to']}."
 
 
+# --- calendar ------------------------------------------------------------------
+
+def calendar_list(inp: dict) -> str:
+    """Reads the calendar through its private iCal link (CALENDAR_ICS_URL)."""
+    import datetime as dt
+    import urllib.request
+
+    import icalendar
+    import recurring_ical_events
+
+    url = os.environ.get("CALENDAR_ICS_URL")
+    if not url:
+        raise RuntimeError("Calendar is not set up. Set CALENDAR_ICS_URL to the calendar's secret iCal address (see README).")
+    if url.startswith("webcal://"):
+        url = "https://" + url[len("webcal://"):]
+    if url.startswith(("http://", "https://")):
+        with urllib.request.urlopen(url, timeout=30) as r:  # nosec B310 - user's own calendar link
+            data = r.read()
+    else:
+        data = Path(url).expanduser().read_bytes()
+    cal = icalendar.Calendar.from_ical(data)
+    start = dt.date.fromisoformat(inp["start_date"]) if inp.get("start_date") else dt.date.today()
+    days = max(1, min(int(inp.get("days") or 7), 90))
+    events = recurring_ical_events.of(cal).between(start, start + dt.timedelta(days=days))
+
+    def when(v):
+        v = v.dt if hasattr(v, "dt") else v
+        if isinstance(v, dt.datetime):
+            if v.tzinfo:
+                v = v.astimezone()
+            return v.strftime("%a %d/%m %H:%M")
+        return v.strftime("%a %d/%m") + " (all day)"
+
+    rows = []
+    for ev in sorted(events, key=lambda e: str(e.get("DTSTART").dt)):
+        line = f"{when(ev.get('DTSTART'))} - {ev.get('SUMMARY', '(no title)')}"
+        if ev.get("LOCATION"):
+            line += f" @ {ev.get('LOCATION')}"
+        rows.append(line)
+    return "\n".join(rows) if rows else f"No events from {start} for {days} days."
+
+
+def calendar_add(inp: dict, open_after: bool = True) -> str:
+    import datetime as dt
+    import urllib.parse
+    import uuid
+
+    start = dt.datetime.fromisoformat(inp["start"])
+    end = dt.datetime.fromisoformat(inp["end"]) if inp.get("end") else start + dt.timedelta(hours=1)
+    if end <= start:
+        raise ValueError("The event must end after it starts.")
+    provider = os.environ.get("CALENDAR_PROVIDER", "google" if (os.environ.get("EMAIL_ADDRESS") or "").endswith("@gmail.com") else "ics")
+    if provider == "google":
+        fmt = "%Y%m%dT%H%M%S"
+        q = urllib.parse.urlencode({"action": "TEMPLATE", "text": inp["title"],
+                                    "dates": f"{start.strftime(fmt)}/{end.strftime(fmt)}",
+                                    "details": inp.get("description", ""), "location": inp.get("location", "")})
+        url = "https://calendar.google.com/calendar/render?" + q
+        if open_after:
+            import webbrowser
+            webbrowser.open(url)
+        return f"Opened Google Calendar with the event filled in; the user clicks Save. ({url})"
+    import icalendar
+    cal = icalendar.Calendar()
+    cal.add("prodid", "-//Desktop Agent//EN")
+    cal.add("version", "2.0")
+    ev = icalendar.Event()
+    ev.add("uid", f"{uuid.uuid4()}@desktop-agent")
+    ev.add("summary", inp["title"])
+    ev.add("dtstart", start)
+    ev.add("dtend", end)
+    ev.add("dtstamp", dt.datetime.now(dt.timezone.utc))
+    if inp.get("location"):
+        ev.add("location", inp["location"])
+    if inp.get("description"):
+        ev.add("description", inp["description"])
+    cal.add_component(ev)
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    path = OUTPUT_DIR / safe_filename(inp["title"], ".ics")
+    path.write_bytes(cal.to_ical())
+    if open_after:
+        open_file(path)
+    return f"Created {path} and opened it in the calendar app; the user confirms to add it."
+
+
+# --- documents -----------------------------------------------------------------
+
+SEARCH_DIRS = [Path.home() / d for d in ("Documents", "Desktop", "Downloads", "OneDrive")]
+
+
+def _resolve(path_str: str) -> Path:
+    p = Path(path_str).expanduser()
+    if p.is_file():
+        return p
+    for d in [OUTPUT_DIR, *SEARCH_DIRS]:
+        if (d / path_str).is_file():
+            return d / path_str
+    raise FileNotFoundError(f"File not found: {path_str}. Use file_search to find it.")
+
+
+def document_read(inp: dict) -> str:
+    p = _resolve(inp["path"])
+    ext = p.suffix.lower()
+    if ext == ".docx":
+        import docx
+        d = docx.Document(str(p))
+        parts = [para.text for para in d.paragraphs if para.text.strip()]
+        for t in d.tables:
+            for row in t.rows:
+                parts.append(" | ".join(c.text.strip() for c in row.cells))
+        text = "\n".join(parts)
+    elif ext == ".pdf":
+        from pypdf import PdfReader
+        r = PdfReader(str(p))
+        text = "\n\n".join(f"[page {i + 1}]\n{pg.extract_text() or ''}" for i, pg in enumerate(r.pages))
+    elif ext in (".xlsx", ".xlsm"):
+        import openpyxl
+        wb = openpyxl.load_workbook(str(p), read_only=True, data_only=True)
+        parts = []
+        for ws in wb.worksheets:
+            parts.append(f"[sheet {ws.title}]")
+            for row in ws.iter_rows(values_only=True):
+                if any(v is not None for v in row):
+                    parts.append(" | ".join("" if v is None else str(v) for v in row))
+        text = "\n".join(parts)
+    elif ext == ".pptx":
+        from pptx import Presentation
+        prs = Presentation(str(p))
+        text = "\n\n".join(f"[slide {i + 1}]\n" + "\n".join(sh.text_frame.text for sh in s.shapes if sh.has_text_frame)
+                            for i, s in enumerate(prs.slides))
+    else:
+        text = p.read_text(encoding="utf-8", errors="replace")
+    if len(text) > 60000:
+        text = text[:60000] + "\n[...truncated...]"
+    return f"{p}\n<document_content>\n{text}\n</document_content>"
+
+
+def document_write(inp: dict, open_after: bool = True) -> str:
+    import docx
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.oxml.ns import qn
+    from docx.oxml import OxmlElement
+
+    rtl = bool(inp.get("rtl"))
+    d = docx.Document()
+
+    def fix(par):
+        if rtl:
+            par.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            pPr = par._p.get_or_add_pPr()
+            bidi = OxmlElement("w:bidi")
+            pPr.append(bidi)
+            for run in par.runs:
+                rPr = run._r.get_or_add_rPr()
+                rPr.append(OxmlElement("w:rtl"))
+        return par
+
+    fix(d.add_heading(inp["title"], level=0))
+    for sec in inp.get("sections", []):
+        if sec.get("heading"):
+            fix(d.add_heading(sec["heading"], level=1))
+        for para in sec.get("paragraphs") or []:
+            fix(d.add_paragraph(para))
+        for b in sec.get("bullets") or []:
+            fix(d.add_paragraph(b, style="List Bullet"))
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    path = OUTPUT_DIR / safe_filename(inp["filename"], ".docx")
+    d.save(str(path))
+    if open_after:
+        open_file(path)
+    return f"Saved {path} and opened it."
+
+
+def file_search(inp: dict) -> str:
+    import time as _t
+    dirs = [Path(inp["folder"]).expanduser()] if inp.get("folder") else [*SEARCH_DIRS, OUTPUT_DIR]
+    needle = (inp.get("name_contains") or "").lower()
+    ext = (inp.get("extension") or "").lower()
+    if ext and not ext.startswith("."):
+        ext = "." + ext
+    limit = max(1, min(int(inp.get("limit") or 25), 100))
+    found, seen, deadline = [], 0, _t.time() + 15
+    for root in dirs:
+        if not root.is_dir():
+            continue
+        for dirpath, dirnames, filenames in os.walk(root):
+            dirnames[:] = [x for x in dirnames if not x.startswith(".") and x not in ("node_modules", "__pycache__", ".venv")]
+            for f in filenames:
+                seen += 1
+                if needle in f.lower() and (not ext or f.lower().endswith(ext)):
+                    fp = Path(dirpath) / f
+                    try:
+                        found.append((fp.stat().st_mtime, fp))
+                    except OSError:
+                        pass
+            if _t.time() > deadline:
+                break
+    found.sort(reverse=True)
+    if not found:
+        return "No matching files."
+    import datetime as dt
+    return "\n".join(f"{dt.datetime.fromtimestamp(m):%d/%m/%Y %H:%M}  {p}" for m, p in found[:limit])
+
+
 def run_tool(name: str, inp: dict, approve, cancel: threading.Event, auto_commands: bool = False) -> str:
     if name == "run_command":
         return run_command(inp, approve, cancel, auto_commands)
@@ -380,4 +668,14 @@ def run_tool(name: str, inp: dict, approve, cancel: threading.Event, auto_comman
         return email_read(inp)
     if name == "email_send":
         return email_send(inp, approve, cancel)
+    if name == "calendar_list":
+        return calendar_list(inp)
+    if name == "calendar_add":
+        return calendar_add(inp)
+    if name == "document_read":
+        return document_read(inp)
+    if name == "document_write":
+        return document_write(inp)
+    if name == "file_search":
+        return file_search(inp)
     raise ValueError(f"Unknown tool {name!r}")
