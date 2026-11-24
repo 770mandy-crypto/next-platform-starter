@@ -84,11 +84,42 @@ class TaskCancelled(Exception):
     pass
 
 
+class EventLog:
+    """Recent events, printed to the terminal and shown on the dashboard."""
+
+    def __init__(self, limit: int = 500) -> None:
+        self._lock = threading.Lock()
+        self._events: list[dict] = []
+        self._seq = itertools.count(1)
+        self.limit = limit
+        self.echo = True
+
+    def add(self, kind: str, text: str, task_id: int | None = None) -> None:
+        ev = {"seq": next(self._seq), "time": time.time(), "kind": kind,
+              "text": text, "task": task_id}
+        with self._lock:
+            self._events.append(ev)
+            del self._events[:-self.limit]
+        if self.echo:
+            print(text, flush=True)
+
+    def since(self, seq: int) -> list[dict]:
+        with self._lock:
+            return [e for e in self._events if e["seq"] > seq]
+
+
+EVENTS = EventLog()
+log = EVENTS.add
+
+
 @dataclass
 class Task:
     id: int
     text: str
     cancel: threading.Event = field(default_factory=threading.Event)
+    status: str = "queued"  # queued, running, done, cancelled, failed
+    steps: int = 0
+    created: float = field(default_factory=time.time)
 
 
 class TaskManager:
@@ -98,6 +129,8 @@ class TaskManager:
         self._queue: list[Task] = []
         self._wake = threading.Condition(self._lock)
         self.current: Task | None = None
+        self.finished: list[Task] = []
+        self.pending_confirm: str | None = None
         # --confirm: the input loop forwards the next line here while waiting.
         self.awaiting_confirm = threading.Event()
         self.confirm_answers: queue.Queue[str] = queue.Queue()
@@ -106,6 +139,7 @@ class TaskManager:
         while not self.confirm_answers.empty():
             self.confirm_answers.get_nowait()
         print(prompt, end="", flush=True)
+        self.pending_confirm = prompt.strip()
         self.awaiting_confirm.set()
         try:
             while True:
@@ -118,6 +152,7 @@ class TaskManager:
                 return not ans.strip().lower().startswith(("n", "ל"))
         finally:
             self.awaiting_confirm.clear()
+            self.pending_confirm = None
 
     def add(self, text: str) -> Task:
         with self._lock:
@@ -131,10 +166,15 @@ class TaskManager:
             while not self._queue:
                 self._wake.wait()
             self.current = self._queue.pop(0)
+            self.current.status = "running"
             return self.current
 
-    def done(self) -> None:
+    def done(self, status: str) -> None:
         with self._lock:
+            if self.current:
+                self.current.status = status
+                self.finished.append(self.current)
+                del self.finished[:-50]
             self.current = None
 
     def stop_current(self) -> Task | None:
@@ -151,12 +191,17 @@ class TaskManager:
             for t in self._queue:
                 if t.id == task_id:
                     self._queue.remove(t)
+                    t.status = "cancelled"
+                    self.finished.append(t)
                     return f"Task #{task_id} removed from the queue."
             return f"No task #{task_id}."
 
     def clear(self) -> int:
         with self._lock:
             n = len(self._queue)
+            for t in self._queue:
+                t.status = "cancelled"
+                self.finished.append(t)
             self._queue.clear()
             if self.current:
                 self.current.cancel.set()
@@ -165,6 +210,17 @@ class TaskManager:
     def snapshot(self) -> tuple[Task | None, list[Task]]:
         with self._lock:
             return self.current, list(self._queue)
+
+    def state(self) -> dict:
+        def d(t: Task) -> dict:
+            return {"id": t.id, "text": t.text, "status": t.status, "steps": t.steps}
+        with self._lock:
+            return {
+                "current": d(self.current) if self.current else None,
+                "queue": [d(t) for t in self._queue],
+                "finished": [d(t) for t in reversed(self.finished[-20:])],
+                "confirm": self.pending_confirm,
+            }
 
 
 # ---------------------------------------------------------------------------
@@ -393,7 +449,7 @@ def run_action(name: str, inp: dict, screen: Screen, cancel: threading.Event) ->
     return ok
 
 
-def process_tool_calls(content, screen: Screen, cancel: threading.Event, confirm) -> list[dict]:
+def process_tool_calls(content, screen: Screen, cancel: threading.Event, confirm, task_id=None) -> list[dict]:
     """Run tool_use blocks in order; answer every one of them."""
     results = []
     halted = None  # text to return for blocks after a failure / cancel
@@ -408,7 +464,7 @@ def process_tool_calls(content, screen: Screen, cancel: threading.Event, confirm
             results.append(result)
             continue
         inp = block.input or {}
-        print(f"   -> {block.name} {inp if inp else ''}")
+        log("action", f"   -> {block.name} {inp if inp else ''}", task_id)
         if confirm and block.name not in ("screenshot", "zoom", "cursor_position", "wait"):
             try:
                 allowed = confirm("      Allow this action? [Enter=yes / n=no] ", cancel)
@@ -429,7 +485,7 @@ def process_tool_calls(content, screen: Screen, cancel: threading.Event, confirm
             halted = CANCELLED_TEXT
         except pyautogui.FailSafeException:
             cancel.set()
-            print("   !! Fail-safe triggered (mouse in screen corner). Stopping task.")
+            log("error", "   !! Fail-safe triggered (mouse in screen corner). Stopping task.", task_id)
             result.update(content=[{"type": "text", "text": CANCELLED_TEXT}], is_error=True)
             halted = CANCELLED_TEXT
         except Exception as e:  # report the error to the model and halt the batch
@@ -447,6 +503,7 @@ def run_task(client: anthropic.Anthropic, task: Task, history: list, args, confi
     screen = Screen()
     history.append({"role": "user", "content": task.text})
     for step in range(args.max_steps):
+        task.steps = step + 1
         if task.cancel.is_set():
             raise TaskCancelled()
         with client.beta.messages.stream(
@@ -472,47 +529,51 @@ def run_task(client: anthropic.Anthropic, task: Task, history: list, args, confi
 
         for block in response.content:
             if block.type == "text" and block.text.strip():
-                print(f"\nClaude: {block.text.strip()}\n")
+                log("reply", block.text.strip(), task.id)
 
         if response.stop_reason == "refusal":
-            print("Claude declined this request.")
+            log("error", "Claude declined this request.", task.id)
             return
         if response.stop_reason == "max_tokens":
-            print("(response hit the token limit)")
+            log("info", "(response hit the token limit)", task.id)
 
-        tool_results = process_tool_calls(response.content, screen, task.cancel, confirm)
+        tool_results = process_tool_calls(response.content, screen, task.cancel, confirm, task.id)
         if not tool_results:
             return  # finished
         history.append({"role": "user", "content": tool_results})
         if task.cancel.is_set():
             raise TaskCancelled()
-    print(f"Stopped after {args.max_steps} steps (raise --max-steps for longer tasks).")
+    log("info", f"Stopped after {args.max_steps} steps (raise --max-steps for longer tasks).", task.id)
 
 
 def worker(client, manager: TaskManager, args) -> None:
     while True:
         task = manager.next()
-        print(f"\n=== Task #{task.id}: {task.text}")
+        log("task", f"=== Task #{task.id}: {task.text}", task.id)
+        status = "failed"
         # Each task starts a fresh conversation unless --keep-context is set.
         history: list = worker.history if args.keep_context else []
         checkpoint = len(history)
         try:
             run_task(client, task, history, args,
                      manager.ask_confirm if args.confirm else None)
-            print(f"=== Task #{task.id} finished.")
+            log("done", f"=== Task #{task.id} finished.", task.id)
+            status = "done"
         except TaskCancelled:
-            print(f"=== Task #{task.id} cancelled.")
+            log("cancelled", f"=== Task #{task.id} cancelled.", task.id)
+            status = "cancelled"
             # Roll back the cancelled task so later tasks start from a valid history.
             del history[checkpoint:]
         except anthropic.APIError as e:
-            print(f"=== Task #{task.id} failed: API error: {e}")
+            log("error", f"=== Task #{task.id} failed: API error: {e}", task.id)
             del history[checkpoint:]
         except Exception as e:
-            print(f"=== Task #{task.id} failed: {e}")
+            log("error", f"=== Task #{task.id} failed: {e}", task.id)
             del history[checkpoint:]
         finally:
-            manager.done()
-            print("> ", end="", flush=True)
+            manager.done(status)
+            if getattr(args, "cli", True):
+                print("> ", end="", flush=True)
 
 
 worker.history = []
@@ -527,7 +588,7 @@ def start_hotkey(manager: TaskManager) -> None:
         if key == pynput_keyboard.Key.f12:
             t = manager.stop_current()
             if t:
-                print(f"\n[F12] Stopping task #{t.id}...")
+                log("cancelled", f"[F12] Stopping task #{t.id}...", t.id)
 
     try:
         pynput_keyboard.Listener(on_press=on_press, daemon=True).start()

@@ -1,0 +1,578 @@
+<title>Desktop Agent Console</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a stage (3D avatar + voice) beside an operations column (task, queue, checks, log). One dark control-room look, deliberately single-theme. */
+:root {
+  color-scheme: dark;
+  --ink: #0d121c;        /* page */
+  --panel: #151c29;      /* surfaces */
+  --line: #263044;       /* hairlines */
+  --text: #e8ecf3;
+  --muted: #8f9ab0;
+  --amber: #ffb547;      /* accent: the agent working */
+  --sky: #6cc4ff;        /* listening */
+  --rose: #ff7a90;       /* stop / error */
+  --mint: #74e0b0;       /* done / ok */
+  --violet: #b9a3ff;     /* speaking */
+  --display: "Rubik", "Segoe UI", "Arial Hebrew", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --r: 14px;
+}
+html, body { height: 100%; }
+body {
+  background: var(--ink); color: var(--text); font-family: var(--display); font-size: 15px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 16px;
+}
+* { box-sizing: border-box; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; border: 1px solid var(--line); background: var(--panel); border-radius: 10px; padding: 8px 14px; }
+button:hover { border-color: var(--muted); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.wrap { max-width: 1280px; margin: 0 auto; display: grid; gap: 16px; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+@media (max-width: 900px) { .wrap { grid-template-columns: minmax(0, 1fr); } }
+
+header.top { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+header.top h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: .01em; text-wrap: balance; }
+header.top .sub { color: var(--muted); font-size: 13px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font-size: 12px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
+.chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.chip.ok .dot { background: var(--mint); } .chip.bad .dot { background: var(--rose); } .chip.warn .dot { background: var(--amber); }
+
+.demo { grid-column: 1 / -1; border: 1px dashed var(--amber); color: var(--text); border-radius: var(--r); padding: 10px 14px; font-size: 14px; line-height: 1.5; }
+.demo code { font-family: var(--mono); font-size: 13px; color: var(--amber); }
+
+/* Stage */
+.stage { background: radial-gradient(120% 90% at 50% 30%, #1b2538 0%, var(--ink) 70%); border: 1px solid var(--line); border-radius: var(--r); display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+#scene { width: 100%; aspect-ratio: 4 / 3.4; max-width: 100%; display: block; }
+.status-line { display: flex; align-items: center; gap: 10px; justify-content: center; padding: 0 16px; min-height: 28px; font-size: 15px; }
+.status-line .state { font-weight: 500; }
+.say { margin: 6px 16px 0; min-height: 48px; text-align: center; color: var(--muted); font-size: 15px; line-height: 1.5; }
+.composer { display: flex; gap: 8px; padding: 14px 16px 16px; align-items: center; }
+.composer input { flex: 1; min-width: 0; background: var(--ink); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.mic { width: 48px; height: 48px; border-radius: 50%; padding: 0; display: grid; place-items: center; flex: none; background: var(--panel); }
+.mic.on { background: var(--sky); border-color: var(--sky); color: var(--ink); animation: pulse 1.2s infinite; }
+@keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(108,196,255,.5);} 50% { box-shadow: 0 0 0 10px rgba(108,196,255,0);} }
+.send { background: var(--amber); color: var(--ink); border-color: var(--amber); font-weight: 500; }
+.toggles { display: flex; flex-wrap: wrap; gap: 14px; padding: 0 16px 14px; font-size: 13px; color: var(--muted); }
+.toggles label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+
+/* Ops column */
+.ops { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; min-width: 0; }
+.btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.heb-letters { font-size: 22px; line-height: 1.8; letter-spacing: .08em; overflow-wrap: anywhere; }
+.heb-letters b { color: var(--amber); font-weight: 500; }
+.card h2 { margin: 0 0 10px; font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: .06em; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.now { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; }
+.now .t { font-size: 17px; line-height: 1.45; min-width: 0; overflow-wrap: anywhere; }
+.now .meta { color: var(--muted); font-size: 13px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.stop { background: transparent; border-color: var(--rose); color: var(--rose); font-weight: 500; flex: none; }
+.stop:disabled { opacity: .35; cursor: default; }
+.confirm { border-color: var(--amber); }
+.confirm .row { display: flex; gap: 8px; margin-top: 10px; }
+.confirm .allow { background: var(--mint); color: var(--ink); border-color: var(--mint); }
+ul.tasks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+ul.tasks li { display: flex; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 10px; background: var(--ink); }
+ul.tasks .id { font-family: var(--mono); font-size: 12px; color: var(--muted); flex: none; }
+ul.tasks .txt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+ul.tasks button { padding: 4px 10px; font-size: 12px; }
+.pill { font-size: 11px; padding: 2px 8px; border-radius: 999px; flex: none; border: 1px solid currentColor; }
+.pill.done { color: var(--mint); } .pill.cancelled { color: var(--muted); } .pill.failed { color: var(--rose); } .pill.queued { color: var(--sky); } .pill.running { color: var(--amber); }
+.empty { color: var(--muted); font-size: 14px; }
+.checks { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 10px; font-size: 14px; }
+.checks .mark { font-family: var(--mono); }
+.checks .mark.ok { color: var(--mint); } .checks .mark.bad { color: var(--rose); }
+.checks .d { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.log { font-family: var(--mono); font-size: 12px; line-height: 1.6; max-height: 260px; overflow: auto; direction: ltr; text-align: left; background: var(--ink); border-radius: 10px; padding: 10px 12px; }
+.log div { white-space: pre-wrap; overflow-wrap: anywhere; unicode-bidi: plaintext; }
+.log .action { color: var(--muted); } .log .reply { color: var(--text); } .log .task { color: var(--amber); }
+.log .done { color: var(--mint); } .log .error { color: var(--rose); } .log .cancelled { color: var(--muted); } .log .wake { color: var(--sky); }
+.meter { height: 6px; background: var(--ink); border-radius: 3px; overflow: hidden; width: 120px; }
+.meter i { display: block; height: 100%; width: 0; background: var(--sky); transition: width .1s; }
+.clap-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+#flash { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(circle at 50% 40%, rgba(108,196,255,.25), transparent 60%); opacity: 0; transition: opacity .6s; }
+#flash.on { opacity: 1; transition: none; }
+@media (prefers-reduced-motion: reduce) { .mic.on { animation: none; } #flash { transition: none; } }
+</style>
+
+<div id="flash"></div>
+<div class="wrap" dir="rtl">
+  <header class="top">
+    <div>
+      <h1>הסוכן שלי</h1>
+      <div class="sub">שולט במחשב בשבילך · מחיאת כפיים כפולה מעירה אותו</div>
+    </div>
+    <div class="chips">
+      <span class="chip" id="chipConn"><span class="dot"></span><span>מתחבר…</span></span>
+      <span class="chip" id="chipModel"><span class="dot"></span><span>מודל</span></span>
+      <span class="chip" id="chipClap"><span class="dot"></span><span>מחיאות כפיים</span></span>
+    </div>
+  </header>
+
+  <div class="demo" id="demo" hidden>
+    <strong>תצוגה מקדימה.</strong> הסוכן לא מחובר לעמוד הזה, אז מה שרואים כאן הוא הדגמה. כדי לשלוט במחשב באמת, מריצים במחשב שלך את
+    <code>run-dashboard</code> (או <code>python server.py</code>), והלוח נפתח ב-<code>localhost:8765</code>.
+  </div>
+
+  <section class="stage" aria-label="הסוכן">
+    <canvas id="scene" aria-hidden="true"></canvas>
+    <div class="status-line"><span class="state" id="stateText">ממתין</span></div>
+    <div class="say" id="say">לחץ על המיקרופון, או מחא כפיים פעמיים, ודבר איתי.</div>
+    <form class="composer" id="composer">
+      <button type="button" class="mic" id="mic" aria-label="דבר עם הסוכן" title="דבר עם הסוכן">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3" fill="none"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" fill="none"/></svg>
+      </button>
+      <input id="taskInput" autocomplete="off" placeholder="מה לעשות? למשל: תפתח את המחשבון">
+      <button class="send" type="submit">שלח</button>
+    </form>
+    <div class="toggles">
+      <label><input type="checkbox" id="optSpeak" checked> הקראת תשובות</label>
+      <label><input type="checkbox" id="optConvo" checked> שיחה רציפה</label>
+    </div>
+  </section>
+
+  <div class="ops">
+    <section class="card confirm" id="confirmCard" hidden>
+      <h2>הסוכן מבקש אישור</h2>
+      <div id="confirmText"></div>
+      <div class="row"><button class="allow" id="allowBtn">אשר</button><button id="denyBtn">דחה</button></div>
+    </section>
+
+    <section class="card">
+      <h2>משימה פעילה <button class="stop" id="stopBtn" disabled>עצור (F12)</button></h2>
+      <div class="now" id="now"><div class="empty">אין משימה פעילה</div></div>
+    </section>
+
+    <section class="card">
+      <h2>תור והיסטוריה <button id="clearBtn">בטל הכול</button></h2>
+      <ul class="tasks" id="tasks"></ul>
+    </section>
+
+    <section class="card">
+      <h2>בדיקת מערכת <span class="btns"><button id="hebBtn" type="button">בדיקת עברית</button><button id="checkBtn">הרץ בדיקה</button></span></h2>
+      <div class="checks" id="checks"><span></span><span class="empty">לחץ "הרץ בדיקה" כדי לוודא שהכול עובד במחשב.</span></div>
+      <div class="clap-row" style="margin-top:12px">
+        <span>מיקרופון:</span><span class="meter"><i id="meter"></i></span>
+        <button id="wakeBtn" type="button">בדוק התעוררות</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>יומן פעולות</h2>
+      <div class="log" id="log" aria-live="polite"></div>
+    </section>
+  </div>
+</div>
+
+<script src="vendor/three.min.js"></script>
+<script>window.THREE || document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');</script>
+<script>
+(() => {
+"use strict";
+const $ = (id) => document.getElementById(id);
+const STATES = {
+  idle:      { label: "ממתין",        color: 0xe8ecf3 },
+  listening: { label: "מקשיב…",       color: 0x6cc4ff },
+  working:   { label: "עובד על המשימה", color: 0xffb547 },
+  speaking:  { label: "מדבר",         color: 0xb9a3ff },
+  error:     { label: "בעיה",         color: 0xff7a90 },
+};
+let mode = "idle", speaking = false, listening = false, live = false;
+
+/* ---------------- 3D avatar ---------------- */
+const avatar = (() => { try { return buildAvatar(); } catch (e) {
+  console.warn("3D avatar unavailable:", e); $("scene").hidden = true; return { setColor(){}, wake(){} }; } })();
+function buildAvatar() {
+  const canvas = $("scene");
+  if (!window.THREE) throw new Error("three.js not loaded");
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 100);
+  camera.position.set(0, 0.25, 7.2);
+
+  scene.add(new THREE.HemisphereLight(0xcfe3ff, 0x1a1f2b, 0.9));
+  const key = new THREE.DirectionalLight(0xffffff, 0.9); key.position.set(3, 4, 5); scene.add(key);
+  const rim = new THREE.PointLight(0xffb547, 1.2, 12); rim.position.set(-3, 1, -2); scene.add(rim);
+
+  const root = new THREE.Group(); scene.add(root);
+  const shell = new THREE.MeshStandardMaterial({ color: 0xeef1f6, roughness: 0.35, metalness: 0.1 });
+  const head = new THREE.Mesh(new THREE.SphereGeometry(1.35, 64, 48), shell);
+  head.scale.set(1.08, 0.96, 1); root.add(head);
+
+  const visorMat = new THREE.MeshStandardMaterial({ color: 0x0b1018, roughness: 0.15, metalness: 0.6 });
+  const visor = new THREE.Mesh(new THREE.SphereGeometry(1.0, 48, 32), visorMat);
+  visor.scale.set(1.12, 0.66, 0.55); visor.position.set(0, 0.05, 0.95); root.add(visor);
+
+  const glow = new THREE.MeshBasicMaterial({ color: 0xe8ecf3 });
+  const eyeGeo = new THREE.SphereGeometry(0.13, 24, 16);
+  const eyes = [-0.42, 0.42].map((x) => { const e = new THREE.Mesh(eyeGeo, glow); e.position.set(x, 0.14, 1.47); root.add(e); return e; });
+  const eyeH = 1.7; // tall oval eyes
+  const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.05, 0.04), glow);
+  mouth.position.set(0, -0.26, 1.46); root.add(mouth);
+
+  const ears = [-1.45, 1.45].map((x) => {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.22, 32), shell);
+    m.rotation.z = Math.PI / 2; m.position.set(x, 0.05, 0); root.add(m);
+    const l = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.03, 12, 32), glow);
+    l.rotation.y = Math.PI / 2; l.position.set(x + Math.sign(x) * 0.12, 0.05, 0); root.add(l);
+    return l;
+  });
+  const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.55, 12), shell);
+  stalk.position.set(0, 1.55, 0); root.add(stalk);
+  const tip = new THREE.Mesh(new THREE.SphereGeometry(0.11, 24, 16), glow);
+  tip.position.set(0, 1.86, 0); root.add(tip);
+
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0xffb547, transparent: true, opacity: 0 });
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(2.05, 0.018, 8, 160), ringMat);
+  ring.rotation.x = Math.PI / 2.3; scene.add(ring);
+  const ring2 = new THREE.Mesh(new THREE.TorusGeometry(2.3, 0.01, 8, 160), ringMat);
+  ring2.rotation.x = Math.PI / 1.8; scene.add(ring2);
+
+  const pts = new THREE.BufferGeometry(); const N = 260; const pos = new Float32Array(N * 3);
+  for (let i = 0; i < N; i++) { const r = 2.6 + Math.random() * 2.2, a = Math.random() * Math.PI * 2, y = (Math.random() - .5) * 3.6;
+    pos[i*3] = Math.cos(a) * r; pos[i*3+1] = y; pos[i*3+2] = Math.sin(a) * r - 1.5; }
+  pts.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  const dust = new THREE.Points(pts, new THREE.PointsMaterial({ color: 0x8f9ab0, size: 0.03, transparent: true, opacity: 0.6 }));
+  scene.add(dust);
+
+  const target = new THREE.Color(0xe8ecf3);
+  let look = { x: 0, y: 0 }, blinkAt = 2, wakeT = -10;
+  addEventListener("pointermove", (e) => { look.x = (e.clientX / innerWidth - .5) * 2; look.y = (e.clientY / innerHeight - .5) * 2; });
+
+  function resize() {
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    if (!w || !h) return;
+    renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+  }
+  new ResizeObserver(resize).observe(canvas); resize();
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const clock = new THREE.Clock();
+  function frame() {
+    const t = clock.getElapsedTime(), dt = Math.min(clock.getDelta(), .05);
+    glow.color.lerp(target, 0.08); rim.color.lerp(target, 0.05);
+    const bob = reduce ? 0 : Math.sin(t * 1.4) * 0.06;
+    root.position.y = bob;
+    root.rotation.y += ((look.x * 0.35) - root.rotation.y) * 0.06;
+    root.rotation.x += ((look.y * 0.18) - root.rotation.x) * 0.06;
+    const since = t - wakeT;   // a hop when woken
+    if (since < 1) root.position.y += Math.sin(since * Math.PI) * 0.35;
+    // blink
+    let open = 1; if (t > blinkAt) { const p = (t - blinkAt) / 0.16; open = p < 1 ? Math.abs(1 - 2 * p) : 1; if (p >= 1) blinkAt = t + 2 + Math.random() * 3.5; }
+    eyes.forEach((e) => e.scale.y = eyeH * Math.max(0.08, open) * (mode === "listening" ? 1.25 : 1));
+    // mouth
+    const talk = speaking ? 0.2 + Math.abs(Math.sin(t * 17) * Math.sin(t * 6.3)) * 1.6 : (mode === "listening" ? 0.5 : 0.15);
+    mouth.scale.y += ((speaking ? 1 + talk * 3 : 1) - mouth.scale.y) * 0.35;
+    mouth.scale.x += ((mode === "listening" ? 0.55 : 1) - mouth.scale.x) * 0.2;
+    // ears pulse when listening
+    ears.forEach((l) => l.scale.setScalar(mode === "listening" ? 1 + Math.sin(t * 6) * 0.15 : 1));
+    tip.scale.setScalar(1 + Math.sin(t * 3) * 0.12);
+    // rings spin while working
+    const working = mode === "working";
+    ringMat.opacity += ((working ? 0.85 : 0.0) - ringMat.opacity) * 0.06;
+    ringMat.color.copy(glow.color);
+    ring.rotation.z += working ? 0.03 : 0.004; ring2.rotation.z -= working ? 0.02 : 0.003;
+    dust.rotation.y += reduce ? 0 : (working ? 0.004 : 0.0008);
+    renderer.render(scene, camera);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+  return {
+    setColor(hex) { target.setHex(hex); },
+    wake() { wakeT = clock.getElapsedTime(); },
+  };
+}
+
+function setMode(m) {
+  mode = m;
+  const s = STATES[m] || STATES.idle;
+  $("stateText").textContent = s.label;
+  $("stateText").style.color = "#" + s.color.toString(16).padStart(6, "0");
+  avatar.setColor(s.color);
+}
+function refreshMode(running) {
+  if (speaking) setMode("speaking"); else if (listening) setMode("listening");
+  else if (running) setMode("working"); else setMode("idle");
+}
+
+/* ---------------- voice ---------------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null, voices = [];
+function loadVoices() { try { voices = speechSynthesis.getVoices(); } catch (e) {} }
+if ("speechSynthesis" in window) { loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; }
+
+function speak(text, then) {
+  $("say").textContent = text;
+  if (!$("optSpeak").checked || !("speechSynthesis" in window)) { then && then(); return; }
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text.replace(/[*_`#>]/g, ""));
+    const heb = /[֐-׿]/.test(text);
+    u.lang = heb ? "he-IL" : "en-US";
+    const pool = voices.filter((v) => v.lang && v.lang.toLowerCase().replace("_", "-").startsWith(heb ? "he" : "en"));
+    const v = pool.find((v) => /natural|online|google/i.test(v.name)) || pool[0];
+    if (v) u.voice = v;
+    u.rate = 1.02;
+    u.onstart = () => { speaking = true; refreshMode(lastRunning); };
+    u.onend = u.onerror = () => { speaking = false; refreshMode(lastRunning); then && then(); };
+    speechSynthesis.speak(u);
+  } catch (e) { speaking = false; then && then(); }
+}
+
+function listen() {
+  if (!SR) { $("say").textContent = "הדפדפן הזה לא תומך בזיהוי דיבור. פתח את הלוח ב-Chrome או ב-Edge."; return; }
+  if (listening) { try { rec.stop(); } catch (e) {} return; }
+  try { speechSynthesis.cancel(); } catch (e) {}
+  rec = new SR(); rec.lang = "he-IL"; rec.interimResults = true; rec.maxAlternatives = 1;
+  let finalText = "";
+  rec.onstart = () => { listening = true; $("mic").classList.add("on"); refreshMode(lastRunning); $("say").textContent = "מקשיב…"; };
+  rec.onresult = (e) => {
+    let interim = ""; finalText = "";
+    for (const r of e.results) (r.isFinal ? (finalText += r[0].transcript) : (interim += r[0].transcript));
+    $("say").textContent = finalText || interim;
+  };
+  rec.onerror = (e) => {
+    if (e.error === "not-allowed" || e.error === "service-not-allowed")
+      $("say").textContent = "אין הרשאה למיקרופון. אשר גישה למיקרופון בדפדפן ונסה שוב.";
+    else if (e.error === "no-speech") $("say").textContent = "לא שמעתי כלום. נסה שוב.";
+  };
+  rec.onend = () => {
+    listening = false; $("mic").classList.remove("on"); refreshMode(lastRunning);
+    const text = finalText.trim();
+    if (text) handleUtterance(text);
+  };
+  try { rec.start(); } catch (e) { listening = false; }
+}
+
+const STOP_WORDS = /^(עצור|תעצור|תפסיק|הפסק|ביטול|בטל|stop|cancel)[.!]?$/i;
+function handleUtterance(text) {
+  if (STOP_WORDS.test(text)) { post("/api/stop"); speak("עצרתי."); return; }
+  submitTask(text);
+}
+
+/* ---------------- backend (or demo) ---------------- */
+async function post(path, body) {
+  if (!live) return demo.post(path, body);
+  const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
+  return r.json();
+}
+
+function submitTask(text) {
+  text = text.trim(); if (!text) return;
+  $("taskInput").value = "";
+  post("/api/task", { text });
+  speak("קיבלתי. מתחיל לעבוד על זה.");
+}
+
+$("composer").addEventListener("submit", (e) => { e.preventDefault(); submitTask($("taskInput").value); });
+$("mic").addEventListener("click", listen);
+$("stopBtn").addEventListener("click", () => post("/api/stop"));
+$("clearBtn").addEventListener("click", () => post("/api/clear"));
+$("allowBtn").addEventListener("click", () => post("/api/confirm", { allow: true }));
+$("denyBtn").addEventListener("click", () => post("/api/confirm", { allow: false }));
+$("wakeBtn").addEventListener("click", () => post("/api/wake"));
+$("checkBtn").addEventListener("click", runChecks);
+$("hebBtn").addEventListener("click", hebrewTest);
+$("tasks").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-cancel]"); if (b) post("/api/cancel/" + b.dataset.cancel);
+});
+
+async function runChecks() {
+  const box = $("checks"); box.innerHTML = '<span></span><span class="empty">בודק…</span>';
+  let data;
+  try { data = live ? await (await fetch("/api/check")).json() : demo.checks(); }
+  catch (e) { box.innerHTML = '<span class="mark bad">✕</span><span>הבדיקה נכשלה: ' + esc(String(e)) + "</span>"; return; }
+  const names = { "Python": "Python", "Operating system": "מערכת הפעלה", "API key set": "מפתח API מוגדר", "Screen size": "גודל מסך",
+    "Screenshot": "צילום מסך", "Mouse access": "שליטה בעכבר", "Hebrew typing (pyperclip)": "הקלדה בעברית",
+    "F12 emergency stop (pynput)": "עצירת חירום F12", "Microphone (clap)": "מיקרופון (מחיאות)", "Claude API": "חיבור ל-Claude" };
+  box.innerHTML = data.checks.map((c) =>
+    `<span class="mark ${c.ok ? "ok" : "bad"}">${c.ok ? "✓" : "✕"}</span><span>${esc(names[c.name] || c.name)}${c.detail ? `<div class="d">${esc(c.detail)}</div>` : ""}</span>`).join("");
+  const bad = data.checks.filter((c) => !c.ok).length;
+  speak(bad ? `הבדיקה הסתיימה. יש ${bad} דברים לתקן.` : "הבדיקה עברה. הכול עובד.");
+}
+
+/* ---------------- Hebrew speech check ---------------- */
+const HEB = window.HEBREW = {
+  letters: [["א","אָלֶף"],["ב","בֵּית"],["ג","גִּימֶל"],["ד","דָּלֶת"],["ה","הֵא"],["ו","וָו"],["ז","זַיִן"],["ח","חֵית"],["ט","טֵית"],["י","יוּד"],["כ","כַּף"],["ל","לָמֶד"],["מ","מֵם"],["נ","נוּן"],["ס","סָמֶךְ"],["ע","עַיִן"],["פ","פֵּא"],["צ","צָדִי"],["ק","קוֹף"],["ר","רֵישׁ"],["ש","שִׁין"],["ת","תָּו"]],
+  finals: [["ך","כַּף סוֹפִית"],["ם","מֵם סוֹפִית"],["ן","נוּן סוֹפִית"],["ף","פֵּא סוֹפִית"],["ץ","צָדִי סוֹפִית"]],
+  pangram: "דג סקרן שט בים מאוכזב ולפתע מצא חברה נאמנה",
+  finalWords: "מלך, שלום, גן, כף, ארץ",
+  numbers: "אחת, שתיים, שלוש, ארבע, חמש, שש, שבע, שמונה, תשע, עשר",
+};
+// Every Hebrew letter (including final forms) appears in what we say.
+HEB.coverage = () => {
+  const said = HEB.letters.map((l) => l[1]).join(" ") + HEB.finals.map((l) => l[1]).join(" ") + HEB.pangram + HEB.finalWords;
+  const all = "אבגדהוזחטיכלמנסעפצקרשתךםןףץ".split("");
+  return { missing: all.filter((c) => !said.includes(c)), total: all.length };
+};
+HEB.voice = () => voices.find((v) => v.lang && v.lang.toLowerCase().replace("_", "-").startsWith("he")) || null;
+
+function speakAll(parts, done) {
+  const next = (i) => i >= parts.length ? done && done() : speak(parts[i], () => next(i + 1));
+  next(0);
+}
+function hebrewTest() {
+  loadVoices();
+  const v = HEB.voice(), cov = HEB.coverage();
+  const box = $("checks");
+  const row = (ok, name, detail) => `<span class="mark ${ok ? "ok" : "bad"}">${ok ? "✓" : "✕"}</span><span>${esc(name)}${detail ? `<div class="d">${esc(detail)}</div>` : ""}</span>`;
+  const isMac = /Mac/.test(navigator.platform);
+  box.innerHTML =
+    row(!!v, "קול בעברית", v ? `${v.name} (${v.lang})` : (isMac
+      ? "לא נמצא קול עברי. הגדרות מערכת ← נגישות ← תוכן מדובר ← קול מערכת ← עברית (Carmit)"
+      : "לא נמצא קול עברי. הכי פשוט: לפתוח את הלוח ב-Microsoft Edge (יש בו קולות עבריים טבעיים), או להוסיף עברית ב-הגדרות ← זמן ושפה ← דיבור")) +
+    row(cov.missing.length === 0, "כיסוי אותיות", cov.missing.length ? "חסרות: " + cov.missing.join(" ") : `כל ${cov.total} האותיות, כולל 5 אותיות סופיות`) +
+    row(!!SR, "זיהוי דיבור בעברית", SR ? "נתמך בדפדפן הזה (he-IL)" : "לא נתמך. השתמש ב-Chrome או ב-Edge") +
+    `<span></span><span class="heb-letters" id="hebLetters">${HEB.letters.map((l) => `<span>${l[0]}</span>`).join(" ")} · ${HEB.finals.map((l) => `<span>${l[0]}</span>`).join(" ")}</span>`;
+  const spans = [...document.querySelectorAll("#hebLetters span")];
+  const names = [...HEB.letters, ...HEB.finals];
+  // Read letter names in groups of 4, highlighting each group.
+  const groups = []; for (let i = 0; i < names.length; i += 4) groups.push(i);
+  const step = (g) => {
+    if (g >= groups.length) {
+      spans.forEach((s) => s.innerHTML = s.textContent);
+      speakAll(["משפט עם כל האותיות: " + HEB.pangram, "ואותיות סופיות: " + HEB.finalWords, "ומספרים: " + HEB.numbers, "סיימתי את בדיקת העברית."]);
+      return;
+    }
+    spans.forEach((s, i) => s.innerHTML = (i >= groups[g] && i < groups[g] + 4) ? `<b>${s.textContent}</b>` : s.textContent);
+    speak(names.slice(groups[g], groups[g] + 4).map((l) => l[1]).join(", "), () => step(g + 1));
+  };
+  speak("בודק עברית. אלה כל האותיות:", () => step(0));
+}
+
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const STATUS_HE = { queued: "בתור", running: "רץ", done: "הושלם", cancelled: "בוטל", failed: "נכשל" };
+
+let lastSeq = 0, lastWake = null, lastRunning = false;
+function render(s) {
+  lastRunning = !!s.current;
+  const now = $("now");
+  if (s.current) {
+    now.innerHTML = `<div><div class="t">${esc(s.current.text)}</div><div class="meta">משימה #${s.current.id} · צעד ${s.current.steps}</div></div>`;
+  } else now.innerHTML = '<div class="empty">אין משימה פעילה</div>';
+  $("stopBtn").disabled = !s.current;
+
+  const rows = [
+    ...s.queue.map((t) => `<li><span class="id">#${t.id}</span><span class="txt">${esc(t.text)}</span><span class="pill queued">${STATUS_HE.queued}</span><button data-cancel="${t.id}">בטל</button></li>`),
+    ...s.finished.map((t) => `<li><span class="id">#${t.id}</span><span class="txt">${esc(t.text)}</span><span class="pill ${t.status}">${STATUS_HE[t.status] || t.status}</span></li>`),
+  ];
+  $("tasks").innerHTML = rows.length ? rows.join("") : '<li><span class="empty">עדיין אין משימות</span></li>';
+
+  $("confirmCard").hidden = !s.confirm;
+  if (s.confirm) $("confirmText").textContent = "הפעולה הבאה מחכה לאישור שלך.";
+
+  const log = $("log"); const atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 30;
+  for (const ev of s.events) {
+    lastSeq = Math.max(lastSeq, ev.seq);
+    const d = document.createElement("div"); d.className = ev.kind;
+    d.textContent = (ev.kind === "reply" ? "Claude: " : "") + ev.text; log.appendChild(d);
+    if (ev.kind === "reply") speak(ev.text, () => { if ($("optConvo").checked && !lastRunningAfter()) listen(); });
+    if (ev.kind === "done" && !s.events.some((x) => x.kind === "reply" && x.task === ev.task)) speak("סיימתי.");
+    if (ev.kind === "cancelled" && /cancelled/.test(ev.text)) speak("המשימה בוטלה.");
+  }
+  while (log.children.length > 400) log.firstChild.remove();
+  if (atBottom) log.scrollTop = log.scrollHeight;
+
+  if (lastWake !== null && s.wake > lastWake) onWake();
+  lastWake = s.wake;
+
+  chip("chipModel", true, s.model || "Claude");
+  const clap = s.clap || {};
+  chip("chipClap", clap.status === "listening" ? true : (clap.enabled ? null : false),
+       clap.status === "listening" ? "מחיאות כפיים: מאזין" : "מחיאות כפיים: כבוי");
+  $("meter").style.width = Math.min(100, (clap.level || 0) * 140) + "%";
+  refreshMode(lastRunning);
+}
+let pendingRunning = false;
+const lastRunningAfter = () => pendingRunning;
+
+function onWake() {
+  avatar.wake();
+  const f = $("flash"); f.classList.add("on"); setTimeout(() => f.classList.remove("on"), 80);
+  speak("כן? אני מקשיב.", () => listen());
+}
+
+function chip(id, ok, text) {
+  const el = $(id); el.className = "chip " + (ok === true ? "ok" : ok === false ? "bad" : "warn");
+  el.lastElementChild.textContent = text;
+}
+
+async function poll() {
+  try {
+    const r = await fetch("/api/state?since=" + lastSeq, { cache: "no-store" });
+    if (!r.ok) throw new Error(r.status);
+    const s = await r.json();
+    if (!s.connected) throw new Error("not the agent");
+    if (!live) { live = true; $("demo").hidden = true; }
+    pendingRunning = !!s.current || s.queue.length > 0;
+    chip("chipConn", true, "מחובר למחשב");
+    render(s);
+  } catch (e) {
+    if (live) { chip("chipConn", false, "החיבור נותק"); }
+    else if (!demo.on) demo.start();
+  }
+  setTimeout(poll, live ? 600 : 3000);
+}
+
+/* ---------------- demo mode (no agent running) ---------------- */
+const demo = {
+  on: false, seq: 0, id: 3, current: null, queue: [], wake: 0, events: [], timer: null,
+  finished: [
+    { id: 2, text: "תפתח את התיקייה Downloads ותמיין לפי תאריך", status: "done", steps: 5 },
+    { id: 1, text: "תפתח את המחשבון ותחשב 125*8", status: "done", steps: 4 },
+  ],
+  start() {
+    this.on = true; $("demo").hidden = false; chip("chipConn", false, "לא מחובר · הדגמה");
+    this.ev("info", "Dashboard: http://localhost:8765  (demo)");
+    this.tick();
+  },
+  ev(kind, text, task) { this.events.push({ seq: ++this.seq, kind, text, task }); },
+  state() {
+    const s = { current: this.current, queue: this.queue, finished: this.finished.slice(0, 20), confirm: null,
+      events: this.events.splice(0), wake: this.wake, model: "claude-opus-5-5", connected: false,
+      clap: { enabled: true, status: "listening", level: Math.random() * 0.05 } };
+    return s;
+  },
+  tick() { pendingRunning = !!this.current || this.queue.length > 0; render(this.state()); setTimeout(() => this.tick(), 700); },
+  post(path, body) {
+    if (path === "/api/task") { const t = { id: this.id++, text: body.text, status: "queued", steps: 0 }; this.queue.push(t); this.ev("info", `Queued task #${t.id}: ${t.text}`, t.id); this.run(); }
+    else if (path === "/api/stop" && this.current) this.finish("cancelled");
+    else if (path.startsWith("/api/cancel/")) { const id = +path.split("/").pop(); this.queue = this.queue.filter((t) => { if (t.id === id) { t.status = "cancelled"; this.finished.unshift(t); return false; } return true; }); }
+    else if (path === "/api/clear") { this.queue.forEach((t) => { t.status = "cancelled"; this.finished.unshift(t); }); this.queue = []; if (this.current) this.finish("cancelled"); }
+    else if (path === "/api/wake") { this.wake++; this.ev("wake", "👏👏 Double clap detected - waking up."); }
+    return Promise.resolve({ ok: true });
+  },
+  run() {
+    if (this.current || !this.queue.length) return;
+    const t = this.current = this.queue.shift(); t.status = "running";
+    this.ev("task", `=== Task #${t.id}: ${t.text}`, t.id);
+    const script = ["screenshot {}", "key {'text': 'super'}", "type {'text': '...'}", "key {'text': 'Return'}", "wait {'duration': 1}", "screenshot {}"];
+    let i = 0;
+    this.timer = setInterval(() => {
+      if (i < script.length) { t.steps = i + 1; this.ev("action", "   -> " + script[i++], t.id); return; }
+      this.ev("reply", "זו הדגמה, אז לא נגעתי במחשב. כשהסוכן רץ אצלך, כאן תופיע התשובה האמיתית.", t.id);
+      this.finish("done");
+    }, 900);
+  },
+  finish(status) {
+    clearInterval(this.timer); const t = this.current; if (!t) return;
+    t.status = status; this.finished.unshift(t); this.current = null;
+    this.ev(status, `=== Task #${t.id} ${status === "done" ? "finished" : "cancelled"}.`, t.id);
+    setTimeout(() => this.run(), 400);
+  },
+  checks() {
+    return { checks: [
+      { name: "Claude API", ok: false, detail: "תצוגה מקדימה: הבדיקה האמיתית רצה רק כשהסוכן פועל במחשב שלך" },
+    ] };
+  },
+};
+
+setMode("idle");
+poll();
+})();
+</script>
