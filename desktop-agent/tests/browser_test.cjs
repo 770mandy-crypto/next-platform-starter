@@ -6,7 +6,7 @@ const port = process.argv[2] || "8799";
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
   const errors = [];
   page.on("pageerror", (e) => errors.push(String(e)));
-  await page.goto(`http://localhost:${port}/`);
+  await page.goto(`http://localhost:${port}/?t=test-token`);
   const results = [];
   const check = (name, ok, detail = "") => { results.push({ name, ok, detail }); };
 
@@ -19,6 +19,14 @@ const port = process.argv[2] || "8799";
   const cov = await page.evaluate(() => window.HEBREW.coverage());
   check("speech covers all 27 Hebrew letters", cov.missing.length === 0 && cov.total === 27, JSON.stringify(cov));
 
+  const picked = await page.evaluate(() => [
+    pickVoice("he", [{ name: "Microsoft Hila Online (Natural) - Hebrew (Israel)", lang: "he-IL" },
+                     { name: "Microsoft Avri Online (Natural) - Hebrew (Israel)", lang: "he-IL" }]).name,
+    pickVoice("he", [{ name: "Microsoft Asaf - Hebrew (Israel)", lang: "he-IL" }, { name: "Carmit", lang: "he-IL" }]).name,
+  ]);
+  check("chooses a male Hebrew voice (Avri / Asaf)", /Avri/.test(picked[0]) && /Asaf/.test(picked[1]), picked.join(", "));
+  const noTok = await page.evaluate(async () => (await fetch("/api/state")).status);
+  check("API refuses requests without the secret key", noTok === 401, String(noTok));
   await page.fill("#taskInput", "תפתח את המחשבון ותחשב 12*12");
   await page.click("button.send");
   await page.waitForFunction(() => document.querySelector("#tasks").textContent.includes("המחשבון"), null, { timeout: 8000 });

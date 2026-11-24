@@ -74,6 +74,7 @@ header.top .sub { color: var(--muted); font-size: 13px; }
 .stop { background: transparent; border-color: var(--rose); color: var(--rose); font-weight: 500; flex: none; }
 .stop:disabled { opacity: .35; cursor: default; }
 .confirm { border-color: var(--amber); }
+#confirmText { white-space: pre-wrap; unicode-bidi: plaintext; overflow-wrap: anywhere; max-height: 220px; overflow: auto; font-size: 14px; background: var(--ink); border-radius: 10px; padding: 10px 12px; }
 .confirm .row { display: flex; gap: 8px; margin-top: 10px; }
 .confirm .allow { background: var(--mint); color: var(--ink); border-color: var(--mint); }
 ul.tasks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
@@ -314,20 +315,49 @@ function speak(text, then) {
     const u = new SpeechSynthesisUtterance(text.replace(/[*_`#>]/g, ""));
     const heb = /[֐-׿]/.test(text);
     u.lang = heb ? "he-IL" : "en-US";
-    const pool = voices.filter((v) => v.lang && v.lang.toLowerCase().replace("_", "-").startsWith(heb ? "he" : "en"));
-    const v = pool.find((v) => /natural|online|google/i.test(v.name)) || pool[0];
+    const v = pickVoice(heb ? "he" : "en");
     if (v) u.voice = v;
-    u.rate = 1.02;
+    u.rate = 1.0;
+    // Male voice: use a male voice when one exists, otherwise deepen the pitch.
+    u.pitch = v && MALE.test(v.name) ? 1.0 : 0.7;
     u.onstart = () => { speaking = true; refreshMode(lastRunning); };
     u.onend = u.onerror = () => { speaking = false; refreshMode(lastRunning); then && then(); };
     speechSynthesis.speak(u);
   } catch (e) { speaking = false; then && then(); }
 }
 
-function listen() {
+const MALE = /avri|asaf|guy|david|mark|andrew|brian|christopher|eric|roger|steffan|daniel|alex|fred|tom|aaron|arthur|male/i;
+const FEMALE = /hila|carmit|zira|aria|jenny|michelle|samantha|susan|hazel|libby|sonia|female|karen|moira|tessa|victoria/i;
+function pickVoice(lang, list) {
+  const pool = (list || voices).filter((v) => v.lang && v.lang.toLowerCase().replace("_", "-").startsWith(lang));
+  const score = (v) => (MALE.test(v.name) ? 4 : 0) + (FEMALE.test(v.name) ? -4 : 0) + (/natural|online/i.test(v.name) ? 2 : 0);
+  return pool.sort((a, b) => score(b) - score(a))[0] || null;
+}
+
+window.pickVoice = pickVoice; window.MALE_VOICE = MALE;
+
+async function micAllowed() {
+  // Ask for the microphone explicitly so the browser shows its permission prompt.
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return true;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream.getTracks().forEach((t) => t.stop());
+    return true;
+  } catch (e) {
+    $("say").textContent = !live
+      ? "בתצוגה המקדימה אין גישה למיקרופון. במחשב שלך, בלוח שנפתח מ-run-dashboard, הדפדפן יבקש אישור."
+      : (e.name === "NotFoundError"
+        ? "לא נמצא מיקרופון. חבר מיקרופון או אוזניות ונסה שוב."
+        : "אין הרשאה למיקרופון. לחץ על סמל המנעול ליד הכתובת ← מיקרופון ← אפשר. ב-Windows בדוק גם: הגדרות ← פרטיות ← מיקרופון.");
+    return false;
+  }
+}
+
+async function listen() {
   if (!SR) { $("say").textContent = "הדפדפן הזה לא תומך בזיהוי דיבור. פתח את הלוח ב-Chrome או ב-Edge."; return; }
   if (listening) { try { rec.stop(); } catch (e) {} return; }
   try { speechSynthesis.cancel(); } catch (e) {}
+  if (!(await micAllowed())) return;
   rec = new SR(); rec.lang = "he-IL"; rec.interimResults = true; rec.maxAlternatives = 1;
   let finalText = "";
   rec.onstart = () => { listening = true; $("mic").classList.add("on"); refreshMode(lastRunning); $("say").textContent = "מקשיב…"; };
@@ -338,7 +368,8 @@ function listen() {
   };
   rec.onerror = (e) => {
     if (e.error === "not-allowed" || e.error === "service-not-allowed")
-      $("say").textContent = "אין הרשאה למיקרופון. אשר גישה למיקרופון בדפדפן ונסה שוב.";
+      $("say").textContent = "אין הרשאה למיקרופון. לחץ על סמל המנעול ליד הכתובת ← מיקרופון ← אפשר.";
+    else if (e.error === "network") $("say").textContent = "זיהוי הדיבור צריך חיבור לאינטרנט. בדוק את החיבור ונסה שוב.";
     else if (e.error === "no-speech") $("say").textContent = "לא שמעתי כלום. נסה שוב.";
   };
   rec.onend = () => {
@@ -356,9 +387,19 @@ function handleUtterance(text) {
 }
 
 /* ---------------- backend (or demo) ---------------- */
+/* The server prints a link with a secret (?t=...). Keep it for this tab and remove it from the address bar. */
+const TOKEN = (() => {
+  const q = new URLSearchParams(location.search);
+  let t = q.get("t");
+  try { if (t) sessionStorage.setItem("agentToken", t); else t = sessionStorage.getItem("agentToken"); } catch (e) {}
+  if (q.has("t")) { q.delete("t"); try { history.replaceState(null, "", location.pathname + (q.toString() ? "?" + q : "")); } catch (e) {} }
+  return t || "";
+})();
+const api = (path, opts = {}) => fetch(path, { ...opts, cache: "no-store", headers: { ...(opts.headers || {}), "X-Agent-Token": TOKEN } });
+
 async function post(path, body) {
   if (!live) return demo.post(path, body);
-  const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
+  const r = await api(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
   return r.json();
 }
 
@@ -385,7 +426,7 @@ $("tasks").addEventListener("click", (e) => {
 async function runChecks() {
   const box = $("checks"); box.innerHTML = '<span></span><span class="empty">בודק…</span>';
   let data;
-  try { data = live ? await (await fetch("/api/check")).json() : demo.checks(); }
+  try { data = live ? await (await api("/api/check")).json() : demo.checks(); }
   catch (e) { box.innerHTML = '<span class="mark bad">✕</span><span>הבדיקה נכשלה: ' + esc(String(e)) + "</span>"; return; }
   const names = { "Python": "Python", "Operating system": "מערכת הפעלה", "API key set": "מפתח API מוגדר", "Screen size": "גודל מסך",
     "Screenshot": "צילום מסך", "Mouse access": "שליטה בעכבר", "Hebrew typing (pyperclip)": "הקלדה בעברית",
@@ -410,7 +451,7 @@ HEB.coverage = () => {
   const all = "אבגדהוזחטיכלמנסעפצקרשתךםןףץ".split("");
   return { missing: all.filter((c) => !said.includes(c)), total: all.length };
 };
-HEB.voice = () => voices.find((v) => v.lang && v.lang.toLowerCase().replace("_", "-").startsWith("he")) || null;
+HEB.voice = () => pickVoice("he");
 
 function speakAll(parts, done) {
   const next = (i) => i >= parts.length ? done && done() : speak(parts[i], () => next(i + 1));
@@ -423,7 +464,7 @@ function hebrewTest() {
   const row = (ok, name, detail) => `<span class="mark ${ok ? "ok" : "bad"}">${ok ? "✓" : "✕"}</span><span>${esc(name)}${detail ? `<div class="d">${esc(detail)}</div>` : ""}</span>`;
   const isMac = /Mac/.test(navigator.platform);
   box.innerHTML =
-    row(!!v, "קול בעברית", v ? `${v.name} (${v.lang})` : (isMac
+    row(!!v, "קול בעברית", v ? `${v.name} (${v.lang})${MALE.test(v.name) ? " · קול גבר" : " · הקול הועמק לקול גברי"}` : (isMac
       ? "לא נמצא קול עברי. הגדרות מערכת ← נגישות ← תוכן מדובר ← קול מערכת ← עברית (Carmit)"
       : "לא נמצא קול עברי. הכי פשוט: לפתוח את הלוח ב-Microsoft Edge (יש בו קולות עבריים טבעיים), או להוסיף עברית ב-הגדרות ← זמן ושפה ← דיבור")) +
     row(cov.missing.length === 0, "כיסוי אותיות", cov.missing.length ? "חסרות: " + cov.missing.join(" ") : `כל ${cov.total} האותיות, כולל 5 אותיות סופיות`) +
@@ -464,7 +505,7 @@ function render(s) {
   $("tasks").innerHTML = rows.length ? rows.join("") : '<li><span class="empty">עדיין אין משימות</span></li>';
 
   $("confirmCard").hidden = !s.confirm;
-  if (s.confirm) $("confirmText").textContent = "הפעולה הבאה מחכה לאישור שלך.";
+  if (s.confirm) $("confirmText").textContent = s.confirm;
 
   const log = $("log"); const atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 30;
   for (const ev of s.events) {
@@ -504,7 +545,8 @@ function chip(id, ok, text) {
 
 async function poll() {
   try {
-    const r = await fetch("/api/state?since=" + lastSeq, { cache: "no-store" });
+    const r = await api("/api/state?since=" + lastSeq);
+    if (r.status === 401) { chip("chipConn", false, "אין הרשאה"); $("say").textContent = "פתח את הלוח דרך הקישור שמופיע בחלון של הסוכן (הוא כולל מפתח אישי)."; setTimeout(poll, 3000); return; }
     if (!r.ok) throw new Error(r.status);
     const s = await r.json();
     if (!s.connected) throw new Error("not the agent");

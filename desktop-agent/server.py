@@ -11,7 +11,9 @@ Clap twice to bring the dashboard up and start listening.
 from __future__ import annotations
 
 import argparse
+import hmac
 import json
+import secrets
 import os
 import platform
 import threading
@@ -37,6 +39,11 @@ class State:
         self.clap = {"enabled": False, "status": "off", "level": 0.0}
         self.last_open = 0.0
         self.last_poll = 0.0       # when a dashboard last polled
+        # Secret for this run: only a browser opened with it can control the agent.
+        self.token = os.environ.get("AGENT_TOKEN") or secrets.token_urlsafe(24)
+
+    def url(self, extra: str = "") -> str:
+        return f"http://localhost:{self.args.port}/?t={self.token}{extra}"
 
     def wake(self) -> None:
         self.wake_seq += 1
@@ -44,7 +51,7 @@ class State:
         # Open the dashboard if no browser tab has polled recently.
         if time.time() - self.last_poll > 3 and time.time() - self.last_open > 10:
             self.last_open = time.time()
-            webbrowser.open(f"http://localhost:{self.args.port}/?wake=1")
+            webbrowser.open(self.url("&wake=1"))
 
 
 def system_check() -> list[dict]:
@@ -115,6 +122,15 @@ def make_handler(state: State):
             self.send_response(code)
             self.send_header("Content-Type", ctype + "; charset=utf-8")
             self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Frame-Options", "DENY")
+            self.send_header("Referrer-Policy", "no-referrer")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            if ctype == "text/html":
+                self.send_header("Content-Security-Policy",
+                                 "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; "
+                                 "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+                                 "font-src https://fonts.gstatic.com; connect-src 'self'; img-src 'self' data:; "
+                                 "frame-ancestors 'none'")
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()
             self.wfile.write(data)
@@ -126,17 +142,34 @@ def make_handler(state: State):
             except json.JSONDecodeError:
                 return {}
 
-        def _local_only(self) -> bool:
-            # Refuse requests from other web pages (simple CSRF guard).
-            origin = self.headers.get("Origin")
-            allowed = {f"http://localhost:{state.args.port}", f"http://127.0.0.1:{state.args.port}"}
-            if origin and origin not in allowed:
-                self._send(403, {"error": "forbidden"})
+        def _allowed(self, need_token: bool = True) -> bool:
+            """Only this computer's own dashboard tab may use the API.
+
+            - Host must be localhost (blocks DNS-rebinding attacks).
+            - Origin, when sent, must be this dashboard (blocks other websites).
+            - X-Agent-Token must match this run's secret (blocks other programs
+              and other users on this computer that don't have the link).
+            """
+            port = state.args.port
+            hosts = {f"localhost:{port}", f"127.0.0.1:{port}"}
+            if self.headers.get("Host") not in hosts:
+                self._send(403, {"error": "forbidden host"})
                 return False
+            origin = self.headers.get("Origin")
+            if origin and origin not in {f"http://{h}" for h in hosts}:
+                self._send(403, {"error": "forbidden origin"})
+                return False
+            if need_token:
+                given = self.headers.get("X-Agent-Token") or ""
+                if not hmac.compare_digest(given.encode(), state.token.encode()):
+                    self._send(401, {"error": "missing or wrong token - open the link shown in the terminal"})
+                    return False
             return True
 
         def do_GET(self):
             path = self.path.split("?")[0]
+            if not self._allowed(need_token=path.startswith("/api/")):
+                return
             if path in ("/", "/index.html"):
                 head = (b'<!doctype html><html lang="he"><meta charset="utf-8">'
                         b'<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">')
@@ -160,7 +193,7 @@ def make_handler(state: State):
                 self._send(404, {"error": "not found"})
 
         def do_POST(self):
-            if not self._local_only():
+            if not self._allowed():
                 return
             path = self.path.split("?")[0]
             body = self._json()
@@ -194,9 +227,11 @@ def main() -> None:
     p = argparse.ArgumentParser(description="Claude desktop agent - dashboard mode")
     p.add_argument("--port", type=int, default=8765)
     p.add_argument("--effort", default="medium", choices=["low", "medium", "high", "xhigh", "max"])
-    p.add_argument("--max-steps", type=int, default=60)
+    p.add_argument("--max-steps", type=int, default=150)
     p.add_argument("--confirm", action="store_true", help="approve every action from the dashboard")
     p.add_argument("--keep-context", action="store_true")
+    p.add_argument("--auto-commands", action="store_true",
+                   help="run shell commands without asking (emails always ask)")
     p.add_argument("--no-clap", action="store_true", help="disable clap-to-wake")
     p.add_argument("--clap-sensitivity", type=float, default=1.0,
                    help="higher = reacts to softer claps (try 0.5-2)")
@@ -219,7 +254,7 @@ def main() -> None:
             log("info", f"(clap detection unavailable: {e})")
 
     server = ThreadingHTTPServer(("127.0.0.1", args.port), make_handler(state))
-    url = f"http://localhost:{args.port}"
+    url = state.url()
     log("info", f"Dashboard: {url}  (Ctrl+C to quit)")
     if not args.no_browser:
         threading.Timer(0.8, lambda: webbrowser.open(url)).start()
