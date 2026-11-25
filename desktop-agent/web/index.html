@@ -117,6 +117,15 @@ ul.list button { padding: 4px 10px; font-size: 12px; }
       <div class="row"><button class="yes" id="approveYes">אשר</button><button id="approveNo">בטל</button></div>
     </section>
 
+    <section class="card approve" id="micCard" hidden>
+      <h2>בדיקת מיקרופון <button type="button" id="micClose">סגור</button></h2>
+      <div class="conn" id="micDiag"></div>
+      <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+        <button type="button" class="yes" id="micPerms">פתח את הרשאות העמוד</button>
+        <button type="button" id="micRetry">נסה שוב</button>
+      </div>
+    </section>
+
     <section class="card">
       <h2>שיחה <button type="button" id="clearChat">שיחה חדשה</button></h2>
       <div class="chat" id="chat" aria-live="polite"></div>
@@ -316,7 +325,7 @@ const ready = (async () => {
       listening = state === "listening" || state === "starting";
       $("mic").classList.toggle("on", listening); refreshMode();
       if (state === "listening") { $("say").textContent = "מקשיב…"; chip("chipMic", true, "מיקרופון פועל"); }
-      if (state === "idle" && reason === "not_granted") micBlocked();
+      if (state === "idle" && ["not_granted", "unavailable", "upstream_error", "rate_limited"].includes(reason)) micBlocked(reason);
       if (state === "idle" && heard.trim()) { const t = heard.trim(); heard = ""; handleInput(t); }
     });
     dictation.onPartial(({ text }) => { if (text) $("say").textContent = heard + " " + text; });
@@ -358,22 +367,69 @@ async function speak(text, then) {
 $("testVoice").addEventListener("click", () => speak("שלום, אני הסוכן שלך. אני מדבר עברית, ואפשר לבחור לי קול אחר בתפריט."));
 
 /* ---------------- voice in ---------------- */
-let heard = "";
-function micBlocked() {
-  chip("chipMic", false, "אין הרשאה למיקרופון");
-  $("say").textContent = "אין גישה למיקרופון. פתח את תפריט ההרשאות של העמוד (למעלה, ליד שם העמוד) והפעל הכתבה. אם הדפדפן חוסם: סמל המנעול ליד הכתובת ← מיקרופון ← אפשר.";
+let heard = "", lastMicError = null;
+function micBlocked(code) {
+  lastMicError = code || "not_granted";
+  chip("chipMic", false, "המיקרופון חסום");
+  $("say").textContent = "המיקרופון לא עובד. פתחתי בדיקת מיקרופון בצד, שם כתוב מה חוסם אותו.";
+  micDiagnose();
 }
+function browserInfo() {
+  const ua = navigator.userAgent;
+  const mobile = /Android|iPhone|iPad|Mobile/i.test(ua);
+  const name = /Edg\//.test(ua) ? "Edge" : /OPR\//.test(ua) ? "Opera" : /Firefox\//.test(ua) ? "Firefox"
+    : /Chrome\//.test(ua) ? "Chrome" : /Safari\//.test(ua) ? "Safari" : "דפדפן אחר";
+  const app = /Claude|Electron/i.test(ua);
+  return { name, mobile, app, ok: !mobile && (name === "Chrome" || name === "Edge") };
+}
+async function micDiagnose() {
+  const box = $("micDiag"); box.textContent = ""; $("micCard").hidden = false;
+  const row = (ok, title, detail) => {
+    const m = document.createElement("span"); m.className = "chip " + (ok === true ? "ok" : ok === false ? "bad" : "warn"); m.innerHTML = '<span class="dot"></span>';
+    const t = document.createElement("span"); t.textContent = title;
+    const d = document.createElement("div"); d.className = "d"; d.textContent = detail; t.appendChild(d);
+    box.append(m, t, document.createElement("span"));
+  };
+  const b = browserInfo();
+  row(b.ok, "דפדפן: " + (b.app ? "אפליקציית Claude" : b.name) + (b.mobile ? " (טלפון)" : ""),
+    b.mobile ? "הכתבה לא עובדת בטלפון. פתח את claude.ai ב-Chrome או ב-Edge במחשב."
+    : b.app ? "באפליקציה, הכתבה עובדת רק בחלון הראשי. אם זה לא עובד, פתח את הקישור ב-Chrome או ב-Edge."
+    : b.ok ? "הדפדפן מתאים." : `הכתבה לא עובדת ב-${b.name}. פתח את claude.ai ב-Chrome או ב-Edge.`);
+  row(!!cap.dictation, "הכתבה של claude.ai", cap.dictation ? "זמינה בעמוד הזה."
+    : "לא זמינה בתצוגה הזאת. זה קורה בטלפון, ב-Safari או Firefox, בחלון משני של האפליקציה, או אם העמוד פתוח מחשבון של ארגון אחר.");
+  let st = "unavailable";
+  try { const perms = await window.claude.use("permissions"); if (perms) st = await perms.state("dictation"); } catch (e) {}
+  row(st === "granted" ? true : st === "prompt" ? null : false, "אישור הכתבה לעמוד",
+    { granted: "מאושר.", prompt: "עוד לא אישרת. בלחיצה על המיקרופון תופיע שאלה: לחץ אפשר.",
+      denied: "חסום. לחץ \"פתח את הרשאות העמוד\" והפעל הכתבה.", unavailable: "לא ניתן לבדוק כאן." }[st]);
+  let ms = null;
+  try { ms = (await navigator.permissions.query({ name: "microphone" })).state; } catch (e) {}
+  row(ms === "granted" ? true : ms === "denied" ? false : null, "הרשאת מיקרופון בדפדפן",
+    ms === "denied" ? "הדפדפן חוסם את המיקרופון ל-claude.ai. לחץ על סמל המנעול ליד הכתובת ← מיקרופון ← אפשר, ורענן."
+    : ms === "granted" ? "מאושר." : "אם הדפדפן שואל, לחץ אפשר. ב-Windows: הגדרות ← פרטיות ← מיקרופון ← לאפשר לאפליקציות שולחן עבודה.");
+  if (lastMicError) row(false, "השגיאה האחרונה", {
+    not_granted: "ההכתבה נחסמה (בעמוד או בדפדפן).", unavailable: "ההכתבה לא זמינה לחשבון או לשפה הזאת.",
+    rate_limited: "המיקרופון תפוס (אולי הכתבה פתוחה בצ'אט של claude.ai). סגור אותה ונסה שוב.",
+    upstream_error: "המיקרופון או שירות הדיבור נכשלו. בדוק שהמיקרופון מחובר ושאף תוכנה אחרת לא תופסת אותו (Zoom, Teams).",
+    no_gesture: "צריך ללחוץ על כפתור המיקרופון עצמו.", dismissed: "סגרת את השאלה בלי לענות. לחץ שוב על המיקרופון ובחר אפשר.",
+    no_capability: "ההכתבה לא זמינה בתצוגה הזאת (ראה למעלה).",
+  }[lastMicError] || lastMicError);
+}
+$("micClose").addEventListener("click", () => { $("micCard").hidden = true; });
+$("micRetry").addEventListener("click", () => { $("micCard").hidden = true; $("mic").click(); });
+$("micPerms").addEventListener("click", async () => {
+  try { const perms = await window.claude.use("permissions"); if (!perms) throw 0; await perms.manage(); micDiagnose(); }
+  catch (e) { $("say").textContent = "פתח את תפריט ההרשאות של העמוד: למעלה, ליד שם העמוד, ושם הפעל הכתבה."; }
+});
 $("mic").addEventListener("click", () => {
   const d = cap.dictation;
-  if (!d) { $("say").textContent = "המיקרופון זמין כאן רק ב-Chrome או ב-Edge במחשב. בינתיים אפשר לכתוב."; $("taskInput").focus(); return; }
+  if (!d) { micBlocked("no_capability"); $("taskInput").focus(); return; }
   if (d.active()) { d.stop().catch(() => {}); return; }
   if (cap.tts && cap.tts.active()) cap.tts.stop().catch(() => {});
   heard = "";
   d.start({ language: "he" }).catch((e) => {         // called straight from the click
-    if (e.code === "not_granted") micBlocked();
-    else if (e.code === "unavailable") d.start().catch(() => micBlocked());
-    else if (e.code === "rate_limited") $("say").textContent = "המיקרופון תפוס כרגע. נסה שוב בעוד רגע.";
-    else if (e.code !== "stopped" && e.code !== "dismissed") $("say").textContent = "המיקרופון לא נפתח. נסה שוב.";
+    if (e.code === "unavailable") d.start().catch((e2) => micBlocked(e2.code));
+    else if (e.code !== "stopped") micBlocked(e.code);
   });
 });
 
