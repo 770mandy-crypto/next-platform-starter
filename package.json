@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "node --test 'lib/*.test.mjs'"
+    "test": "node --test 'lib/*.test.mjs'",
+    "test:voice-e2e": "node scripts/voice-e2e.cjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.120.0",
